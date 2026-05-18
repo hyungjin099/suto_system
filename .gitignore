@@ -1,0 +1,68 @@
+HELP.md
+.gradle
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+### STS ###
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.sts4-cache
+bin/
+!**/src/main/**/bin/
+!**/src/test/**/bin/
+
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### NetBeans ###
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+### VS Code ###
+.vscode/
+
+### react ignore ###
+# Logs
+src/front_dream_company/logs
+src/front_dream_company/*.log
+src/front_dream_company/npm-debug.log*
+src/front_dream_company/yarn-debug.log*
+src/front_dream_company/yarn-error.log*
+src/front_dream_company/pnpm-debug.log*
+src/front_dream_company/lerna-debug.log*
+
+# Dependencies
+src/front_dream_company/node_modules
+
+# Build outputs
+src/front_dream_company/dist
+src/front_dream_company/dist-ssr
+
+# Environment variables
+src/front_dream_company/*.local
+
+# Editor directories and files
+src/front_dream_company/.vscode/*
+!src/front_dream_company/.vscode/extensions.json
+src/front_dream_company/.idea
+src/front_dream_company/.DS_Store
+src/front_dream_company/*.suo
+src/front_dream_company/*.ntvs*
+src/front_dream_company/*.njsproj
+src/front_dream_company/*.sln
+src/front_dream_company/*.sw?
