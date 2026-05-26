@@ -1,0 +1,181 @@
+.page {
+  padding-bottom: 140px;
+}
+
+.main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 16px 24px;
+}
+
+.intro {
+  margin-bottom: 24px;
+}
+
+.title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--ink);
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  font-size: 14.5px;
+  color: var(--muted);
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+}
+
+.subtitleAccent {
+  color: var(--brand-ink);
+  font-weight: 600;
+}
+
+.section {
+  margin-top: 28px;
+}
+
+.section.first {
+  margin-top: 0;
+}
+
+.countChip {
+  font-size: 12.5px;
+  color: var(--brand-ink);
+  font-weight: 600;
+  background: var(--brand-soft);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.itemsGrid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.addBtn {
+  margin-top: 14px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 14px;
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border: 1px dashed var(--brand-line);
+  border-radius: var(--radius);
+  box-sizing: border-box;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.addBtn:hover {
+  background: var(--brand-soft-2);
+}
+
+.addBtn:active {
+  background: var(--brand-soft-2);
+}
+
+.destCard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+  padding: 18px;
+}
+
+.destHint {
+  margin: 10px 2px 0;
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.bottomNote {
+  margin-top: 24px;
+  font-size: 12.5px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.stickyBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: color-mix(in oklab, var(--bg) 80%, transparent);
+  backdrop-filter: saturate(140%) blur(10px);
+  -webkit-backdrop-filter: saturate(140%) blur(10px);
+  border-top: 1px solid var(--line);
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  z-index: 10;
+}
+
+.stickyInner {
+  max-width: 640px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summary {
+  flex: 1;
+  min-width: 0;
+}
+
+.summaryLabel {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  font-size: 14px;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 2px;
+}
+
+.numeric {
+  font-variant-numeric: tabular-nums;
+}
+
+.sep {
+  color: var(--line-2);
+  margin: 0 8px;
+}
+
+.reviewBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 22px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--brand) 60%, transparent);
+  transition: transform 0.08s, box-shadow 0.15s;
+}
+
+.reviewBtn:active {
+  transform: translateY(1px);
+}
