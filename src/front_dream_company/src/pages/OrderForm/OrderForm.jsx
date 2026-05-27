@@ -1,6 +1,7 @@
 /* 주문 입력 메인 페이지 */
 
 import { useState, useRef, useEffect, useMemo } from "react";
+import { useParams } from "react-router-dom";
 import Header from "./components/Header";
 import SectionHeader from "./components/SectionHeader";
 import ProductCard from "./components/ProductCard";
@@ -8,21 +9,39 @@ import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
 import { Label, TextInput } from "./components/Fields";
 import { IconPlus, IconChevron } from "./components/Icons";
-import { PRODUCT_OPTIONS, emptyItem, validateItem } from "./constants";
+import { emptyItem, validateItem } from "./constants";
+import { fetchClientFabrics, submitOrder } from "./api";
+import { seedClients } from "../Admin/clientData";
 import styles from "./OrderForm.module.css";
 
 const cx = (...args) => args.filter(Boolean).join(" ");
 
-// 접속한 고객사명. URL 쿼리 등으로 동적 주입 가능.
-const CLIENT_COMPANY = "한빛제과 ㈜";
-
 export default function OrderForm() {
+  const { clientCode } = useParams(); // URL 마지막 숫자 = URL_NUM
+  const urlNum = parseInt(clientCode, 10) || 0;
+  const clientData = seedClients().find((c) => c.accessCode === clientCode);
+  const clientName = clientData?.name || "드림컴퍼니";
+  const managerPhone = clientData?.managerPhone || "";
+
+  const [fabricOptions, setFabricOptions] = useState([]);
+  const [fabricsLoading, setFabricsLoading] = useState(true);
   const [items, setItems] = useState([emptyItem()]);
   const [destination, setDestination] = useState("");
   const [errors, setErrors] = useState({ items: {}, destination: false });
   const [showSummary, setShowSummary] = useState(false);
   const [submitted, setSubmitted] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [blockMsg, setBlockMsg] = useState("");
   const addedRef = useRef(null);
+
+  useEffect(() => {
+    if (!urlNum) { setFabricsLoading(false); return; }
+    fetchClientFabrics(urlNum)
+      .then(setFabricOptions)
+      .catch(() => {})
+      .finally(() => setFabricsLoading(false));
+  }, [urlNum]);
 
   const totalRolls = useMemo(
     () => items.reduce((sum, it) => sum + (parseInt(it.rolls, 10) || 0), 0),
@@ -30,7 +49,16 @@ export default function OrderForm() {
   );
 
   const updateItem = (id, next) => {
-    setItems((arr) => arr.map((it) => (it.id === id ? next : it)));
+    setItems((arr) =>
+      arr.map((it) => {
+        if (it.id !== id) return it;
+        if (next.product !== it.product) {
+          const fab = fabricOptions.find((f) => f.value === next.product);
+          return { ...next, prodName: fab?.prodName || "" };
+        }
+        return next;
+      })
+    );
     if (errors.items[id]) {
       setErrors((e) => ({ ...e, items: { ...e.items, [id]: undefined } }));
     }
@@ -60,6 +88,11 @@ export default function OrderForm() {
   }, [items.length]);
 
   const tryReview = () => {
+    if (new Date().getHours() === 0) {
+      setBlockMsg("00:00 ~ 01:00 사이에는 시스템 점검 시간으로 주문을 접수할 수 없습니다.\n01시 이후에 다시 시도해 주세요.");
+      return;
+    }
+    setBlockMsg("");
     const itemErrs = {};
     items.forEach((it) => {
       const e = validateItem(it);
@@ -80,21 +113,30 @@ export default function OrderForm() {
     setShowSummary(true);
   };
 
-  const submit = () => {
-    setSubmitted({
-      orderId: "ORD-" + Date.now().toString(36).toUpperCase().slice(-6),
-      at: new Date(),
-      items: items.map((it) => ({
-        ...it,
-        productLabel:
-          PRODUCT_OPTIONS.find((p) => p.value === it.product)?.label ||
-          it.product,
-      })),
-      destination,
-      totalRolls,
-    });
-    setShowSummary(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const submit = async () => {
+    setSubmitting(true);
+    setSubmitError("");
+    const effectiveDestination = destination.trim() || clientName;
+    try {
+      const res = await submitOrder({ urlNum, destination: effectiveDestination, clientName, managerPhone, items });
+      setSubmitted({
+        orderId: res.orderId,
+        at: new Date(),
+        items: items.map((it) => ({
+          ...it,
+          productLabel:
+            fabricOptions.find((f) => f.value === it.product)?.label || it.prodName || it.product,
+        })),
+        destination: effectiveDestination,
+        totalRolls,
+      });
+      setShowSummary(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch (e) {
+      setSubmitError("주문 접수 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const resetAll = () => {
@@ -108,7 +150,7 @@ export default function OrderForm() {
 
   return (
     <div className={styles.page}>
-      <Header clientCompany={CLIENT_COMPANY} />
+      <Header clientCompany={clientName} />
 
       <main className={styles.main}>
         {/* Intro */}
@@ -139,7 +181,8 @@ export default function OrderForm() {
                   index={i}
                   total={items.length}
                   item={it}
-                  products={PRODUCT_OPTIONS}
+                  products={fabricOptions}
+                  fabricsLoading={fabricsLoading}
                   errors={errors.items[it.id]}
                   onChange={(next) => updateItem(it.id, next)}
                   onRemove={() => removeItem(it.id)}
@@ -182,6 +225,11 @@ export default function OrderForm() {
 
       {/* Sticky submit bar */}
       <div className={styles.stickyBar}>
+        {blockMsg && (
+          <div className={styles.blockMsg}>
+            {blockMsg.split("\n").map((line, i) => <span key={i}>{line}</span>)}
+          </div>
+        )}
         <div className={styles.stickyInner}>
           <div className={styles.summary}>
             <div className={styles.summaryLabel}>주문 요약</div>
@@ -206,6 +254,8 @@ export default function OrderForm() {
           items={items}
           destination={destination}
           totalRolls={totalRolls}
+          submitting={submitting}
+          submitError={submitError}
           onClose={() => setShowSummary(false)}
           onSubmit={submit}
         />

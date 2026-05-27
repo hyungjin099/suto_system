@@ -12,6 +12,7 @@ export default function ProductCard({
   total,
   item,
   products,
+  fabricsLoading,
   onChange,
   onRemove,
   errors,
@@ -41,8 +42,9 @@ export default function ProductCard({
         <SelectInput
           value={item.product}
           onChange={(v) => set("product", v)}
-          placeholder="제품을 선택하세요"
+          placeholder={fabricsLoading ? "원단 목록 불러오는 중…" : "제품을 선택하세요"}
           options={products}
+          disabled={fabricsLoading}
           error={errors?.product}
         />
       </div>

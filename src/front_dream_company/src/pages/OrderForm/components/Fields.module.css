@@ -78,6 +78,10 @@
   background: var(--danger-soft);
   box-shadow: none;
 }
+.selectWrap.disabled {
+  opacity: 0.55;
+  pointer-events: none;
+}
 .select {
   width: 100%;
   border: none;

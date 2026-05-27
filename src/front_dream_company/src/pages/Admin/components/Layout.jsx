@@ -10,6 +10,7 @@ import {
   IconCart,
   IconUsers,
   IconChart,
+  IconLink,
 } from "./Icons";
 import { cx } from "../utils";
 import styles from "./Layout.module.css";
@@ -28,6 +29,12 @@ const MENU_ITEMS = [
     path: "/admin/clients",
     Icon: IconUsers,
   },
+  {
+    key: "fabric-alias",
+    label: "원단 별칭 관리",
+    path: "/admin/fabric-alias",
+    Icon: IconLink,
+  },
   { key: "reports", label: "매출 리포트", path: null, Icon: IconChart },
 ];
 
@@ -35,6 +42,8 @@ const MENU_ITEMS = [
 function resolveActive(pathname) {
   if (pathname.startsWith("/admin/clients"))
     return { key: "clients", category: "고객사 관리", page: "등록 고객사 목록" };
+  if (pathname.startsWith("/admin/fabric-alias"))
+    return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
   // 기본값(제품 관리)
   return { key: "products", category: "제품 관리", page: "원단 카탈로그" };
 }

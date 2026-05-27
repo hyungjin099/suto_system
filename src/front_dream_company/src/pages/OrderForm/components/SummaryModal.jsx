@@ -12,6 +12,8 @@ export default function SummaryModal({
   items,
   destination,
   totalRolls,
+  submitting = false,
+  submitError = "",
   onClose,
   onSubmit,
 }) {
@@ -72,10 +74,15 @@ export default function SummaryModal({
           </div>
         </div>
 
+        {submitError && (
+          <p className={styles.errorMsg}>{submitError}</p>
+        )}
+
         <div className={styles.actions}>
           <button
             type="button"
             onClick={onClose}
+            disabled={submitting}
             className={styles.cancelBtn}
           >
             수정
@@ -83,9 +90,10 @@ export default function SummaryModal({
           <button
             type="button"
             onClick={onSubmit}
+            disabled={submitting}
             className={styles.submitBtn}
           >
-            <IconCheck /> 주문 제출
+            {submitting ? "접수 중…" : <><IconCheck /> 주문 제출</>}
           </button>
         </div>
       </div>

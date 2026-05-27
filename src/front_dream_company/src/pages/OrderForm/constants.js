@@ -16,7 +16,8 @@ export const emptyItem = () => ({
     typeof crypto !== "undefined" && crypto.randomUUID
       ? crypto.randomUUID()
       : String(Math.random()),
-  product: "",
+  product: "",   // 공식 원단 코드 (DB 저장)
+  prodName: "",  // 공식 원단명 (DB·시트 저장)
   width: "",
   length: "",
   rolls: "1",

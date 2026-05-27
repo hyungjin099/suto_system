@@ -201,4 +201,17 @@
   justify-content: center;
   gap: 8px;
   box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--brand) 60%, transparent);
+  transition: opacity 0.15s;
+}
+.submitBtn:disabled,
+.cancelBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorMsg {
+  font-size: 13px;
+  color: var(--danger, #dc2626);
+  text-align: center;
+  margin: 0 0 8px;
 }

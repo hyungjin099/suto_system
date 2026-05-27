@@ -1,39 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<!-- 해당 파일에 모든 쿼리문을 작성 -->
-<!-- namespace에는 xml파일과 연결할 Mapper interface 파일명을 패키지를 포함하여 적어주세요 -->
-<mapper namespace="mapper">
-	
+<mapper namespace="com.dream_comp.auto_system.mapper.OrderMapper">
+
+    <!-- 주문 헤더 ResultMap (items 컬렉션 포함) -->
+    <resultMap id="orderResultMap" type="com.dream_comp.auto_system.vo.OrderVo">
+        <id     property="orderNum"    column="ORDER_NUM"/>
+        <result property="urlNum"      column="URL_NUM"/>
+        <result property="orderId"     column="ORDER_ID"/>
+        <result property="destination" column="DESTINATION"/>
+        <result property="status"      column="STATUS"/>
+        <result property="orderDate"   column="ORDER_DATE"/>
+        <collection property="items" ofType="com.dream_comp.auto_system.vo.OrderItemVo">
+            <id     property="itemNum"      column="ITEM_NUM"/>
+            <result property="orderNum"     column="ORDER_NUM"/>
+            <result property="product"      column="PRODUCT"/>
+            <result property="productLabel" column="PRODUCT_LABEL"/>
+            <result property="width"        column="WIDTH"/>
+            <result property="length"       column="LENGTH"/>
+            <result property="rolls"        column="ROLLS"/>
+        </collection>
+    </resultMap>
+
+    <!-- 주문 헤더 INSERT (AUTO_INCREMENT PK를 orderVo.orderNum에 반환) -->
+    <insert id="insertOrder"
+            useGeneratedKeys="true"
+            keyProperty="orderNum"
+            keyColumn="ORDER_NUM">
+        INSERT INTO ORDER_INFO (URL_NUM, ORDER_ID, DESTINATION, STATUS, ORDER_DATE)
+        VALUES (#{urlNum}, #{orderId}, #{destination}, #{status}, #{orderDate})
+    </insert>
+
+    <!-- 주문 품목 INSERT -->
+    <insert id="insertOrderItem">
+        INSERT INTO ORDER_ITEM (ORDER_NUM, PRODUCT, PRODUCT_LABEL, WIDTH, LENGTH, ROLLS)
+        VALUES (#{orderNum}, #{product}, #{productLabel}, #{width}, #{length}, #{rolls})
+    </insert>
+
 </mapper>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

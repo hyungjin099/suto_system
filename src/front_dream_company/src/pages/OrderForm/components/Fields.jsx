@@ -56,7 +56,7 @@ export function TextInput({
   );
 }
 
-export function SelectInput({ value, onChange, options, placeholder, error }) {
+export function SelectInput({ value, onChange, options, placeholder, error, disabled }) {
   const [focus, setFocus] = useState(false);
   const empty = !value;
   return (
@@ -64,7 +64,8 @@ export function SelectInput({ value, onChange, options, placeholder, error }) {
       className={cx(
         styles.selectWrap,
         focus && !error && styles.focused,
-        error && styles.error
+        error && styles.error,
+        disabled && styles.disabled
       )}
     >
       <select
@@ -73,6 +74,7 @@ export function SelectInput({ value, onChange, options, placeholder, error }) {
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocus(true)}
         onBlur={() => setFocus(false)}
+        disabled={disabled}
       >
         <option value="" disabled>
           {placeholder}

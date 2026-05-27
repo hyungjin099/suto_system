@@ -1,0 +1,518 @@
+/* FabricAliasAdmin – 원단 별칭 관리 페이지 스타일 */
+
+/* ── 고객사 탭 바 ───────────────────────────────────── */
+
+.clientBar {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  scrollbar-width: none;
+}
+.clientBar::-webkit-scrollbar {
+  display: none;
+}
+
+.clientTab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.clientTab:hover:not(.clientTabActive) {
+  background: var(--bg);
+  border-color: var(--line-2);
+  color: var(--ink);
+}
+.clientTabActive {
+  background: var(--brand-soft);
+  border-color: var(--brand-line);
+  color: var(--brand-ink);
+  font-weight: 700;
+}
+
+.tabBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--brand-soft-2);
+  color: var(--brand-ink);
+  min-width: 20px;
+  text-align: center;
+}
+.clientTabActive .tabBadge {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* ── 진행률 바 ──────────────────────────────────────── */
+
+.statsRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.statsText b {
+  color: var(--ink);
+}
+.progressTrack {
+  flex: 1;
+  max-width: 180px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: hidden;
+}
+.progressFill {
+  height: 100%;
+  background: var(--brand);
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+.statsPercent {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  min-width: 36px;
+}
+
+/* ── 2단 패널 컨테이너 ──────────────────────────────── */
+
+.panels {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  min-height: 560px;
+  max-height: calc(100dvh - 310px);
+}
+
+/* ── 패널 공통 ──────────────────────────────────────── */
+
+.panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  transition: background 0.15s;
+}
+.panelDragOver {
+  background: var(--brand-soft);
+}
+
+.panelHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 18px 10px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.panelTitle {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+}
+.panelCount {
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.filterRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--muted);
+  cursor: text;
+  transition: border-color 0.12s, background 0.12s;
+}
+.searchBox:focus-within {
+  border-color: var(--brand-line);
+  background: var(--surface);
+}
+
+.searchInput {
+  flex: 1;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 0;
+  padding: 0;
+}
+.searchInput::placeholder {
+  color: var(--muted);
+}
+
+.clearBtn {
+  display: flex;
+  align-items: center;
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+.clearBtn:hover {
+  color: var(--ink);
+}
+
+.catSelect {
+  padding: 6px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13px;
+  cursor: pointer;
+  outline: none;
+  white-space: nowrap;
+  transition: border-color 0.12s;
+}
+.catSelect:focus {
+  border-color: var(--brand-line);
+}
+
+/* 스크롤 가능한 패널 본문 */
+.panelScroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── 왼쪽 원단 카드 ─────────────────────────────────── */
+
+.fabricCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  cursor: grab;
+  transition: box-shadow 0.12s, border-color 0.12s, opacity 0.12s;
+  user-select: none;
+}
+.fabricCard:hover {
+  border-color: var(--line-2);
+  box-shadow: 0 2px 8px -4px rgba(20, 30, 22, 0.14);
+}
+.fabricCard:active {
+  cursor: grabbing;
+}
+.fabricCardDragging {
+  opacity: 0.35;
+}
+
+.grip {
+  font-size: 14px;
+  color: var(--line-2);
+  line-height: 1;
+  flex-shrink: 0;
+  letter-spacing: -2px;
+}
+
+.fabricMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.fabricCode {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  letter-spacing: 0.06em;
+}
+.fabricName {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catBadge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+/* ── 중앙 구분선 ────────────────────────────────────── */
+
+.centerDivider {
+  width: 40px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-left: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+}
+.dividerArrow {
+  font-size: 16px;
+  color: var(--muted);
+  opacity: 0.6;
+}
+
+/* ── 오른쪽 별칭 카드 ───────────────────────────────── */
+
+.aliasCard {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  transition: border-color 0.12s;
+}
+.aliasCard:hover {
+  border-color: var(--line-2);
+}
+
+/* 드롭 직후 별칭 입력 대기 카드 */
+.aliasCardPending {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 2px solid oklch(0.82 0.12 75);
+  border-radius: 10px;
+  background: oklch(0.99 0.025 90);
+  animation: popIn 0.18s ease;
+}
+
+@keyframes popIn {
+  from { transform: scale(0.97); opacity: 0.5; }
+  to   { transform: scale(1);    opacity: 1;   }
+}
+
+.aliasFabricName {
+  font-size: 11.5px;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aliasInputRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arrow {
+  font-size: 13px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+
+.aliasInput {
+  flex: 1;
+  min-width: 0;
+  padding: 5px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.12s;
+}
+.aliasInput:focus {
+  border-color: var(--brand-line);
+}
+.aliasInputError {
+  border-color: var(--danger) !important;
+}
+
+.aliasError {
+  font-size: 11.5px;
+  color: var(--danger);
+  padding-left: 4px;
+}
+
+/* 확인 버튼 */
+.okBtn {
+  padding: 5px 10px;
+  border-radius: 6px;
+  border: none;
+  background: var(--brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: opacity 0.12s;
+}
+.okBtn:hover:not(:disabled) {
+  opacity: 0.85;
+}
+.okBtn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+/* 취소 버튼 */
+.cancelAliasBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px 7px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s;
+}
+.cancelAliasBtn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* 매칭 완료 행 */
+.aliasViewRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.aliasValue {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aliasActions {
+  display: flex;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.12s;
+}
+.aliasCard:hover .aliasActions {
+  opacity: 1;
+}
+
+.editAliasBtn,
+.removeAliasBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.editAliasBtn:hover {
+  color: var(--ink);
+  border-color: var(--line-2);
+}
+.removeAliasBtn:hover {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ── 빈 상태 ────────────────────────────────────────── */
+
+.emptyLeft {
+  padding: 48px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+}
+
+.emptyRight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 60px 24px;
+  color: var(--muted);
+  font-size: 13.5px;
+  border: 2px dashed var(--line);
+  border-radius: 12px;
+  margin: 4px 0;
+  transition: border-color 0.12s, background 0.12s;
+}
+.emptyRightActive {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+.emptyRightIcon {
+  font-size: 28px;
+  opacity: 0.35;
+}
+.emptyRightSub {
+  font-size: 12px;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.emptySearch {
+  padding: 32px 20px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13.5px;
+}
