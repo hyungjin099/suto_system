@@ -38,6 +38,11 @@
   background: var(--danger);
 }
 
+.confirmBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .targetName {
   font-weight: 600;
   color: var(--ink);

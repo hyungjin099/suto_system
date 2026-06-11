@@ -3,6 +3,7 @@ import OrderForm from "./pages/OrderForm/OrderForm";
 import ProductAdmin from "./pages/Admin/ProductAdmin";
 import ClientAdmin from "./pages/Admin/ClientAdmin";
 import FabricAliasAdmin from "./pages/Admin/FabricAliasAdmin";
+import SupplierAdmin from "./pages/Admin/SupplierAdmin";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
       <Route path="/admin" element={<Navigate to="/admin/products" replace />} />
       <Route path="/admin/products" element={<ProductAdmin />} />
       <Route path="/admin/clients" element={<ClientAdmin />} />
+      <Route path="/admin/suppliers" element={<SupplierAdmin />} />
       <Route path="/admin/fabric-alias" element={<FabricAliasAdmin />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />

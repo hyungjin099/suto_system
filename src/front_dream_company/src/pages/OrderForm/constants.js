@@ -11,7 +11,7 @@ export const PRODUCT_OPTIONS = [
   { value: "eco", label: "친환경 생분해 필름" },
 ];
 
-export const emptyItem = () => ({
+export const emptyItem = (destination = "") => ({
   id:
     typeof crypto !== "undefined" && crypto.randomUUID
       ? crypto.randomUUID()
@@ -21,6 +21,8 @@ export const emptyItem = () => ({
   width: "",
   length: "",
   rolls: "1",
+  destination,
+  note: "",
 });
 
 export function validateItem(it) {

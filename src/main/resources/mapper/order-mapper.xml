@@ -6,12 +6,11 @@
 
     <!-- 주문 헤더 ResultMap (items 컬렉션 포함) -->
     <resultMap id="orderResultMap" type="com.dream_comp.auto_system.vo.OrderVo">
-        <id     property="orderNum"    column="ORDER_NUM"/>
-        <result property="urlNum"      column="URL_NUM"/>
-        <result property="orderId"     column="ORDER_ID"/>
-        <result property="destination" column="DESTINATION"/>
-        <result property="status"      column="STATUS"/>
-        <result property="orderDate"   column="ORDER_DATE"/>
+        <id     property="orderNum"  column="ORDER_NUM"/>
+        <result property="urlNum"    column="URL_NUM"/>
+        <result property="orderId"   column="ORDER_ID"/>
+        <result property="status"    column="STATUS"/>
+        <result property="orderDate" column="ORDER_DATE"/>
         <collection property="items" ofType="com.dream_comp.auto_system.vo.OrderItemVo">
             <id     property="itemNum"      column="ITEM_NUM"/>
             <result property="orderNum"     column="ORDER_NUM"/>
@@ -20,6 +19,8 @@
             <result property="width"        column="WIDTH"/>
             <result property="length"       column="LENGTH"/>
             <result property="rolls"        column="ROLLS"/>
+            <result property="destination"  column="DESTINATION"/>
+            <result property="note"         column="NOTE"/>
         </collection>
     </resultMap>
 
@@ -28,14 +29,14 @@
             useGeneratedKeys="true"
             keyProperty="orderNum"
             keyColumn="ORDER_NUM">
-        INSERT INTO ORDER_INFO (URL_NUM, ORDER_ID, DESTINATION, STATUS, ORDER_DATE)
-        VALUES (#{urlNum}, #{orderId}, #{destination}, #{status}, #{orderDate})
+        INSERT INTO ORDER_INFO (URL_NUM, ORDER_ID, STATUS, ORDER_DATE)
+        VALUES (#{urlNum}, #{orderId}, #{status}, #{orderDate})
     </insert>
 
     <!-- 주문 품목 INSERT -->
     <insert id="insertOrderItem">
-        INSERT INTO ORDER_ITEM (ORDER_NUM, PRODUCT, PRODUCT_LABEL, WIDTH, LENGTH, ROLLS)
-        VALUES (#{orderNum}, #{product}, #{productLabel}, #{width}, #{length}, #{rolls})
+        INSERT INTO ORDER_ITEM (ORDER_NUM, PRODUCT, PRODUCT_LABEL, WIDTH, LENGTH, ROLLS, DESTINATION, NOTE)
+        VALUES (#{orderNum}, #{product}, #{productLabel}, #{width}, #{length}, #{rolls}, #{destination}, #{note})
     </insert>
 
 </mapper>

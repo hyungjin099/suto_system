@@ -1,0 +1,49 @@
+.apiError {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #dc2626;
+}
+
+.searchBar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.searchInput {
+  flex: 1;
+  max-width: 360px;
+  border: 1.5px solid var(--line-2);
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-size: 13.5px;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.searchInput:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 12%, transparent);
+}
+
+.searchInput::placeholder {
+  color: var(--muted);
+}
+
+.countLabel {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.confirmName {
+  font-weight: 600;
+  color: var(--ink);
+}

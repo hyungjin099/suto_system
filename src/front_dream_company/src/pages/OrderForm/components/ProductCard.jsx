@@ -53,7 +53,7 @@ export default function ProductCard({
       <div className={styles.dimensions}>
         <div className={styles.dimCol}>
           <Label required hint="mm">
-            가로
+            가로(폭)
           </Label>
           <TextInput
             value={formatNumber(item.width)}
@@ -66,7 +66,7 @@ export default function ProductCard({
         </div>
         <div className={styles.dimCol}>
           <Label required hint="m">
-            길이
+            길이(M)
           </Label>
           <TextInput
             value={formatNumber(item.length)}
@@ -95,12 +95,34 @@ export default function ProductCard({
       </div>
 
       {/* rolls */}
-      <div>
+      <div className={styles.field}>
         <Label required>롤수</Label>
         <Stepper
           value={item.rolls}
           onChange={(v) => set("rolls", v)}
           error={errors?.rolls}
+        />
+      </div>
+
+      {/* note */}
+      <div className={styles.field}>
+        <Label hint="선택 입력">비고</Label>
+        <textarea
+          className={styles.noteArea}
+          value={item.note}
+          onChange={(e) => set("note", e.target.value)}
+          placeholder="특이사항, 요청사항 등을 자유롭게 입력해 주세요"
+          rows={3}
+        />
+      </div>
+
+      {/* destination */}
+      <div>
+        <Label hint="선택 입력">납품처</Label>
+        <TextInput
+          value={item.destination}
+          onChange={(v) => set("destination", v)}
+          placeholder="납품받으실 곳 (상호명·주소 등)"
         />
       </div>
     </div>

@@ -1,22 +1,24 @@
 /* 주문 검토 모달 */
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { IconCheck } from "./Icons";
 import { formatNumber } from "../utils";
-import { PRODUCT_OPTIONS } from "../constants";
 import styles from "./SummaryModal.module.css";
 
 const cx = (...args) => args.filter(Boolean).join(" ");
 
 export default function SummaryModal({
   items,
-  destination,
+  clientName,
+  fabricOptions = [],
   totalRolls,
   submitting = false,
   submitError = "",
   onClose,
   onSubmit,
 }) {
+  const pendingRef = useRef(false);
+
   useEffect(() => {
     const orig = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -24,6 +26,16 @@ export default function SummaryModal({
       document.body.style.overflow = orig;
     };
   }, []);
+
+  useEffect(() => {
+    if (submitError) pendingRef.current = false;
+  }, [submitError]);
+
+  const handleSubmit = () => {
+    if (pendingRef.current || submitting) return;
+    pendingRef.current = true;
+    onSubmit();
+  };
 
   return (
     <div onClick={onClose} className={styles.overlay}>
@@ -34,43 +46,37 @@ export default function SummaryModal({
 
         {/* items table */}
         <div className={styles.itemsTable}>
-          {items.map((it) => (
-            <div key={it.id} className={styles.itemRow}>
-              <div className={styles.itemHeader}>
-                <span className={styles.itemName}>
-                  {PRODUCT_OPTIONS.find((p) => p.value === it.product)?.label}
-                </span>
-                <span className={styles.itemRolls}>
-                  {parseInt(it.rolls, 10)}롤
-                </span>
+          {items.map((it) => {
+            const label =
+              fabricOptions.find((f) => f.value === it.product)?.label ||
+              it.prodName ||
+              it.product;
+            const dest = it.destination?.trim() || clientName;
+            return (
+              <div key={it.id} className={styles.itemRow}>
+                <div className={styles.itemHeader}>
+                  <span className={styles.itemName}>{label}</span>
+                  <span className={styles.itemRolls}>{parseInt(it.rolls, 10)}롤</span>
+                </div>
+                <div className={styles.itemDims}>
+                  {formatNumber(it.width)}
+                  <span className={styles.unit}>mm</span>
+                  <span className={styles.timesSep}>×</span>
+                  {formatNumber(it.length)}
+                  <span className={styles.unit}>m</span>
+                </div>
+                <div className={styles.itemDest}>
+                  <span className={styles.destLabel}>납품처</span>
+                  <span className={styles.destValue}>{dest}</span>
+                </div>
               </div>
-              <div className={styles.itemDims}>
-                {formatNumber(it.width)}
-                <span className={styles.unit}>mm</span>
-                <span className={styles.timesSep}>×</span>
-                {formatNumber(it.length)}
-                <span className={styles.unit}>m</span>
-              </div>
-            </div>
-          ))}
+            );
+          })}
           <div className={styles.totalRow}>
             <span>합계</span>
             <span className={styles.totalVal}>
               {items.length}개 제품 · {totalRolls}롤
             </span>
-          </div>
-        </div>
-
-        {/* destination */}
-        <div className={styles.destBox}>
-          <div className={styles.destLabel}>납품처</div>
-          <div
-            className={cx(
-              styles.destValue,
-              !destination.trim() && styles.empty
-            )}
-          >
-            {destination.trim() || "미입력"}
           </div>
         </div>
 
@@ -89,7 +95,7 @@ export default function SummaryModal({
           </button>
           <button
             type="button"
-            onClick={onSubmit}
+            onClick={handleSubmit}
             disabled={submitting}
             className={styles.submitBtn}
           >

@@ -9,4 +9,6 @@ public class OrderItemDto {
     private int width;            // 폭 (mm)
     private int length;           // 길이 (m)
     private int rolls;            // 롤수
+    private String destination;   // 아이템별 납품처
+    private String note;          // 비고
 }

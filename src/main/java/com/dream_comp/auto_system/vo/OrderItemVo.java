@@ -11,4 +11,6 @@ public class OrderItemVo {
     private int width;
     private int length;
     private int rolls;
+    private String destination;
+    private String note;
 }

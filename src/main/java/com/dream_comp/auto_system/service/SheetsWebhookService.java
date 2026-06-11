@@ -90,9 +90,8 @@ public class SheetsWebhookService {
         Map<String, Object> payload = new HashMap<>();
         payload.put("orderId", orderId);
         payload.put("urlNum", dto.getUrlNum());
-        payload.put("clientName",    dto.getClientName()    != null ? dto.getClientName()    : "");
-        payload.put("managerPhone",  dto.getManagerPhone()  != null ? dto.getManagerPhone()  : "");
-        payload.put("destination",   dto.getDestination()   != null ? dto.getDestination()   : "");
+        payload.put("clientName",   dto.getClientName()   != null ? dto.getClientName()   : "");
+        payload.put("managerPhone", dto.getManagerPhone() != null ? dto.getManagerPhone() : "");
         payload.put("orderDate",
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
@@ -104,6 +103,7 @@ public class SheetsWebhookService {
             row.put("width", item.getWidth());
             row.put("length", item.getLength());
             row.put("rolls", item.getRolls());
+            row.put("destination", item.getDestination() != null ? item.getDestination() : "");
             itemList.add(row);
         }
         payload.put("items", itemList);

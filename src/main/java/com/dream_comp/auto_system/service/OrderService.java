@@ -29,7 +29,6 @@ public class OrderService {
         OrderVo orderVo = new OrderVo();
         orderVo.setUrlNum(dto.getUrlNum());
         orderVo.setOrderId(orderId);
-        orderVo.setDestination(dto.getDestination());
         orderVo.setStatus("PENDING");
         orderVo.setOrderDate(LocalDateTime.now());
         orderMapper.insertOrder(orderVo);
@@ -42,6 +41,8 @@ public class OrderService {
             itemVo.setWidth(item.getWidth());
             itemVo.setLength(item.getLength());
             itemVo.setRolls(item.getRolls());
+            itemVo.setDestination(item.getDestination() != null ? item.getDestination() : "");
+            itemVo.setNote(item.getNote() != null ? item.getNote() : "");
             orderMapper.insertOrderItem(itemVo);
         }
 

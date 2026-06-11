@@ -11,6 +11,7 @@ export default function ConfirmDialog({
   body,
   confirmLabel,
   danger,
+  disabled,
   onCancel,
   onConfirm,
 }) {
@@ -33,6 +34,7 @@ export default function ConfirmDialog({
         <button
           type="button"
           onClick={onConfirm}
+          disabled={disabled}
           className={cx(styles.confirmBtn, danger && styles.confirmBtnDanger)}
         >
           {confirmLabel}

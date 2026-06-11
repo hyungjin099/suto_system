@@ -13,10 +13,9 @@ export async function fetchClientFabrics(urlNum) {
   }));
 }
 
-export async function submitOrder({ urlNum, destination, clientName, managerPhone, items }) {
+export async function submitOrder({ urlNum, clientName, managerPhone, items }) {
   const payload = {
     urlNum,
-    destination: destination || "",
     clientName: clientName || "",
     managerPhone: managerPhone || "",
     items: items.map((it) => ({
@@ -25,6 +24,8 @@ export async function submitOrder({ urlNum, destination, clientName, managerPhon
       width: parseInt(it.width, 10) || 0,
       length: parseInt(it.length, 10) || 0,
       rolls: parseInt(it.rolls, 10) || 1,
+      destination: it.destination?.trim() || clientName || "",
+      note: it.note?.trim() || "",
     })),
   };
 

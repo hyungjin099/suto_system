@@ -84,3 +84,28 @@
   color: #fff;
   border-color: var(--brand);
 }
+
+.noteArea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  border: 1.5px solid var(--line-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--surface);
+  line-height: 1.55;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.noteArea:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--brand) 14%, transparent);
+}
+
+.noteArea::placeholder {
+  color: var(--muted);
+}

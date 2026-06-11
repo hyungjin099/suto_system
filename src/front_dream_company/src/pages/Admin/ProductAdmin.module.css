@@ -1,3 +1,13 @@
+.apiError {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 13.5px;
+  color: #dc2626;
+}
+
 .confirmName {
   font-weight: 600;
   color: var(--ink);

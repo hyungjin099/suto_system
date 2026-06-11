@@ -1,77 +1,170 @@
 /* FabricAliasAdmin – 원단 별칭 관리 페이지 스타일 */
 
-/* ── 고객사 탭 바 ───────────────────────────────────── */
+/* ── 전체 레이아웃 (좌: 고객사 / 우: 작업영역) ─────────── */
 
-.clientBar {
+.layout {
   display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  padding-bottom: 16px;
-  scrollbar-width: none;
-}
-.clientBar::-webkit-scrollbar {
-  display: none;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+  box-shadow: var(--shadow-card);
+  min-height: 560px;
+  max-height: calc(100dvh - 240px);
 }
 
-.clientTab {
-  display: inline-flex;
+/* ── 좌측 고객사 목록 패널 ──────────────────────────────── */
+
+.clientPanel {
+  width: 200px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+}
+
+.clientPanelHead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 13px 14px 10px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+.clientPanelTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.clientPanelCount {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
+}
+
+.clientSearch {
+  display: flex;
   align-items: center;
   gap: 6px;
-  padding: 7px 14px;
-  border-radius: 8px;
-  border: 1px solid var(--line);
-  background: var(--surface);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.clientSearchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.clientSearchInput::placeholder {
+  color: var(--muted);
+}
+
+.clientList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.clientRow {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: transparent;
   color: var(--ink-2);
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  text-align: left;
+  transition: background 0.1s, color 0.1s;
 }
-.clientTab:hover:not(.clientTabActive) {
-  background: var(--bg);
-  border-color: var(--line-2);
+.clientRow:hover:not(.clientRowActive) {
+  background: color-mix(in oklab, var(--line) 40%, transparent);
   color: var(--ink);
 }
-.clientTabActive {
+.clientRowActive {
   background: var(--brand-soft);
-  border-color: var(--brand-line);
   color: var(--brand-ink);
   font-weight: 700;
 }
 
-.tabBadge {
-  font-size: 11px;
+.clientRowName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clientBadge {
+  flex-shrink: 0;
+  font-size: 10.5px;
   font-weight: 700;
   padding: 1px 6px;
   border-radius: 999px;
-  background: var(--brand-soft-2);
-  color: var(--brand-ink);
+  background: var(--surface);
+  color: var(--muted);
+  border: 1px solid var(--line);
   min-width: 20px;
   text-align: center;
 }
-.clientTabActive .tabBadge {
+.clientBadgeActive {
   background: var(--brand);
   color: #fff;
+  border-color: var(--brand);
 }
 
-/* ── 진행률 바 ──────────────────────────────────────── */
+.clientEmpty {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+/* ── 우측 작업 영역 ─────────────────────────────────────── */
+
+.workArea {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 진행률 바 ──────────────────────────────────────────── */
 
 .statsRow {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 16px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--line);
   font-size: 13px;
   color: var(--ink-2);
+  flex-shrink: 0;
+  background: var(--bg);
 }
 .statsText b {
   color: var(--ink);
 }
 .progressTrack {
   flex: 1;
-  max-width: 180px;
-  height: 6px;
+  max-width: 160px;
+  height: 5px;
   border-radius: 999px;
   background: var(--line);
   overflow: hidden;
@@ -86,23 +179,18 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--brand-ink);
-  min-width: 36px;
+  min-width: 32px;
 }
 
-/* ── 2단 패널 컨테이너 ──────────────────────────────── */
+/* ── 2단 패널 컨테이너 ──────────────────────────────────── */
 
 .panels {
   display: flex;
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  overflow: hidden;
-  background: var(--surface);
-  box-shadow: var(--shadow-card);
-  min-height: 560px;
-  max-height: calc(100dvh - 310px);
+  flex: 1;
+  min-height: 0;
 }
 
-/* ── 패널 공통 ──────────────────────────────────────── */
+/* ── 패널 공통 ──────────────────────────────────────────── */
 
 .panel {
   flex: 1;
@@ -119,12 +207,12 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 14px 18px 10px;
+  padding: 12px 16px 10px;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
 .panelTitle {
-  font-size: 13.5px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.01em;
@@ -143,7 +231,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
   flex-shrink: 0;
 }
@@ -153,9 +241,9 @@
   align-items: center;
   gap: 6px;
   flex: 1;
-  padding: 6px 10px;
+  padding: 5px 9px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--bg);
   color: var(--muted);
   cursor: text;
@@ -171,7 +259,7 @@
   border: none;
   background: transparent;
   outline: none;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--ink);
   min-width: 0;
   padding: 0;
@@ -195,12 +283,12 @@
 }
 
 .catSelect {
-  padding: 6px 10px;
+  padding: 5px 9px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: 7px;
   background: var(--bg);
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: 12.5px;
   cursor: pointer;
   outline: none;
   white-space: nowrap;
@@ -210,25 +298,24 @@
   border-color: var(--brand-line);
 }
 
-/* 스크롤 가능한 패널 본문 */
 .panelScroll {
   flex: 1;
   overflow-y: auto;
-  padding: 12px;
+  padding: 10px;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
-/* ── 왼쪽 원단 카드 ─────────────────────────────────── */
+/* ── 왼쪽 원단 카드 ─────────────────────────────────────── */
 
 .fabricCard {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 9px 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface);
   cursor: grab;
   transition: box-shadow 0.12s, border-color 0.12s, opacity 0.12s;
@@ -238,15 +325,11 @@
   border-color: var(--line-2);
   box-shadow: 0 2px 8px -4px rgba(20, 30, 22, 0.14);
 }
-.fabricCard:active {
-  cursor: grabbing;
-}
-.fabricCardDragging {
-  opacity: 0.35;
-}
+.fabricCard:active { cursor: grabbing; }
+.fabricCardDragging { opacity: 0.35; }
 
 .grip {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--line-2);
   line-height: 1;
   flex-shrink: 0;
@@ -261,14 +344,14 @@
   gap: 2px;
 }
 .fabricCode {
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 600;
   color: var(--muted);
   font-family: ui-monospace, SFMono-Regular, monospace;
   letter-spacing: 0.06em;
 }
 .fabricName {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 500;
   color: var(--ink);
   white-space: nowrap;
@@ -278,17 +361,17 @@
 
 .catBadge {
   flex-shrink: 0;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
   white-space: nowrap;
 }
 
-/* ── 중앙 구분선 ────────────────────────────────────── */
+/* ── 중앙 구분선 ────────────────────────────────────────── */
 
 .centerDivider {
-  width: 40px;
+  width: 36px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -298,35 +381,32 @@
   border-right: 1px solid var(--line);
 }
 .dividerArrow {
-  font-size: 16px;
+  font-size: 15px;
   color: var(--muted);
   opacity: 0.6;
 }
 
-/* ── 오른쪽 별칭 카드 ───────────────────────────────── */
+/* ── 오른쪽 별칭 카드 ───────────────────────────────────── */
 
 .aliasCard {
   display: flex;
   flex-direction: column;
   gap: 5px;
-  padding: 10px 12px;
+  padding: 9px 10px;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--surface);
   transition: border-color 0.12s;
 }
-.aliasCard:hover {
-  border-color: var(--line-2);
-}
+.aliasCard:hover { border-color: var(--line-2); }
 
-/* 드롭 직후 별칭 입력 대기 카드 */
 .aliasCardPending {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  padding: 10px 12px;
+  padding: 9px 10px;
   border: 2px solid oklch(0.82 0.12 75);
-  border-radius: 10px;
+  border-radius: 9px;
   background: oklch(0.99 0.025 90);
   animation: popIn 0.18s ease;
 }
@@ -337,7 +417,7 @@
 }
 
 .aliasFabricName {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--muted);
   font-weight: 500;
   white-space: nowrap;
@@ -348,11 +428,11 @@
 .aliasInputRow {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
 }
 
 .arrow {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--muted);
   flex-shrink: 0;
 }
@@ -360,55 +440,44 @@
 .aliasInput {
   flex: 1;
   min-width: 0;
-  padding: 5px 10px;
+  padding: 4px 8px;
   border: 1px solid var(--line-2);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: 12.5px;
   color: var(--ink);
   background: var(--surface);
   outline: none;
   transition: border-color 0.12s;
 }
-.aliasInput:focus {
-  border-color: var(--brand-line);
-}
-.aliasInputError {
-  border-color: var(--danger) !important;
-}
+.aliasInput:focus { border-color: var(--brand-line); }
+.aliasInputError { border-color: var(--danger) !important; }
 
 .aliasError {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--danger);
   padding-left: 4px;
 }
 
-/* 확인 버튼 */
 .okBtn {
-  padding: 5px 10px;
+  padding: 4px 9px;
   border-radius: 6px;
   border: none;
   background: var(--brand);
   color: #fff;
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   flex-shrink: 0;
   transition: opacity 0.12s;
 }
-.okBtn:hover:not(:disabled) {
-  opacity: 0.85;
-}
-.okBtn:disabled {
-  opacity: 0.35;
-  cursor: not-allowed;
-}
+.okBtn:hover:not(:disabled) { opacity: 0.85; }
+.okBtn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-/* 취소 버튼 */
 .cancelAliasBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 5px 7px;
+  padding: 4px 6px;
   border-radius: 6px;
   border: 1px solid var(--line);
   background: var(--surface);
@@ -417,20 +486,16 @@
   flex-shrink: 0;
   transition: color 0.12s, border-color 0.12s;
 }
-.cancelAliasBtn:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-}
+.cancelAliasBtn:hover { color: var(--danger); border-color: var(--danger); }
 
-/* 매칭 완료 행 */
 .aliasViewRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .aliasValue {
   flex: 1;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--brand-ink);
   min-width: 0;
@@ -446,39 +511,31 @@
   opacity: 0;
   transition: opacity 0.12s;
 }
-.aliasCard:hover .aliasActions {
-  opacity: 1;
-}
+.aliasCard:hover .aliasActions { opacity: 1; }
 
 .editAliasBtn,
 .removeAliasBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px 6px;
-  border-radius: 6px;
+  padding: 3px 5px;
+  border-radius: 5px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--muted);
   cursor: pointer;
   transition: color 0.12s, border-color 0.12s;
 }
-.editAliasBtn:hover {
-  color: var(--ink);
-  border-color: var(--line-2);
-}
-.removeAliasBtn:hover {
-  color: var(--danger);
-  border-color: var(--danger);
-}
+.editAliasBtn:hover { color: var(--ink); border-color: var(--line-2); }
+.removeAliasBtn:hover { color: var(--danger); border-color: var(--danger); }
 
-/* ── 빈 상태 ────────────────────────────────────────── */
+/* ── 빈 상태 ────────────────────────────────────────────── */
 
 .emptyLeft {
-  padding: 48px 20px;
+  padding: 40px 16px;
   text-align: center;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: 13px;
 }
 
 .emptyRight {
@@ -488,11 +545,11 @@
   justify-content: center;
   gap: 8px;
   text-align: center;
-  padding: 60px 24px;
+  padding: 48px 20px;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: 13px;
   border: 2px dashed var(--line);
-  border-radius: 12px;
+  border-radius: 10px;
   margin: 4px 0;
   transition: border-color 0.12s, background 0.12s;
 }
@@ -501,18 +558,18 @@
   background: var(--brand-soft);
 }
 .emptyRightIcon {
-  font-size: 28px;
+  font-size: 24px;
   opacity: 0.35;
 }
 .emptyRightSub {
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--muted);
   opacity: 0.8;
 }
 
 .emptySearch {
-  padding: 32px 20px;
+  padding: 28px 16px;
   text-align: center;
   color: var(--muted);
-  font-size: 13.5px;
+  font-size: 13px;
 }

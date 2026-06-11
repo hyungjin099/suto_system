@@ -36,6 +36,11 @@ out/
 ### VS Code ###
 .vscode/
 
+### 민감 정보 - Git 제외 ###
+src/main/resources/application-local.properties
+src/front_dream_company/.env.local
+src/front_dream_company/.env.*.local
+
 ### react ignore ###
 # Logs
 src/front_dream_company/logs

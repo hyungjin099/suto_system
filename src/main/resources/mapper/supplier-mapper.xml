@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dream_comp.auto_system.mapper.SupplierMapper">
+
+    <resultMap id="supplierResultMap" type="com.dream_comp.auto_system.dto.SupplierDto">
+        <id     property="supNum"        column="SUP_NUM"/>
+        <result property="supName"       column="SUP_NAME"/>
+        <result property="supTel"        column="SUP_TEL"/>
+        <result property="supManagerName" column="SUP_MANAGER_NAME"/>
+        <result property="supManagerTel" column="SUP_MANAGER_TEL"/>
+        <result property="regDate"       column="REG_DATE"/>
+    </resultMap>
+
+    <select id="findAllActive" resultMap="supplierResultMap">
+        SELECT SUP_NUM, SUP_NAME, SUP_TEL, SUP_MANAGER_NAME, SUP_MANAGER_TEL, REG_DATE
+        FROM SUPPLIER_INFO
+        WHERE SUP_STATUS = 1
+        ORDER BY SUP_NAME
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="supNum" keyColumn="SUP_NUM">
+        INSERT INTO SUPPLIER_INFO (SUP_NAME, SUP_TEL, SUP_MANAGER_NAME, SUP_MANAGER_TEL, SUP_STATUS)
+        VALUES (#{supName}, #{supTel}, #{supManagerName}, #{supManagerTel}, 1)
+    </insert>
+
+    <update id="update">
+        UPDATE SUPPLIER_INFO
+        SET SUP_NAME         = #{supName},
+            SUP_TEL          = #{supTel},
+            SUP_MANAGER_NAME = #{supManagerName},
+            SUP_MANAGER_TEL  = #{supManagerTel}
+        WHERE SUP_NUM = #{supNum}
+    </update>
+
+    <update id="deactivate">
+        UPDATE SUPPLIER_INFO
+        SET SUP_STATUS = 0
+        WHERE SUP_NUM = #{supNum}
+    </update>
+
+</mapper>

@@ -11,6 +11,7 @@ import {
   IconUsers,
   IconChart,
   IconLink,
+  IconTruck,
 } from "./Icons";
 import { cx } from "../utils";
 import styles from "./Layout.module.css";
@@ -30,6 +31,12 @@ const MENU_ITEMS = [
     Icon: IconUsers,
   },
   {
+    key: "suppliers",
+    label: "입고처 관리",
+    path: "/admin/suppliers",
+    Icon: IconTruck,
+  },
+  {
     key: "fabric-alias",
     label: "원단 별칭 관리",
     path: "/admin/fabric-alias",
@@ -42,6 +49,8 @@ const MENU_ITEMS = [
 function resolveActive(pathname) {
   if (pathname.startsWith("/admin/clients"))
     return { key: "clients", category: "고객사 관리", page: "등록 고객사 목록" };
+  if (pathname.startsWith("/admin/suppliers"))
+    return { key: "suppliers", category: "입고처 관리", page: "입고처 목록" };
   if (pathname.startsWith("/admin/fabric-alias"))
     return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
   // 기본값(제품 관리)

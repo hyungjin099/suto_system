@@ -7,7 +7,6 @@ import SectionHeader from "./components/SectionHeader";
 import ProductCard from "./components/ProductCard";
 import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
-import { Label, TextInput } from "./components/Fields";
 import { IconPlus, IconChevron } from "./components/Icons";
 import { emptyItem, validateItem } from "./constants";
 import { fetchClientFabrics, submitOrder } from "./api";
@@ -25,9 +24,8 @@ export default function OrderForm() {
 
   const [fabricOptions, setFabricOptions] = useState([]);
   const [fabricsLoading, setFabricsLoading] = useState(true);
-  const [items, setItems] = useState([emptyItem()]);
-  const [destination, setDestination] = useState("");
-  const [errors, setErrors] = useState({ items: {}, destination: false });
+  const [items, setItems] = useState([emptyItem(clientName)]);
+  const [errors, setErrors] = useState({ items: {} });
   const [showSummary, setShowSummary] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -69,7 +67,7 @@ export default function OrderForm() {
   };
 
   const addItem = () => {
-    const it = emptyItem();
+    const it = emptyItem(clientName);
     setItems((arr) => [...arr, it]);
     addedRef.current = it.id;
   };
@@ -98,7 +96,7 @@ export default function OrderForm() {
       const e = validateItem(it);
       if (Object.keys(e).length) itemErrs[it.id] = e;
     });
-    setErrors({ items: itemErrs, destination: false });
+    setErrors({ items: itemErrs });
     if (Object.keys(itemErrs).length) {
       const firstBadId = items.find((it) => itemErrs[it.id])?.id;
       if (firstBadId) {
@@ -116,9 +114,8 @@ export default function OrderForm() {
   const submit = async () => {
     setSubmitting(true);
     setSubmitError("");
-    const effectiveDestination = destination.trim() || clientName;
     try {
-      const res = await submitOrder({ urlNum, destination: effectiveDestination, clientName, managerPhone, items });
+      const res = await submitOrder({ urlNum, clientName, managerPhone, items });
       setSubmitted({
         orderId: res.orderId,
         at: new Date(),
@@ -126,8 +123,8 @@ export default function OrderForm() {
           ...it,
           productLabel:
             fabricOptions.find((f) => f.value === it.product)?.label || it.prodName || it.product,
+          destination: it.destination.trim() || clientName,
         })),
-        destination: effectiveDestination,
         totalRolls,
       });
       setShowSummary(false);
@@ -140,9 +137,8 @@ export default function OrderForm() {
   };
 
   const resetAll = () => {
-    setItems([emptyItem()]);
-    setDestination("");
-    setErrors({ items: {}, destination: false });
+    setItems([emptyItem(clientName)]);
+    setErrors({ items: {} });
     setSubmitted(null);
   };
 
@@ -160,6 +156,9 @@ export default function OrderForm() {
             제품 정보를 입력하고, 여러 제품을 주문하실 경우 아래
             <strong className={styles.subtitleAccent}> + 제품 추가 </strong>
             버튼으로 항목을 늘려주세요.
+          </p>
+          <p className={styles.notice}>
+            ⚠ 제품명에 보이지 않는 제품을 구매하시려면 담당자에게 연락 바랍니다.
           </p>
         </section>
 
@@ -196,28 +195,6 @@ export default function OrderForm() {
           </button>
         </section>
 
-        {/* Destination */}
-        <section className={styles.section}>
-          <SectionHeader n="2" title="납품처" />
-          <div id="dest-field" className={styles.destCard}>
-            <Label hint="선택 입력">납품받으실 곳</Label>
-            <TextInput
-              value={destination}
-              onChange={(v) => {
-                setDestination(v);
-                if (errors.destination)
-                  setErrors((e) => ({ ...e, destination: false }));
-              }}
-              placeholder="예: 인천광역시 남동구 ○○물류센터"
-              error={errors.destination}
-            />
-            <p className={styles.destHint}>
-              상호명, 주소, 담당자 등 받는 곳을 식별할 수 있도록 자유롭게 입력해
-              주세요.
-            </p>
-          </div>
-        </section>
-
         <p className={styles.bottomNote}>
           입력하신 정보는 주문 접수 후 담당자가 확인합니다.
         </p>
@@ -252,7 +229,8 @@ export default function OrderForm() {
       {showSummary && (
         <SummaryModal
           items={items}
-          destination={destination}
+          clientName={clientName}
+          fabricOptions={fabricOptions}
           totalRolls={totalRolls}
           submitting={submitting}
           submitError={submitError}

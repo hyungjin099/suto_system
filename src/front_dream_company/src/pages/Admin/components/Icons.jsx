@@ -232,6 +232,23 @@ export const IconCheck = ({ size = 14 }) => (
   </svg>
 );
 
+export const IconTruck = ({ size = 16 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="1.7"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M1 3h15v13H1zM16 8h4l3 3v5h-7V8z" />
+    <circle cx="5.5" cy="18.5" r="2.5" />
+    <circle cx="18.5" cy="18.5" r="2.5" />
+  </svg>
+);
+
 export const IconLink = ({ size = 16 }) => (
   <svg
     width={size}
