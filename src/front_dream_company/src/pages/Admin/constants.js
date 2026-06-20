@@ -13,10 +13,10 @@ export const MANUFACTURERS = [
   "코오롱인더스트리",
 ];
 
-// 거래처 사용구분
+// 거래처 사용구분 (DB CLI_USE_TYPE에 그대로 저장)
 export const CLI_USE_TYPES = [
-  { value: "등록", label: "등록" },
-  { value: "미사용", label: "미사용" },
+  { value: "YES", label: "YES" },
+  { value: "NO", label: "NO" },
 ];
 
 // ── FabricAliasAdmin 전용 시드 (실제 API 연결 전 임시 데이터) ─────────

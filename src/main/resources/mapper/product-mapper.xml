@@ -16,7 +16,21 @@
     <select id="findAll" resultMap="productResultMap">
         SELECT PROD_NUM, PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER, REG_DATE
         FROM PRODUCT_INFO
-        ORDER BY PROD_NAME
+        ORDER BY PROD_NUM DESC
+    </select>
+
+    <select id="findByProdNum" parameterType="long" resultMap="productResultMap">
+        SELECT PROD_NUM, PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER, REG_DATE
+        FROM PRODUCT_INFO
+        WHERE PROD_NUM = #{prodNum}
+    </select>
+
+    <select id="countByProdCode" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM PRODUCT_INFO WHERE PROD_CODE = #{prodCode}
+    </select>
+
+    <select id="countAliasByProdNum" parameterType="long" resultType="int">
+        SELECT COUNT(*) FROM CLIENT_FABRIC_ALIAS WHERE PROD_NUM = #{prodNum}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="prodNum" keyColumn="PROD_NUM">

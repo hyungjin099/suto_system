@@ -135,7 +135,3 @@ export async function updateClient(cliNum, form) {
   const res = await axios.put(`${BASE_URL}/api/clients/${cliNum}`, toClientReq(form));
   return toClient(res.data);
 }
-
-export async function deleteClient(cliNum) {
-  await axios.delete(`${BASE_URL}/api/clients/${cliNum}`);
-}

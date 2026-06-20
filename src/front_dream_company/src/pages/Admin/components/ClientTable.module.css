@@ -52,6 +52,10 @@
   transition: background 0.12s;
 }
 
+.row:nth-child(even) {
+  background: color-mix(in oklab, var(--brand-soft) 12%, transparent);
+}
+
 .row:hover {
   background: color-mix(in oklab, var(--brand-soft) 30%, transparent);
 }
@@ -59,6 +63,10 @@
 .cell {
   padding: 9px 16px;
   text-align: center;
+  font-size: 13.5px;
+  color: var(--ink);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .cellId {
@@ -276,4 +284,136 @@
 .emptyDesc {
   font-size: 12.5px;
   color: var(--muted);
+}
+
+
+/* 거래처/담당자 정보 모달 트리거 — 클릭 가능한 이름 표시 */
+.linkBtn {
+  background: none;
+  border: none;
+  padding: 4px 8px;
+  margin: -4px -8px;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--brand-ink);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.linkBtn:hover {
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.linkBtn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+/* 상세 정보 모달 (거래처/담당자 공용 디자인) */
+.infoHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--surface) 100%);
+  border-bottom: 1px solid var(--brand-line);
+}
+.infoHeaderText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.infoEyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--brand);
+  text-transform: uppercase;
+}
+.infoTitle {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  word-break: break-all;
+}
+.infoCloseBtn {
+  flex: 0 0 auto;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--muted);
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+.infoCloseBtn:hover {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border-color: var(--brand-line);
+}
+
+.infoBody {
+  padding: 20px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.infoRow {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 12px 4px;
+  border-bottom: 1px dashed var(--line);
+}
+.infoRow:last-child {
+  border-bottom: none;
+}
+.infoLabel {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+.infoValue {
+  font-size: 14.5px;
+  color: var(--ink);
+  font-weight: 500;
+  word-break: break-all;
+}
+
+
+/* 수정 버튼 — 기존 IconBtn 디자인(transparent bg + line-2 border + brand-soft hover) 유지,
+   가로폭만 아이콘+텍스트 콘텐츠에 맞춰 확장 */
+.editBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 18px;
+  white-space: nowrap;
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--line-2);
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.editBtn:hover {
+  background: var(--brand-soft);
+  border-color: var(--brand);
+}
+.editLabel {
+  letter-spacing: -0.01em;
 }

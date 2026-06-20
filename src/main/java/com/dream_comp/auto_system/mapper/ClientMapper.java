@@ -9,7 +9,7 @@ import java.util.List;
 public interface ClientMapper {
     List<ClientDto> findAll();
     ClientDto findByCliNum(Long cliNum);
+    int countByCliCode(String cliCode);
     void insert(ClientVo vo);
     void update(ClientVo vo);
-    void delete(Long cliNum);
 }

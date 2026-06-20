@@ -36,6 +36,10 @@
         WHERE CLI_NUM = #{cliNum}
     </select>
 
+    <select id="countByCliCode" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM CLIENT_INFO WHERE CLI_CODE = #{cliCode}
+    </select>
+
     <!-- 등록 시 CLI_USE_TYPE은 DB DEFAULT('YES')에 맡김 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="cliNum" keyColumn="CLI_NUM">
         INSERT INTO CLIENT_INFO (
@@ -60,9 +64,5 @@
             CLI_USE_TYPE     = #{cliUseType}
         WHERE CLI_NUM = #{cliNum}
     </update>
-
-    <delete id="delete">
-        DELETE FROM CLIENT_INFO WHERE CLI_NUM = #{cliNum}
-    </delete>
 
 </mapper>

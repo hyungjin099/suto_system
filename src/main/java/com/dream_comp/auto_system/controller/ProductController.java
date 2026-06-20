@@ -3,6 +3,7 @@ package com.dream_comp.auto_system.controller;
 import com.dream_comp.auto_system.dto.ProductDto;
 import com.dream_comp.auto_system.dto.ProductRequestDto;
 import com.dream_comp.auto_system.service.ProductService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,13 +22,13 @@ public class ProductController {
     }
 
     @PostMapping
-    public ResponseEntity<ProductDto> create(@RequestBody ProductRequestDto req) {
+    public ResponseEntity<ProductDto> create(@Valid @RequestBody ProductRequestDto req) {
         return ResponseEntity.ok(productService.create(req));
     }
 
     @PutMapping("/{prodNum}")
     public ResponseEntity<ProductDto> update(@PathVariable Long prodNum,
-                                             @RequestBody ProductRequestDto req) {
+                                             @Valid @RequestBody ProductRequestDto req) {
         return ResponseEntity.ok(productService.update(prodNum, req));
     }
 

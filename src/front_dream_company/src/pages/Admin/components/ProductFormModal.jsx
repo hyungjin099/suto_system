@@ -43,14 +43,24 @@ export default function ProductFormModal({
 
   const submit = () => {
     const e = {};
+    const code = form.code.trim();
+    const name = form.name.trim();
+
     if (!form.manufacturer) e.manufacturer = "매입처를 선택해 주세요";
-    if (!form.code.trim()) e.code = "제품코드를 입력해 주세요";
-    else if (existingCodes.includes(form.code.trim()))
-      e.code = "이미 사용 중인 코드입니다";
-    if (!form.name.trim()) e.name = "제품명을 입력해 주세요";
+    else if (form.manufacturer.length > 50)
+      e.manufacturer = "매입처는 50자 이내여야 합니다";
+
+    if (!code) e.code = "제품코드를 입력해 주세요";
+    else if (code.length > 30) e.code = "제품코드는 30자 이내여야 합니다";
+    else if (existingCodes.includes(code)) e.code = "이미 사용 중인 코드입니다";
+
+    if (!name) e.name = "제품명을 입력해 주세요";
+    else if (name.length > 100) e.name = "제품명은 100자 이내여야 합니다";
+
     const priceN = form.price ? parseInt(form.price, 10) : null;
     if (form.price && (!Number.isFinite(priceN) || priceN < 0))
-      e.price = "유효한 단가를 입력해 주세요";
+      e.price = "유효한 단가를 입력해 주세요 (0 이상)";
+
     setErrs(e);
     if (Object.keys(e).length) return;
     onSave({

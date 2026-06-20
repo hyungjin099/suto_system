@@ -1,14 +1,14 @@
-/* 거래처 목록 테이블 + URL 복사 셀 + EmptyState */
+/* 거래처 목록 테이블 + URL 복사 셀 + 거래처/담당자 정보 모달 + EmptyState */
 
 import { useState } from "react";
-import { IconBtn } from "./Buttons";
 import {
   IconEdit,
-  IconTrash,
   IconSearch,
   IconCopy,
   IconCheck,
+  IconX,
 } from "./Icons";
+import ModalShell from "./ModalShell";
 import { cx } from "../utils";
 import styles from "./ClientTable.module.css";
 
@@ -16,26 +16,28 @@ const COLS = [
   { key: "id", label: "번호", align: "center" },
   { key: "useType", label: "사용구분", align: "center" },
   { key: "cliCode", label: "거래처코드", align: "center" },
-  { key: "name", label: "거래처명", align: "center" },
+  { key: "company", label: "거래처정보", align: "center" },
   { key: "ceo", label: "대표자", align: "center" },
-  { key: "phone", label: "연락처", align: "center" },
+  { key: "manager", label: "담당자정보", align: "center" },
   { key: "url", label: "주문 페이지 URL", align: "center" },
   { key: "actions", label: "", align: "center" },
 ];
 
-export default function ClientTable({ items, empty, onEdit, onDelete }) {
+export default function ClientTable({ items, empty, onEdit }) {
+  const [infoModal, setInfoModal] = useState(null); // { type: 'company'|'manager', item }
+
   return (
     <div className={styles.wrap}>
       <table className={styles.table}>
         <colgroup>
-          <col width='5%'/>
-          <col width='5%'/>
-          <col width='12%'/>
-          <col width='15%'/>
-          <col width='6%'/>
-          <col width='26%'/>
-          <col width='24%'/>
-          <col width='7%'/>
+          <col width="60px" />
+          <col width="6%" />
+          <col width="12%" />
+          <col width="27%" />
+          <col width="7%" />
+          <col width="12%" />
+          <col width="*" />
+          <col width="8%" />
         </colgroup>
         <thead>
           <tr className={styles.headRow}>
@@ -65,34 +67,48 @@ export default function ClientTable({ items, empty, onEdit, onDelete }) {
                   <UseTypeChip useType={c.useType} />
                 </td>
                 <td className={styles.cell}>{c.cliCode || "-"}</td>
-                <td className={styles.cellName}>{c.name}</td>
+                <td className={styles.cellName}>
+                  <button
+                    type="button"
+                    className={styles.linkBtn}
+                    onClick={() => setInfoModal({ type: "company", item: c })}
+                    title="거래처 상세 보기"
+                  >
+                    {c.name}
+                  </button>
+                </td>
                 <td className={styles.cell}>{c.ceoName || "-"}</td>
-                <td className={styles.cellPhone}>
-                  <div className={styles.phoneInline}>
-                    <span className={styles.phoneLabel}>회사</span>
-                    <span className={styles.phoneNum}>{c.tel || "-"}</span>
-                    <span className={styles.phoneSep}>·</span>
-                    <span className={styles.phoneLabel}>담당</span>
-                    <span className={styles.phoneNum}>
-                      {c.managerPhone || "-"}
-                    </span>
-                  </div>
+                <td className={styles.cell}>
+                  {(() => {
+                    const label = c.managerName || c.managerPhone || c.email;
+                    return label ? (
+                      <button
+                        type="button"
+                        className={styles.linkBtn}
+                        onClick={() => setInfoModal({ type: "manager", item: c })}
+                        title="담당자 상세 보기"
+                      >
+                        {c.managerName || "정보 보기"}
+                      </button>
+                    ) : (
+                      "-"
+                    );
+                  })()}
                 </td>
                 <td className={styles.cellUrl}>
                   <CopyableUrl cliCode={c.cliCode} />
                 </td>
                 <td className={styles.cellActions}>
                   <div className={styles.actions}>
-                    <IconBtn onClick={() => onEdit(c)} title="수정">
-                      <IconEdit />
-                    </IconBtn>
-                    <IconBtn
-                      onClick={() => onDelete(c)}
-                      title="삭제"
-                      danger
+                    <button
+                      type="button"
+                      onClick={() => onEdit(c)}
+                      className={styles.editBtn}
+                      title="수정"
                     >
-                      <IconTrash />
-                    </IconBtn>
+                      <IconEdit />
+                      <span className={styles.editLabel}>수정</span>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -100,12 +116,25 @@ export default function ClientTable({ items, empty, onEdit, onDelete }) {
           )}
         </tbody>
       </table>
+
+      {infoModal?.type === "company" && (
+        <CompanyInfoModal
+          item={infoModal.item}
+          onClose={() => setInfoModal(null)}
+        />
+      )}
+      {infoModal?.type === "manager" && (
+        <ManagerInfoModal
+          item={infoModal.item}
+          onClose={() => setInfoModal(null)}
+        />
+      )}
     </div>
   );
 }
 
 function UseTypeChip({ useType }) {
-  const active = useType === "등록";
+  const active = useType === "YES" || useType === "등록";
   return (
     <span
       className={cx(
@@ -166,6 +195,73 @@ function CopyableUrl({ cliCode }) {
         <span className={styles.copyLabel}>{copied ? "복사됨" : "복사"}</span>
       </button>
     </div>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div className={styles.infoRow}>
+      <div className={styles.infoLabel}>{label}</div>
+      <div className={styles.infoValue}>{value || "-"}</div>
+    </div>
+  );
+}
+
+function DetailModal({ title, subtitle, rows, onClose }) {
+  return (
+    <ModalShell onClose={onClose} maxWidth={460}>
+      <div className={styles.infoHeader}>
+        <div className={styles.infoHeaderText}>
+          <div className={styles.infoEyebrow}>{subtitle}</div>
+          <h3 className={styles.infoTitle}>{title}</h3>
+        </div>
+        <button
+          type="button"
+          className={styles.infoCloseBtn}
+          onClick={onClose}
+          aria-label="닫기"
+        >
+          <IconX />
+        </button>
+      </div>
+      <div className={styles.infoBody}>
+        {rows.map((r) => (
+          <InfoRow key={r.label} label={r.label} value={r.value} />
+        ))}
+      </div>
+    </ModalShell>
+  );
+}
+
+function CompanyInfoModal({ item, onClose }) {
+  return (
+    <DetailModal
+      title={item.name || "거래처 정보"}
+      subtitle="거래처 정보"
+      rows={[
+        { label: "거래처코드", value: item.cliCode },
+        { label: "거래처명", value: item.name },
+        { label: "대표자명", value: item.ceoName },
+        { label: "거래처 연락처", value: item.tel },
+        { label: "Fax", value: item.fax },
+      ]}
+      onClose={onClose}
+    />
+  );
+}
+
+function ManagerInfoModal({ item, onClose }) {
+  return (
+    <DetailModal
+      title={item.managerName || "담당자 정보"}
+      subtitle="담당자 정보"
+      rows={[
+        { label: "담당자명", value: item.managerName },
+        { label: "담당자 연락처", value: item.managerPhone },
+        { label: "담당자 이메일", value: item.email },
+      ]}
+      onClose={onClose}
+    />
   );
 }
 

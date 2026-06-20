@@ -19,6 +19,9 @@ public class ClientService {
     }
 
     public ClientDto create(ClientRequestDto req) {
+        if (clientMapper.countByCliCode(req.getCliCode()) > 0) {
+            throw new IllegalArgumentException("이미 사용 중인 거래처코드입니다");
+        }
         ClientVo vo = toVo(null, req);
         clientMapper.insert(vo);
         return clientMapper.findByCliNum(vo.getCliNum());
@@ -30,11 +33,7 @@ public class ClientService {
         return clientMapper.findByCliNum(cliNum);
     }
 
-    public void delete(Long cliNum) {
-        clientMapper.delete(cliNum);
-    }
-
-    private ClientVo toVo(Long cliNum, ClientRequestDto req) {
+private ClientVo toVo(Long cliNum, ClientRequestDto req) {
         ClientVo vo = new ClientVo();
         vo.setCliNum(cliNum);
         vo.setCliCode(req.getCliCode());

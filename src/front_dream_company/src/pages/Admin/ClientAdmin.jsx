@@ -1,4 +1,4 @@
-/* 관리자 - 거래처 관리 페이지 */
+/* 관리자 - 거래처 관리 페이지 (삭제 기능 없음 — 사용구분으로 비활성 관리) */
 
 import { useState, useMemo, useEffect } from "react";
 import { AdminShell } from "./components/Layout";
@@ -9,21 +9,19 @@ import ClientFilterBar from "./components/ClientFilterBar";
 import ClientTable from "./components/ClientTable";
 import Pagination from "./components/Pagination";
 import ClientFormModal from "./components/ClientFormModal";
-import ConfirmDialog from "./components/ConfirmDialog";
-import { fetchClients, createClient, updateClient, deleteClient } from "./api";
-import { PAGE_SIZE } from "./constants";
+import { fetchClients, createClient, updateClient } from "./api";
 import styles from "./ProductAdmin.module.css";
+
+const PAGE_SIZE = 15;
 
 export default function ClientAdmin() {
   const [clients, setClients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState("");
-  const [filters, setFilters] = useState({ q: "", useType: "" });
+  const [filters, setFilters] = useState({ q: "", useType: "" }); // useType: ""(전체) | "YES" | "NO"
   const [page, setPage] = useState(1);
   const [modal, setModal] = useState(null);
-  const [confirmDel, setConfirmDel] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchClients()
@@ -72,24 +70,20 @@ export default function ClientAdmin() {
         );
       }
       setModal(null);
-    } catch {
-      setApiError("저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    } catch (err) {
+      const data = err?.response?.data;
+      let msg = "저장 중 오류가 발생했습니다. 다시 시도해 주세요.";
+      if (data?.errors) {
+        msg =
+          (data.message || "입력값이 올바르지 않습니다") +
+          ": " +
+          Object.values(data.errors).join(", ");
+      } else if (data?.message) {
+        msg = data.message;
+      }
+      setApiError(msg);
     } finally {
       setSaving(false);
-    }
-  };
-
-  const onDelete = async (item) => {
-    setDeleting(true);
-    setApiError("");
-    try {
-      await deleteClient(item.cliNum);
-      setClients((arr) => arr.filter((c) => c.cliNum !== item.cliNum));
-      setConfirmDel(null);
-    } catch {
-      setApiError("삭제 중 오류가 발생했습니다. 다시 시도해 주세요.");
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -100,7 +94,13 @@ export default function ClientAdmin() {
     <AdminShell>
       <PageHeader
         title="거래처 관리"
-        subtitle="거래처 정보를 등록하고 주문 페이지 URL을 발급합니다. 거래처코드가 주문 페이지 식별자로 사용됩니다."
+        subtitle={
+          <>
+            거래처 정보를 등록하고 주문 페이지 URL을 발급합니다. 거래처코드가 주문 페이지 식별자로 사용됩니다.
+            <br />
+            거래처정보, 담당자 정보를 클릭하면 상세 정보를 확인 할 수 있습니다.
+          </>
+        }
         actions={
           <PrimaryButton onClick={() => setModal({ mode: "create" })}>
             <IconPlus /> 새 거래처 등록
@@ -124,7 +124,6 @@ export default function ClientAdmin() {
         loading={loading}
         empty={!loading && filtered.length === 0}
         onEdit={(item) => setModal({ mode: "edit", item })}
-        onDelete={(item) => setConfirmDel(item)}
       />
 
       <Pagination
@@ -141,25 +140,6 @@ export default function ClientAdmin() {
           saving={saving}
           onClose={() => setModal(null)}
           onSave={onSave}
-        />
-      )}
-
-      {confirmDel && (
-        <ConfirmDialog
-          title="거래처를 삭제하시겠어요?"
-          body={
-            <>
-              <div className={styles.confirmName}>{confirmDel.name}</div>
-              <div className={styles.confirmCode}>
-                거래처코드: {confirmDel.cliCode || "-"}
-              </div>
-            </>
-          }
-          confirmLabel={deleting ? "삭제 중…" : "삭제"}
-          danger
-          disabled={deleting}
-          onCancel={() => setConfirmDel(null)}
-          onConfirm={() => onDelete(confirmDel)}
         />
       )}
     </AdminShell>

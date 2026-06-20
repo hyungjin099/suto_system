@@ -10,9 +10,10 @@ import ProductTable from "./components/ProductTable";
 import Pagination from "./components/Pagination";
 import ProductFormModal from "./components/ProductFormModal";
 import ConfirmDialog from "./components/ConfirmDialog";
-import { PAGE_SIZE } from "./constants";
 import { fetchProducts, createProduct, updateProduct, deleteProduct } from "./api";
 import styles from "./ProductAdmin.module.css";
+
+const PAGE_SIZE = 15;
 
 export default function ProductAdmin() {
   const [products, setProducts] = useState([]);
@@ -71,8 +72,18 @@ export default function ProductAdmin() {
         setProducts((arr) => arr.map((p) => (p.id === updated.id ? updated : p)));
       }
       setModal(null);
-    } catch {
-      setApiError("저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    } catch (err) {
+      const data = err?.response?.data;
+      let msg = "저장 중 오류가 발생했습니다. 다시 시도해 주세요.";
+      if (data?.errors) {
+        msg =
+          (data.message || "입력값이 올바르지 않습니다") +
+          ": " +
+          Object.values(data.errors).join(", ");
+      } else if (data?.message) {
+        msg = data.message;
+      }
+      setApiError(msg);
     } finally {
       setSaving(false);
     }
@@ -85,8 +96,12 @@ export default function ProductAdmin() {
       await deleteProduct(item.prodNum);
       setProducts((arr) => arr.filter((p) => p.id !== item.id));
       setConfirmDel(null);
-    } catch {
-      setApiError("삭제 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    } catch (err) {
+      const data = err?.response?.data;
+      setApiError(
+        data?.message || "삭제 중 오류가 발생했습니다. 다시 시도해 주세요."
+      );
+      setConfirmDel(null);
     } finally {
       setDeleting(false);
     }
@@ -124,6 +139,9 @@ export default function ProductAdmin() {
         items={pageItems}
         loading={loading}
         empty={!loading && filtered.length === 0}
+        total={filtered.length}
+        page={page}
+        pageSize={PAGE_SIZE}
         onEdit={(item) => setModal({ mode: "edit", item })}
         onDelete={(item) => setConfirmDel(item)}
       />

@@ -7,10 +7,13 @@
 }
 
 .grid {
-  display: grid;
-  grid-template-columns: 1fr 200px auto;
-  gap: 10px;
+  display: flex;
   align-items: end;
+  gap: 8px;
+}
+.grid > :nth-child(2) {
+  flex: 1;
+  min-width: 0;
 }
 
 .resetCol {
@@ -66,5 +69,54 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
+  background: var(--brand);
+}
+
+/* 사용구분 라디오 그룹 — 검색 입력(36px)과 높이 맞춤 */
+.radioGroup {
+  display: inline-flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 3px;
+  height: 36px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+.radio {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.12s ease, color 0.12s ease;
+}
+.radio:hover {
+  color: var(--brand-ink);
+}
+.radioChecked {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+}
+.radioInput {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.radioDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line);
+  flex: 0 0 auto;
+}
+.radioChecked .radioDot {
   background: var(--brand);
 }
