@@ -89,7 +89,7 @@ public class SheetsWebhookService {
     private Map<String, Object> buildPayload(String orderId, OrderRequestDto dto) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("orderId", orderId);
-        payload.put("urlNum", dto.getUrlNum());
+        payload.put("cliCode", dto.getCliCode());
         payload.put("clientName",   dto.getClientName()   != null ? dto.getClientName()   : "");
         payload.put("managerPhone", dto.getManagerPhone() != null ? dto.getManagerPhone() : "");
         payload.put("orderDate",

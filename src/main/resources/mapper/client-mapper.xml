@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dream_comp.auto_system.mapper.ClientMapper">
+
+    <resultMap id="clientResultMap" type="com.dream_comp.auto_system.dto.ClientDto">
+        <id     property="cliNum"          column="CLI_NUM"/>
+        <result property="cliCode"         column="CLI_CODE"/>
+        <result property="cliCompName"     column="CLI_COMP_NAME"/>
+        <result property="cliCeoName"      column="CLI_CEO_NAME"/>
+        <result property="cliTel"          column="CLI_TEL"/>
+        <result property="cliFax"          column="CLI_FAX"/>
+        <result property="cliManagerName"  column="CLI_MANAGER_NAME"/>
+        <result property="cliManagerTel"   column="CLI_MANAGER_TEL"/>
+        <result property="cliEmail"        column="CLI_EMAIL"/>
+        <result property="cliAddress"      column="CLI_ADDRESS"/>
+        <result property="cliUseType"      column="CLI_USE_TYPE"/>
+        <result property="joinDate"        column="JOIN_DATE"/>
+    </resultMap>
+
+    <sql id="cols">
+        CLI_NUM, CLI_CODE, CLI_COMP_NAME, CLI_CEO_NAME, CLI_TEL, CLI_FAX,
+        CLI_MANAGER_NAME, CLI_MANAGER_TEL, CLI_EMAIL, CLI_ADDRESS, CLI_USE_TYPE, JOIN_DATE
+    </sql>
+
+    <select id="findAll" resultMap="clientResultMap">
+        SELECT <include refid="cols"/>
+        FROM CLIENT_INFO
+        ORDER BY CLI_NUM DESC
+    </select>
+
+    <select id="findByCliNum" parameterType="long" resultMap="clientResultMap">
+        SELECT <include refid="cols"/>
+        FROM CLIENT_INFO
+        WHERE CLI_NUM = #{cliNum}
+    </select>
+
+    <!-- 등록 시 CLI_USE_TYPE은 DB DEFAULT('YES')에 맡김 -->
+    <insert id="insert" useGeneratedKeys="true" keyProperty="cliNum" keyColumn="CLI_NUM">
+        INSERT INTO CLIENT_INFO (
+            CLI_CODE, CLI_COMP_NAME, CLI_CEO_NAME, CLI_TEL, CLI_FAX,
+            CLI_MANAGER_NAME, CLI_MANAGER_TEL, CLI_EMAIL, CLI_ADDRESS
+        ) VALUES (
+            #{cliCode}, #{cliCompName}, #{cliCeoName}, #{cliTel}, #{cliFax},
+            #{cliManagerName}, #{cliManagerTel}, #{cliEmail}, #{cliAddress}
+        )
+    </insert>
+
+    <update id="update">
+        UPDATE CLIENT_INFO
+        SET CLI_COMP_NAME    = #{cliCompName},
+            CLI_CEO_NAME     = #{cliCeoName},
+            CLI_TEL          = #{cliTel},
+            CLI_FAX          = #{cliFax},
+            CLI_MANAGER_NAME = #{cliManagerName},
+            CLI_MANAGER_TEL  = #{cliManagerTel},
+            CLI_EMAIL        = #{cliEmail},
+            CLI_ADDRESS      = #{cliAddress},
+            CLI_USE_TYPE     = #{cliUseType}
+        WHERE CLI_NUM = #{cliNum}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM CLIENT_INFO WHERE CLI_NUM = #{cliNum}
+    </delete>
+
+</mapper>

@@ -7,7 +7,6 @@ import java.time.LocalDateTime;
 public class ProductDto {
     private Long prodNum;
     private String prodCode;
-    private String prodCategory;
     private String prodName;
     private Integer prodPrice;
     private String manufacturer;

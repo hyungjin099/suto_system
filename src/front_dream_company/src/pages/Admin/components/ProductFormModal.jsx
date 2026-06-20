@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import ModalShell from "./ModalShell";
 import { AField, AInput, ASelect } from "./Fields";
 import { IconX } from "./Icons";
-import { CATEGORIES, MANUFACTURERS } from "../constants";
+import { MANUFACTURERS } from "../constants";
 import { formatNumber, onlyDigits } from "../utils";
 import styles from "./ProductFormModal.module.css";
 
@@ -17,7 +17,6 @@ export default function ProductFormModal({
 }) {
   const [form, setForm] = useState(() => ({
     manufacturer: initial?.manufacturer || "",
-    category: initial?.category || "",
     code: initial?.code || "",
     name: initial?.name || "",
     price: initial?.price ? String(initial.price) : "",
@@ -44,20 +43,18 @@ export default function ProductFormModal({
 
   const submit = () => {
     const e = {};
-    if (!form.manufacturer) e.manufacturer = "제조사를 선택해 주세요";
-    if (!form.category) e.category = "카테고리를 선택해 주세요";
+    if (!form.manufacturer) e.manufacturer = "매입처를 선택해 주세요";
     if (!form.code.trim()) e.code = "제품코드를 입력해 주세요";
     else if (existingCodes.includes(form.code.trim()))
       e.code = "이미 사용 중인 코드입니다";
     if (!form.name.trim()) e.name = "제품명을 입력해 주세요";
-    const priceN = parseInt(form.price, 10);
-    if (!form.price || !Number.isFinite(priceN) || priceN <= 0)
-      e.price = "단가를 입력해 주세요";
+    const priceN = form.price ? parseInt(form.price, 10) : null;
+    if (form.price && (!Number.isFinite(priceN) || priceN < 0))
+      e.price = "유효한 단가를 입력해 주세요";
     setErrs(e);
     if (Object.keys(e).length) return;
     onSave({
       manufacturer: form.manufacturer,
-      category: form.category,
       code: form.code.trim(),
       name: form.name.trim(),
       price: priceN,
@@ -89,27 +86,17 @@ export default function ProductFormModal({
 
       <div className={styles.body}>
         <AField
-          label="제조사"
+          label="매입처"
           required
           error={errs.manufacturer}
-          hint="본사 입고처"
+          hint="원단 공급 업체"
         >
           <ASelect
             value={form.manufacturer}
             onChange={(v) => set("manufacturer", v)}
             options={MANUFACTURERS}
-            placeholder="제조사를 선택하세요"
+            placeholder="매입처를 선택하세요"
             error={!!errs.manufacturer}
-          />
-        </AField>
-
-        <AField label="카테고리" required error={errs.category}>
-          <ASelect
-            value={form.category}
-            onChange={(v) => set("category", v)}
-            options={CATEGORIES}
-            placeholder="카테고리를 선택하세요"
-            error={!!errs.category}
           />
         </AField>
 
@@ -127,7 +114,7 @@ export default function ProductFormModal({
               error={!!errs.code}
             />
           </AField>
-          <AField label="단가" required error={errs.price} hint="원/m">
+          <AField label="단가" error={errs.price} hint="원/m (선택)">
             <AInput
               value={formatNumber(form.price)}
               onChange={(v) => set("price", onlyDigits(v))}

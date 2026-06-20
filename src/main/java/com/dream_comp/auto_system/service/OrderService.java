@@ -27,7 +27,7 @@ public class OrderService {
 
         // ① DB에 PENDING으로 INSERT
         OrderVo orderVo = new OrderVo();
-        orderVo.setUrlNum(dto.getUrlNum());
+        orderVo.setCliCode(dto.getCliCode());
         orderVo.setOrderId(orderId);
         orderVo.setStatus("PENDING");
         orderVo.setOrderDate(LocalDateTime.now());
@@ -46,7 +46,7 @@ public class OrderService {
             orderMapper.insertOrderItem(itemVo);
         }
 
-        log.info("주문 DB 저장 완료 (orderId={}, urlNum={})", orderId, dto.getUrlNum());
+        log.info("주문 DB 저장 완료 (orderId={}, cliCode={})", orderId, dto.getCliCode());
 
         // ② 시트에 push (실패해도 트랜잭션 롤백 없음 - 흐름 B)
         sheetsWebhookService.push(orderId, dto);

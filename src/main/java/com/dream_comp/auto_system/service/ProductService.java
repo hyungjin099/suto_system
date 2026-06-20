@@ -14,21 +14,19 @@ public class ProductService {
 
     private final ProductMapper productMapper;
 
-    public List<ProductDto> findAllActive() {
-        return productMapper.findAllActive();
+    public List<ProductDto> findAll() {
+        return productMapper.findAll();
     }
 
     public ProductDto create(ProductRequestDto req) {
         ProductVo vo = new ProductVo();
         vo.setProdCode(req.getProdCode());
-        vo.setProdCategory(req.getProdCategory());
         vo.setProdName(req.getProdName());
         vo.setProdPrice(req.getProdPrice());
         vo.setManufacturer(req.getManufacturer());
         productMapper.insert(vo);
 
-        // 삽입된 데이터를 목록에서 찾아 반환
-        return findAllActive().stream()
+        return findAll().stream()
                 .filter(p -> p.getProdNum().equals(vo.getProdNum()))
                 .findFirst()
                 .orElseThrow();
@@ -38,19 +36,18 @@ public class ProductService {
         ProductVo vo = new ProductVo();
         vo.setProdNum(prodNum);
         vo.setProdCode(req.getProdCode());
-        vo.setProdCategory(req.getProdCategory());
         vo.setProdName(req.getProdName());
         vo.setProdPrice(req.getProdPrice());
         vo.setManufacturer(req.getManufacturer());
         productMapper.update(vo);
 
-        return findAllActive().stream()
+        return findAll().stream()
                 .filter(p -> p.getProdNum().equals(prodNum))
                 .findFirst()
                 .orElseThrow();
     }
 
-    public void deactivate(Long prodNum) {
-        productMapper.deactivate(prodNum);
+    public void delete(Long prodNum) {
+        productMapper.delete(prodNum);
     }
 }

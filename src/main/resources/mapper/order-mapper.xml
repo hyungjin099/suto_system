@@ -7,7 +7,7 @@
     <!-- 주문 헤더 ResultMap (items 컬렉션 포함) -->
     <resultMap id="orderResultMap" type="com.dream_comp.auto_system.vo.OrderVo">
         <id     property="orderNum"  column="ORDER_NUM"/>
-        <result property="urlNum"    column="URL_NUM"/>
+        <result property="cliCode"   column="CLI_CODE"/>
         <result property="orderId"   column="ORDER_ID"/>
         <result property="status"    column="STATUS"/>
         <result property="orderDate" column="ORDER_DATE"/>
@@ -29,8 +29,8 @@
             useGeneratedKeys="true"
             keyProperty="orderNum"
             keyColumn="ORDER_NUM">
-        INSERT INTO ORDER_INFO (URL_NUM, ORDER_ID, STATUS, ORDER_DATE)
-        VALUES (#{urlNum}, #{orderId}, #{status}, #{orderDate})
+        INSERT INTO ORDER_INFO (CLI_CODE, ORDER_ID, STATUS, ORDER_DATE)
+        VALUES (#{cliCode}, #{orderId}, #{status}, #{orderDate})
     </insert>
 
     <!-- 주문 품목 INSERT -->

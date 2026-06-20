@@ -16,9 +16,9 @@ import styles from "./OrderForm.module.css";
 const cx = (...args) => args.filter(Boolean).join(" ");
 
 export default function OrderForm() {
-  const { clientCode } = useParams(); // URL 마지막 숫자 = URL_NUM
-  const urlNum = parseInt(clientCode, 10) || 0;
-  const clientData = seedClients().find((c) => c.accessCode === clientCode);
+  const { clientCode } = useParams(); // URL 경로의 거래처코드 = CLI_CODE
+  const cliCode = clientCode || "";
+  const clientData = seedClients().find((c) => c.cliCode === clientCode);
   const clientName = clientData?.name || "드림컴퍼니";
   const managerPhone = clientData?.managerPhone || "";
 
@@ -34,12 +34,12 @@ export default function OrderForm() {
   const addedRef = useRef(null);
 
   useEffect(() => {
-    if (!urlNum) { setFabricsLoading(false); return; }
-    fetchClientFabrics(urlNum)
+    if (!cliCode) { setFabricsLoading(false); return; }
+    fetchClientFabrics(cliCode)
       .then(setFabricOptions)
       .catch(() => {})
       .finally(() => setFabricsLoading(false));
-  }, [urlNum]);
+  }, [cliCode]);
 
   const totalRolls = useMemo(
     () => items.reduce((sum, it) => sum + (parseInt(it.rolls, 10) || 0), 0),
@@ -115,7 +115,7 @@ export default function OrderForm() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const res = await submitOrder({ urlNum, clientName, managerPhone, items });
+      const res = await submitOrder({ cliCode, clientName, managerPhone, items });
       setSubmitted({
         orderId: res.orderId,
         at: new Date(),

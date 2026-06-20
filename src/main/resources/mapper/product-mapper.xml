@@ -7,39 +7,34 @@
     <resultMap id="productResultMap" type="com.dream_comp.auto_system.dto.ProductDto">
         <id     property="prodNum"      column="PROD_NUM"/>
         <result property="prodCode"     column="PROD_CODE"/>
-        <result property="prodCategory" column="PROD_CATEGORY"/>
         <result property="prodName"     column="PROD_NAME"/>
         <result property="prodPrice"    column="PROD_PRICE"/>
         <result property="manufacturer" column="MANUFACTURER"/>
         <result property="regDate"      column="REG_DATE"/>
     </resultMap>
 
-    <select id="findAllActive" resultMap="productResultMap">
-        SELECT PROD_NUM, PROD_CODE, PROD_CATEGORY, PROD_NAME, PROD_PRICE, MANUFACTURER, REG_DATE
+    <select id="findAll" resultMap="productResultMap">
+        SELECT PROD_NUM, PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER, REG_DATE
         FROM PRODUCT_INFO
-        WHERE PROD_STATUS = 1
-        ORDER BY PROD_CATEGORY, PROD_NAME
+        ORDER BY PROD_NAME
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="prodNum" keyColumn="PROD_NUM">
-        INSERT INTO PRODUCT_INFO (PROD_CODE, PROD_CATEGORY, PROD_NAME, PROD_PRICE, MANUFACTURER, PROD_STATUS)
-        VALUES (#{prodCode}, #{prodCategory}, #{prodName}, #{prodPrice}, #{manufacturer}, 1)
+        INSERT INTO PRODUCT_INFO (PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER)
+        VALUES (#{prodCode}, #{prodName}, #{prodPrice}, #{manufacturer})
     </insert>
 
     <update id="update">
         UPDATE PRODUCT_INFO
         SET PROD_CODE     = #{prodCode},
-            PROD_CATEGORY = #{prodCategory},
             PROD_NAME     = #{prodName},
             PROD_PRICE    = #{prodPrice},
             MANUFACTURER  = #{manufacturer}
         WHERE PROD_NUM = #{prodNum}
     </update>
 
-    <update id="deactivate">
-        UPDATE PRODUCT_INFO
-        SET PROD_STATUS = 0
-        WHERE PROD_NUM = #{prodNum}
-    </update>
+    <delete id="delete">
+        DELETE FROM PRODUCT_INFO WHERE PROD_NUM = #{prodNum}
+    </delete>
 
 </mapper>

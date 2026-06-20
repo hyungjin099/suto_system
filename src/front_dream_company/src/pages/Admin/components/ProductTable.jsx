@@ -7,8 +7,8 @@ import styles from "./ProductTable.module.css";
 
 const COLS = [
   { key: "code", label: "제품코드", align: "left" },
-  { key: "category", label: "카테고리", align: "left" },
   { key: "name", label: "제품명", align: "left" },
+  { key: "manufacturer", label: "매입처", align: "left" },
   { key: "price", label: "단가 (원/m)", align: "right" },
   { key: "updated", label: "수정일", align: "left" },
   { key: "actions", label: "", align: "right" },
@@ -18,14 +18,6 @@ export default function ProductTable({ items, empty, onEdit, onDelete }) {
   return (
     <div className={styles.wrap}>
       <table className={styles.table}>
-        <colgroup>
-          <col className={styles.colCode} />
-          <col className={styles.colCategory} />
-          <col className={styles.colName} />
-          <col className={styles.colPrice} />
-          <col className={styles.colUpdated} />
-          <col className={styles.colActions} />
-        </colgroup>
         <thead>
           <tr className={styles.headRow}>
             {COLS.map((c) => (
@@ -50,13 +42,17 @@ export default function ProductTable({ items, empty, onEdit, onDelete }) {
             items.map((p) => (
               <tr key={p.id} className={styles.row}>
                 <td className={styles.cellCode}>{p.code}</td>
-                <td className={styles.cell}>
-                  <span className={styles.catChip}>{p.category}</span>
-                </td>
                 <td className={styles.cellName}>{p.name}</td>
+                <td className={styles.cell}>{p.manufacturer || "-"}</td>
                 <td className={styles.cellPrice}>
-                  {p.price.toLocaleString("ko-KR")}
-                  <span className={styles.priceUnit}>원</span>
+                  {p.price != null ? (
+                    <>
+                      {p.price.toLocaleString("ko-KR")}
+                      <span className={styles.priceUnit}>원</span>
+                    </>
+                  ) : (
+                    "-"
+                  )}
                 </td>
                 <td className={styles.cellUpdated}>{fmtDate(p.updatedAt)}</td>
                 <td className={styles.cellActions}>

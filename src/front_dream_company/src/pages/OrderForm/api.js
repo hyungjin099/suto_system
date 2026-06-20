@@ -4,18 +4,19 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
-export async function fetchClientFabrics(urlNum) {
-  const res = await axios.get(`${BASE_URL}/api/clients/${urlNum}/fabrics`);
+export async function fetchClientFabrics(cliCode) {
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/fabrics`);
   return res.data.map((f) => ({
     value: f.prodCode,
     label: f.aliasName,
     prodName: f.prodName,
+    price: f.clientFabPrice,
   }));
 }
 
-export async function submitOrder({ urlNum, clientName, managerPhone, items }) {
+export async function submitOrder({ cliCode, clientName, managerPhone, items }) {
   const payload = {
-    urlNum,
+    cliCode,
     clientName: clientName || "",
     managerPhone: managerPhone || "",
     items: items.map((it) => ({

@@ -6,5 +6,5 @@ import java.util.List;
 
 @Mapper
 public interface ClientFabricMapper {
-    List<ClientFabricDto> findByUrlNum(int urlNum);
+    List<ClientFabricDto> findByCliCode(String cliCode);
 }

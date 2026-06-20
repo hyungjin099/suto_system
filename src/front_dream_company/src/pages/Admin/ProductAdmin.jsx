@@ -19,7 +19,6 @@ export default function ProductAdmin() {
   const [loading, setLoading] = useState(true);
   const [apiError, setApiError] = useState("");
   const [filters, setFilters] = useState({
-    category: "",
     q: "",
     priceMin: "",
     priceMax: "",
@@ -40,18 +39,17 @@ export default function ProductAdmin() {
   // 필터 변경 시 1페이지로 리셋
   useEffect(() => {
     setPage(1);
-  }, [filters.category, filters.q, filters.priceMin, filters.priceMax]);
+  }, [filters.q, filters.priceMin, filters.priceMax]);
 
   const filtered = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     const min = filters.priceMin ? parseInt(filters.priceMin, 10) : null;
     const max = filters.priceMax ? parseInt(filters.priceMax, 10) : null;
     return products.filter((p) => {
-      if (filters.category && p.category !== filters.category) return false;
       if (q && !(p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)))
         return false;
-      if (min != null && p.price < min) return false;
-      if (max != null && p.price > max) return false;
+      if (min != null && p.price != null && p.price < min) return false;
+      if (max != null && p.price != null && p.price > max) return false;
       return true;
     });
   }, [products, filters]);
@@ -95,9 +93,9 @@ export default function ProductAdmin() {
   };
 
   const resetFilters = () =>
-    setFilters({ category: "", q: "", priceMin: "", priceMax: "" });
+    setFilters({ q: "", priceMin: "", priceMax: "" });
   const hasFilters =
-    filters.category || filters.q || filters.priceMin || filters.priceMax;
+    filters.q || filters.priceMin || filters.priceMax;
 
   return (
     <AdminShell>

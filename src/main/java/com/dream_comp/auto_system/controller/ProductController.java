@@ -17,7 +17,7 @@ public class ProductController {
 
     @GetMapping
     public ResponseEntity<List<ProductDto>> getAll() {
-        return ResponseEntity.ok(productService.findAllActive());
+        return ResponseEntity.ok(productService.findAll());
     }
 
     @PostMapping
@@ -33,7 +33,7 @@ public class ProductController {
 
     @DeleteMapping("/{prodNum}")
     public ResponseEntity<Void> delete(@PathVariable Long prodNum) {
-        productService.deactivate(prodNum);
+        productService.delete(prodNum);
         return ResponseEntity.noContent().build();
     }
 }

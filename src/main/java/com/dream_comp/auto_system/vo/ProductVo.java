@@ -7,10 +7,8 @@ import java.time.LocalDateTime;
 public class ProductVo {
     private Long prodNum;
     private String prodCode;
-    private String prodCategory;
     private String prodName;
     private Integer prodPrice;
     private String manufacturer;
-    private Integer prodStatus;
     private LocalDateTime regDate;
 }

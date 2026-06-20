@@ -23,7 +23,7 @@ const CAT_COLORS = {
 };
 
 export default function FabricAliasAdmin() {
-  const clients = useMemo(() => seedClients().filter((c) => c.active === 1), []);
+  const clients = useMemo(() => seedClients().filter((c) => c.useType === "등록"), []);
   const allFabrics = useMemo(() => seedProducts(), []);
 
   const [selectedClientId, setSelectedClientId] = useState(clients[0]?.id ?? null);

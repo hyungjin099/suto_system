@@ -7,8 +7,8 @@ import java.util.List;
 
 @Mapper
 public interface ProductMapper {
-    List<ProductDto> findAllActive();
+    List<ProductDto> findAll();
     void insert(ProductVo vo);
     void update(ProductVo vo);
-    void deactivate(Long prodNum); // soft delete: PROD_STATUS = 0
+    void delete(Long prodNum);
 }

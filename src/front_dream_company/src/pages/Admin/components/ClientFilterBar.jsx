@@ -1,13 +1,9 @@
-/* 고객사 검색/필터 바 */
+/* 거래처 검색/필터 바 */
 
 import { AField, AInput, ASelect } from "./Fields";
 import { IconSearch } from "./Icons";
+import { CLI_USE_TYPES } from "../constants";
 import styles from "./ClientFilterBar.module.css";
-
-const ACTIVE_OPTIONS = [
-  { value: "1", label: "활성" },
-  { value: "0", label: "비활성" },
-];
 
 export default function ClientFilterBar({
   filters,
@@ -22,20 +18,20 @@ export default function ClientFilterBar({
   return (
     <div className={styles.wrap}>
       <div className={styles.grid}>
-        <AField label="검색" hint="고객사명 / 담당자 / 접속코드">
+        <AField label="검색" hint="거래처명 / 거래처코드 / 담당자">
           <AInput
             value={filters.q}
             onChange={(v) => set("q", v)}
-            placeholder="예: 서울베이커리, 김민준, 10245"
+            placeholder="예: 시스픽, 5048179051"
             leftIcon={<IconSearch />}
           />
         </AField>
 
-        <AField label="활동 여부">
+        <AField label="사용구분">
           <ASelect
-            value={filters.active}
-            onChange={(v) => set("active", v)}
-            options={ACTIVE_OPTIONS}
+            value={filters.useType}
+            onChange={(v) => set("useType", v)}
+            options={CLI_USE_TYPES}
             placeholder="전체"
           />
         </AField>

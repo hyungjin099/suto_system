@@ -12,7 +12,7 @@ public class ClientFabricService {
 
     private final ClientFabricMapper clientFabricMapper;
 
-    public List<ClientFabricDto> findByUrlNum(int urlNum) {
-        return clientFabricMapper.findByUrlNum(urlNum);
+    public List<ClientFabricDto> findByCliCode(String cliCode) {
+        return clientFabricMapper.findByCliCode(cliCode);
     }
 }

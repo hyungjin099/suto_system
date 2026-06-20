@@ -18,11 +18,11 @@ public class ClientFabricController {
     private final ClientFabricService clientFabricService;
 
     /**
-     * 고객사 URL 번호로 해당 고객사에 등록된 원단 별칭 목록을 반환한다.
+     * 고객사 거래처코드(CLI_CODE)로 해당 고객사에 등록된 원단 별칭 목록 반환.
      * 주문 폼의 셀렉트박스 옵션 생성에 사용.
      */
-    @GetMapping("/{urlNum}/fabrics")
-    public ResponseEntity<List<ClientFabricDto>> getFabrics(@PathVariable int urlNum) {
-        return ResponseEntity.ok(clientFabricService.findByUrlNum(urlNum));
+    @GetMapping("/{cliCode}/fabrics")
+    public ResponseEntity<List<ClientFabricDto>> getFabrics(@PathVariable String cliCode) {
+        return ResponseEntity.ok(clientFabricService.findByCliCode(cliCode));
     }
 }

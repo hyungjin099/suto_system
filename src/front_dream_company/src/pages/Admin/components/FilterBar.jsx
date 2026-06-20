@@ -1,8 +1,7 @@
 /* 제품 검색/필터 바 */
 
-import { AField, AInput, ASelect } from "./Fields";
+import { AField, AInput } from "./Fields";
 import { IconSearch } from "./Icons";
-import { CATEGORIES } from "../constants";
 import { formatNumber, onlyDigits } from "../utils";
 import styles from "./FilterBar.module.css";
 
@@ -19,15 +18,6 @@ export default function FilterBar({
   return (
     <div className={styles.wrap}>
       <div className={styles.grid}>
-        <AField label="카테고리">
-          <ASelect
-            value={filters.category}
-            onChange={(v) => set("category", v)}
-            options={CATEGORIES}
-            placeholder="전체"
-          />
-        </AField>
-
         <AField label="제품코드 / 제품명">
           <AInput
             value={filters.q}

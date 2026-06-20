@@ -1,7 +1,4 @@
-/* 관리자 - 고객사 관리 페이지
- * - 등록(Modal) / 수정(Modal, 활동여부 라디오 포함) / 소프트 삭제(active=0) 기능
- * - 5자리 accessCode 는 후속 작업에서 생성 로직 구현 예정
- */
+/* 관리자 - 거래처 관리 페이지 */
 
 import { useState, useMemo, useEffect } from "react";
 import { AdminShell } from "./components/Layout";
@@ -13,32 +10,42 @@ import ClientTable from "./components/ClientTable";
 import Pagination from "./components/Pagination";
 import ClientFormModal from "./components/ClientFormModal";
 import ConfirmDialog from "./components/ConfirmDialog";
-import { seedClients } from "./clientData";
+import { fetchClients, createClient, updateClient, deleteClient } from "./api";
 import { PAGE_SIZE } from "./constants";
 import styles from "./ProductAdmin.module.css";
 
 export default function ClientAdmin() {
-  const [clients, setClients] = useState(() => seedClients());
-  const [filters, setFilters] = useState({ q: "", active: "" });
+  const [clients, setClients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [apiError, setApiError] = useState("");
+  const [filters, setFilters] = useState({ q: "", useType: "" });
   const [page, setPage] = useState(1);
-  const [modal, setModal] = useState(null); // { mode: "create" | "edit", item? }
+  const [modal, setModal] = useState(null);
   const [confirmDel, setConfirmDel] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetchClients()
+      .then(setClients)
+      .catch(() => setApiError("거래처 목록을 불러오지 못했습니다."))
+      .finally(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
     setPage(1);
-  }, [filters.q, filters.active]);
+  }, [filters.q, filters.useType]);
 
   const filtered = useMemo(() => {
     const q = filters.q.trim().toLowerCase();
     return clients.filter((c) => {
-      if (filters.active !== "" && String(c.active) !== filters.active)
-        return false;
+      if (filters.useType && c.useType !== filters.useType) return false;
       if (
         q &&
         !(
           c.name.toLowerCase().includes(q) ||
-          c.managerName.toLowerCase().includes(q) ||
-          c.accessCode.includes(q)
+          (c.cliCode || "").toLowerCase().includes(q) ||
+          (c.managerName || "").toLowerCase().includes(q)
         )
       )
         return false;
@@ -49,74 +56,59 @@ export default function ClientAdmin() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const onSave = (form) => {
+  const onSave = async (form) => {
     const snapshot = modal;
     if (!snapshot) return;
-    if (snapshot.mode === "create") {
-      setClients((arr) => {
-        const nextId = arr.length ? Math.max(...arr.map((c) => c.id)) + 1 : 1;
-        const now = new Date();
-        return [
-          {
-            id: nextId,
-            name: form.name,
-            managerName: form.managerName,
-            companyPhone: form.companyPhone,
-            managerPhone: form.managerPhone,
-            // accessCode 생성 로직은 추후 등록 기능 구현 시 작성 예정
-            accessCode: "",
-            active: 1,
-            createdAt: now,
-            updatedAt: now,
-          },
-          ...arr,
-        ];
-      });
-    } else {
-      const editingId = snapshot.item?.id;
-      setClients((arr) =>
-        arr.map((c) =>
-          c.id === editingId
-            ? {
-                ...c,
-                name: form.name,
-                managerName: form.managerName,
-                companyPhone: form.companyPhone,
-                managerPhone: form.managerPhone,
-                active: form.active,
-                updatedAt: new Date(),
-              }
-            : c
-        )
-      );
+    setSaving(true);
+    setApiError("");
+    try {
+      if (snapshot.mode === "create") {
+        const created = await createClient(form);
+        setClients((arr) => [created, ...arr]);
+      } else {
+        const updated = await updateClient(snapshot.item.cliNum, form);
+        setClients((arr) =>
+          arr.map((c) => (c.cliNum === updated.cliNum ? updated : c))
+        );
+      }
+      setModal(null);
+    } catch {
+      setApiError("저장 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    } finally {
+      setSaving(false);
     }
-    setModal(null);
   };
 
-  // 소프트 삭제: DB delete 가 아닌 active=0 으로 상태 컬럼 변경
-  const onDelete = (item) => {
-    setClients((arr) =>
-      arr.map((c) =>
-        c.id === item.id ? { ...c, active: 0, updatedAt: new Date() } : c
-      )
-    );
-    setConfirmDel(null);
+  const onDelete = async (item) => {
+    setDeleting(true);
+    setApiError("");
+    try {
+      await deleteClient(item.cliNum);
+      setClients((arr) => arr.filter((c) => c.cliNum !== item.cliNum));
+      setConfirmDel(null);
+    } catch {
+      setApiError("삭제 중 오류가 발생했습니다. 다시 시도해 주세요.");
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const resetFilters = () => setFilters({ q: "", active: "" });
-  const hasFilters = filters.q || filters.active !== "";
+  const resetFilters = () => setFilters({ q: "", useType: "" });
+  const hasFilters = filters.q || filters.useType !== "";
 
   return (
     <AdminShell>
       <PageHeader
-        title="고객사 관리"
-        subtitle="주문 페이지 접속 URL 을 발급받은 고객사 목록입니다. 등록/수정 후 URL 을 복사하여 담당자에게 전달하세요."
+        title="거래처 관리"
+        subtitle="거래처 정보를 등록하고 주문 페이지 URL을 발급합니다. 거래처코드가 주문 페이지 식별자로 사용됩니다."
         actions={
           <PrimaryButton onClick={() => setModal({ mode: "create" })}>
-            <IconPlus /> 새 고객사 등록
+            <IconPlus /> 새 거래처 등록
           </PrimaryButton>
         }
       />
+
+      {apiError && <p className={styles.apiError}>{apiError}</p>}
 
       <ClientFilterBar
         filters={filters}
@@ -129,7 +121,8 @@ export default function ClientAdmin() {
 
       <ClientTable
         items={pageItems}
-        empty={filtered.length === 0}
+        loading={loading}
+        empty={!loading && filtered.length === 0}
         onEdit={(item) => setModal({ mode: "edit", item })}
         onDelete={(item) => setConfirmDel(item)}
       />
@@ -145,6 +138,7 @@ export default function ClientAdmin() {
         <ClientFormModal
           mode={modal.mode}
           initial={modal.item}
+          saving={saving}
           onClose={() => setModal(null)}
           onSave={onSave}
         />
@@ -152,21 +146,18 @@ export default function ClientAdmin() {
 
       {confirmDel && (
         <ConfirmDialog
-          title="고객사를 삭제하시겠어요?"
+          title="거래처를 삭제하시겠어요?"
           body={
             <>
               <div className={styles.confirmName}>{confirmDel.name}</div>
               <div className={styles.confirmCode}>
-                담당자: {confirmDel.managerName} · 접속코드:{" "}
-                {confirmDel.accessCode || "-"}
-              </div>
-              <div className={styles.confirmCode} style={{ marginTop: 6 }}>
-                * 데이터는 보존되며 비활성 상태로 전환됩니다.
+                거래처코드: {confirmDel.cliCode || "-"}
               </div>
             </>
           }
-          confirmLabel="비활성 처리"
+          confirmLabel={deleting ? "삭제 중…" : "삭제"}
           danger
+          disabled={deleting}
           onCancel={() => setConfirmDel(null)}
           onConfirm={() => onDelete(confirmDel)}
         />

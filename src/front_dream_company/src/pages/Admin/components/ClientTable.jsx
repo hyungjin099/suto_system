@@ -1,4 +1,4 @@
-/* 고객사 목록 테이블 + URL 복사 셀 + EmptyState */
+/* 거래처 목록 테이블 + URL 복사 셀 + EmptyState */
 
 import { useState } from "react";
 import { IconBtn } from "./Buttons";
@@ -14,9 +14,10 @@ import styles from "./ClientTable.module.css";
 
 const COLS = [
   { key: "id", label: "번호", align: "center" },
-  { key: "status", label: "상태", align: "center" },
-  { key: "name", label: "고객사명", align: "center" },
-  { key: "manager", label: "담당자", align: "center" },
+  { key: "useType", label: "사용구분", align: "center" },
+  { key: "cliCode", label: "거래처코드", align: "center" },
+  { key: "name", label: "거래처명", align: "center" },
+  { key: "ceo", label: "대표자", align: "center" },
   { key: "phone", label: "연락처", align: "center" },
   { key: "url", label: "주문 페이지 URL", align: "center" },
   { key: "actions", label: "", align: "center" },
@@ -27,13 +28,14 @@ export default function ClientTable({ items, empty, onEdit, onDelete }) {
     <div className={styles.wrap}>
       <table className={styles.table}>
         <colgroup>
-          <col className={styles.colId} />
-          <col className={styles.colStatus} />
-          <col className={styles.colName} />
-          <col className={styles.colManager} />
-          <col className={styles.colPhone} />
-          <col className={styles.colUrl} />
-          <col className={styles.colActions} />
+          <col width='5%'/>
+          <col width='5%'/>
+          <col width='12%'/>
+          <col width='15%'/>
+          <col width='6%'/>
+          <col width='26%'/>
+          <col width='24%'/>
+          <col width='7%'/>
         </colgroup>
         <thead>
           <tr className={styles.headRow}>
@@ -60,16 +62,15 @@ export default function ClientTable({ items, empty, onEdit, onDelete }) {
               <tr key={c.id} className={styles.row}>
                 <td className={styles.cellId}>{c.id}</td>
                 <td className={styles.cell}>
-                  <StatusChip active={c.active} />
+                  <UseTypeChip useType={c.useType} />
                 </td>
+                <td className={styles.cell}>{c.cliCode || "-"}</td>
                 <td className={styles.cellName}>{c.name}</td>
-                <td className={styles.cellManager}>{c.managerName}</td>
+                <td className={styles.cell}>{c.ceoName || "-"}</td>
                 <td className={styles.cellPhone}>
                   <div className={styles.phoneInline}>
                     <span className={styles.phoneLabel}>회사</span>
-                    <span className={styles.phoneNum}>
-                      {c.companyPhone || "-"}
-                    </span>
+                    <span className={styles.phoneNum}>{c.tel || "-"}</span>
                     <span className={styles.phoneSep}>·</span>
                     <span className={styles.phoneLabel}>담당</span>
                     <span className={styles.phoneNum}>
@@ -78,7 +79,7 @@ export default function ClientTable({ items, empty, onEdit, onDelete }) {
                   </div>
                 </td>
                 <td className={styles.cellUrl}>
-                  <CopyableUrl accessCode={c.accessCode} />
+                  <CopyableUrl cliCode={c.cliCode} />
                 </td>
                 <td className={styles.cellActions}>
                   <div className={styles.actions}>
@@ -87,7 +88,7 @@ export default function ClientTable({ items, empty, onEdit, onDelete }) {
                     </IconBtn>
                     <IconBtn
                       onClick={() => onDelete(c)}
-                      title="비활성 처리"
+                      title="삭제"
                       danger
                     >
                       <IconTrash />
@@ -103,7 +104,8 @@ export default function ClientTable({ items, empty, onEdit, onDelete }) {
   );
 }
 
-function StatusChip({ active }) {
+function UseTypeChip({ useType }) {
+  const active = useType === "등록";
   return (
     <span
       className={cx(
@@ -112,19 +114,19 @@ function StatusChip({ active }) {
       )}
     >
       <span className={styles.statusDot} />
-      {active ? "활성" : "비활성"}
+      {useType || "-"}
     </span>
   );
 }
 
-function CopyableUrl({ accessCode }) {
+function CopyableUrl({ cliCode }) {
   const [copied, setCopied] = useState(false);
 
-  if (!accessCode) {
+  if (!cliCode) {
     return <span className={styles.urlEmpty}>URL 미발급</span>;
   }
 
-  const url = `${window.location.origin}/${accessCode}`;
+  const url = `${window.location.origin}/${cliCode}`;
 
   const onCopy = async () => {
     try {
@@ -132,7 +134,6 @@ function CopyableUrl({ accessCode }) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch (err) {
-      // 브라우저 권한/HTTPS 이슈 시 fallback
       const ta = document.createElement("textarea");
       ta.value = url;
       ta.style.position = "fixed";
@@ -174,9 +175,9 @@ function EmptyState() {
       <div className={styles.emptyIcon}>
         <IconSearch size={22} />
       </div>
-      <div className={styles.emptyTitle}>조건에 맞는 고객사가 없습니다</div>
+      <div className={styles.emptyTitle}>조건에 맞는 거래처가 없습니다</div>
       <div className={styles.emptyDesc}>
-        필터를 조정하거나 새 고객사를 등록해 주세요.
+        필터를 조정하거나 새 거래처를 등록해 주세요.
       </div>
     </div>
   );
