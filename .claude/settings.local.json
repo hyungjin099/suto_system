@@ -8,7 +8,12 @@
       "Bash(ConvertTo-Json)",
       "Bash(npm run *)",
       "mcp__Claude_in_Chrome__tabs_context_mcp",
-      "Bash(./gradlew compileJava)"
+      "Bash(./gradlew compileJava)",
+      "Bash(python -c \"import pandas as pd; d=pd.read_excel\\(r'C:\\\\Users\\\\admin\\\\Desktop\\\\미애쌤\\\\거래처-최신분류 .xlsx', sheet_name=None\\); [print\\('===',k,'==='\\); print\\(v.to_string\\(\\)\\) for k,v in d.items\\(\\)]\")",
+      "Bash(python _read_xlsx.py)",
+      "Bash(pip install *)",
+      "Bash(python _gen_insert.py)",
+      "Bash(python -c ' *)"
     ]
   }
 }
