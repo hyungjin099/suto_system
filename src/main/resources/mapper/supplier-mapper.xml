@@ -5,39 +5,32 @@
 <mapper namespace="com.dream_comp.auto_system.mapper.SupplierMapper">
 
     <resultMap id="supplierResultMap" type="com.dream_comp.auto_system.dto.SupplierDto">
-        <id     property="supNum"        column="SUP_NUM"/>
-        <result property="supName"       column="SUP_NAME"/>
-        <result property="supTel"        column="SUP_TEL"/>
-        <result property="supManagerName" column="SUP_MANAGER_NAME"/>
-        <result property="supManagerTel" column="SUP_MANAGER_TEL"/>
-        <result property="regDate"       column="REG_DATE"/>
+        <id     property="supNum"  column="SUP_NUM"/>
+        <result property="supName" column="SUP_NAME"/>
     </resultMap>
 
-    <select id="findAllActive" resultMap="supplierResultMap">
-        SELECT SUP_NUM, SUP_NAME, SUP_TEL, SUP_MANAGER_NAME, SUP_MANAGER_TEL, REG_DATE
-        FROM SUPPLIER_INFO
-        WHERE SUP_STATUS = 1
-        ORDER BY SUP_NAME
+    <select id="findAll" resultMap="supplierResultMap">
+        SELECT SUP_NUM, SUP_NAME FROM SUPPLIER_INFO ORDER BY SUP_NUM
+    </select>
+
+    <select id="findBySupNum" parameterType="long" resultMap="supplierResultMap">
+        SELECT SUP_NUM, SUP_NAME FROM SUPPLIER_INFO WHERE SUP_NUM = #{supNum}
+    </select>
+
+    <select id="countBySupName" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM SUPPLIER_INFO WHERE SUP_NAME = #{supName}
     </select>
 
     <insert id="insert" useGeneratedKeys="true" keyProperty="supNum" keyColumn="SUP_NUM">
-        INSERT INTO SUPPLIER_INFO (SUP_NAME, SUP_TEL, SUP_MANAGER_NAME, SUP_MANAGER_TEL, SUP_STATUS)
-        VALUES (#{supName}, #{supTel}, #{supManagerName}, #{supManagerTel}, 1)
+        INSERT INTO SUPPLIER_INFO (SUP_NAME) VALUES (#{supName})
     </insert>
 
     <update id="update">
-        UPDATE SUPPLIER_INFO
-        SET SUP_NAME         = #{supName},
-            SUP_TEL          = #{supTel},
-            SUP_MANAGER_NAME = #{supManagerName},
-            SUP_MANAGER_TEL  = #{supManagerTel}
-        WHERE SUP_NUM = #{supNum}
+        UPDATE SUPPLIER_INFO SET SUP_NAME = #{supName} WHERE SUP_NUM = #{supNum}
     </update>
 
-    <update id="deactivate">
-        UPDATE SUPPLIER_INFO
-        SET SUP_STATUS = 0
-        WHERE SUP_NUM = #{supNum}
-    </update>
+    <delete id="delete">
+        DELETE FROM SUPPLIER_INFO WHERE SUP_NUM = #{supNum}
+    </delete>
 
 </mapper>

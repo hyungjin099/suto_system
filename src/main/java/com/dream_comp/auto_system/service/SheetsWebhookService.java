@@ -104,6 +104,7 @@ public class SheetsWebhookService {
             row.put("length", item.getLength());
             row.put("rolls", item.getRolls());
             row.put("destination", item.getDestination() != null ? item.getDestination() : "");
+            row.put("note", item.getNote() != null ? item.getNote() : "");
             itemList.add(row);
         }
         payload.put("items", itemList);

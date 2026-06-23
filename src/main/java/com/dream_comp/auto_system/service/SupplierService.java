@@ -14,39 +14,37 @@ public class SupplierService {
 
     private final SupplierMapper supplierMapper;
 
-    public List<SupplierDto> findAllActive() {
-        return supplierMapper.findAllActive();
+    public List<SupplierDto> findAll() {
+        return supplierMapper.findAll();
     }
 
     public SupplierDto create(SupplierRequestDto req) {
-        SupplierVo vo = toVo(null, req);
+        if (supplierMapper.countBySupName(req.getSupName()) > 0) {
+            throw new IllegalArgumentException("이미 사용 중인 매입처명입니다");
+        }
+        SupplierVo vo = new SupplierVo();
+        vo.setSupName(req.getSupName());
         supplierMapper.insert(vo);
-        return findAllActive().stream()
-                .filter(s -> s.getSupNum().equals(vo.getSupNum()))
-                .findFirst()
-                .orElseThrow();
+        return supplierMapper.findBySupNum(vo.getSupNum());
     }
 
     public SupplierDto update(Long supNum, SupplierRequestDto req) {
-        SupplierVo vo = toVo(supNum, req);
-        supplierMapper.update(vo);
-        return findAllActive().stream()
-                .filter(s -> s.getSupNum().equals(supNum))
-                .findFirst()
-                .orElseThrow();
-    }
-
-    public void deactivate(Long supNum) {
-        supplierMapper.deactivate(supNum);
-    }
-
-    private SupplierVo toVo(Long supNum, SupplierRequestDto req) {
+        SupplierDto current = supplierMapper.findBySupNum(supNum);
+        if (current == null) {
+            throw new IllegalArgumentException("존재하지 않는 매입처입니다");
+        }
+        if (!req.getSupName().equals(current.getSupName())
+                && supplierMapper.countBySupName(req.getSupName()) > 0) {
+            throw new IllegalArgumentException("이미 사용 중인 매입처명입니다");
+        }
         SupplierVo vo = new SupplierVo();
         vo.setSupNum(supNum);
         vo.setSupName(req.getSupName());
-        vo.setSupTel(req.getSupTel());
-        vo.setSupManagerName(req.getSupManagerName());
-        vo.setSupManagerTel(req.getSupManagerTel());
-        return vo;
+        supplierMapper.update(vo);
+        return supplierMapper.findBySupNum(supNum);
+    }
+
+    public void delete(Long supNum) {
+        supplierMapper.delete(supNum);
     }
 }

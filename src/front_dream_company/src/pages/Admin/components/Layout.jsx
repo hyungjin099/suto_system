@@ -32,7 +32,7 @@ const MENU_ITEMS = [
   },
   {
     key: "suppliers",
-    label: "입고처 관리",
+    label: "매입처 관리",
     path: "/admin/suppliers",
     Icon: IconTruck,
   },
@@ -50,7 +50,7 @@ function resolveActive(pathname) {
   if (pathname.startsWith("/admin/clients"))
     return { key: "clients", category: "고객사 관리", page: "등록 고객사 목록" };
   if (pathname.startsWith("/admin/suppliers"))
-    return { key: "suppliers", category: "입고처 관리", page: "입고처 목록" };
+    return { key: "suppliers", category: "매입처 관리", page: "매입처 목록" };
   if (pathname.startsWith("/admin/fabric-alias"))
     return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
   // 기본값(제품 관리)

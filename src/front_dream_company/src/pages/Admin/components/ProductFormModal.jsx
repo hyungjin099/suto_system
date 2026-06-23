@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import ModalShell from "./ModalShell";
 import { AField, AInput, ASelect } from "./Fields";
 import { IconX } from "./Icons";
-import { MANUFACTURERS } from "../constants";
+import { fetchSuppliers } from "../api";
 import { formatNumber, onlyDigits } from "../utils";
 import styles from "./ProductFormModal.module.css";
 
@@ -22,6 +22,19 @@ export default function ProductFormModal({
     price: initial?.price ? String(initial.price) : "",
   }));
   const [errs, setErrs] = useState({});
+  const [supplierOptions, setSupplierOptions] = useState([]);
+  const [suppliersLoading, setSuppliersLoading] = useState(true);
+  const [suppliersError, setSuppliersError] = useState("");
+
+  // 매입처 목록 동적 로드 (SUPPLIER_INFO)
+  useEffect(() => {
+    fetchSuppliers()
+      .then((arr) =>
+        setSupplierOptions(arr.map((s) => ({ value: s.name, label: s.name })))
+      )
+      .catch(() => setSuppliersError("매입처 목록을 불러오지 못했습니다."))
+      .finally(() => setSuppliersLoading(false));
+  }, []);
 
   useEffect(() => {
     const o = document.body.style.overflow;
@@ -104,9 +117,16 @@ export default function ProductFormModal({
           <ASelect
             value={form.manufacturer}
             onChange={(v) => set("manufacturer", v)}
-            options={MANUFACTURERS}
-            placeholder="매입처를 선택하세요"
+            options={supplierOptions}
+            placeholder={
+              suppliersLoading
+                ? "매입처 목록 불러오는 중…"
+                : suppliersError
+                ? suppliersError
+                : "매입처를 선택하세요"
+            }
             error={!!errs.manufacturer}
+            disabled={suppliersLoading || !!suppliersError}
           />
         </AField>
 

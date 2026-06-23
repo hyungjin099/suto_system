@@ -7,8 +7,10 @@ import java.util.List;
 
 @Mapper
 public interface SupplierMapper {
-    List<SupplierDto> findAllActive();
+    List<SupplierDto> findAll();
+    SupplierDto findBySupNum(Long supNum);
+    int countBySupName(String supName);
     void insert(SupplierVo vo);
     void update(SupplierVo vo);
-    void deactivate(Long supNum);
+    void delete(Long supNum);
 }

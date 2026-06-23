@@ -4,7 +4,7 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
-// ── 입고처 ─────────────────────────────────────────────
+// ── 매입처 ─────────────────────────────────────────────
 export async function fetchSuppliers() {
   const res = await axios.get(`${BASE_URL}/api/suppliers`);
   return res.data.map(toSupplier);
@@ -29,19 +29,12 @@ function toSupplier(s) {
     id: String(s.supNum),
     supNum: s.supNum,
     name: s.supName,
-    tel: s.supTel || "",
-    managerName: s.supManagerName || "",
-    managerTel: s.supManagerTel || "",
-    regDate: s.regDate ? new Date(s.regDate) : new Date(),
   };
 }
 
 function toSupplierReq(form) {
   return {
     supName: form.name,
-    supTel: form.tel,
-    supManagerName: form.managerName,
-    supManagerTel: form.managerTel,
   };
 }
 
@@ -134,4 +127,44 @@ export async function createClient(form) {
 export async function updateClient(cliNum, form) {
   const res = await axios.put(`${BASE_URL}/api/clients/${cliNum}`, toClientReq(form));
   return toClient(res.data);
+}
+
+// ── 거래처 별칭(CLIENT_FABRIC_ALIAS) — 관리자용 ─────────
+function toAlias(a) {
+  return {
+    aliasNum:  a.aliasNum,
+    cliNum:    a.cliNum,
+    prodNum:   a.prodNum,
+    prodCode:  a.prodCode,
+    prodName:  a.prodName,
+    aliasName: a.clientFabName,
+    price:     a.clientFabPrice,
+  };
+}
+
+export async function fetchAliases(cliNum) {
+  const res = await axios.get(`${BASE_URL}/api/aliases`, { params: { cliNum } });
+  return res.data.map(toAlias);
+}
+
+export async function createAlias({ cliNum, prodNum, aliasName, price }) {
+  const res = await axios.post(`${BASE_URL}/api/aliases`, {
+    cliNum, prodNum,
+    clientFabName: aliasName,
+    clientFabPrice: price ?? null,
+  });
+  return toAlias(res.data);
+}
+
+export async function updateAlias(aliasNum, { aliasName, price }) {
+  const res = await axios.put(`${BASE_URL}/api/aliases/${aliasNum}`, {
+    cliNum: 0, prodNum: 0,
+    clientFabName: aliasName,
+    clientFabPrice: price ?? null,
+  });
+  return toAlias(res.data);
+}
+
+export async function deleteAlias(aliasNum) {
+  await axios.delete(`${BASE_URL}/api/aliases/${aliasNum}`);
 }

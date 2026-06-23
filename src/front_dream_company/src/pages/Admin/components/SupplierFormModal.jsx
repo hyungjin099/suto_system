@@ -1,4 +1,4 @@
-/* 입고처 등록/수정 모달 */
+/* 매입처 등록/수정 모달 (매입처명만 입력) */
 
 import { useEffect, useState } from "react";
 import ModalShell from "./ModalShell";
@@ -7,12 +7,7 @@ import { IconX } from "./Icons";
 import styles from "./SupplierFormModal.module.css";
 
 export default function SupplierFormModal({ mode, initial, saving, onClose, onSave }) {
-  const [form, setForm] = useState({
-    name:        initial?.name        || "",
-    tel:         initial?.tel         || "",
-    managerName: initial?.managerName || "",
-    managerTel:  initial?.managerTel  || "",
-  });
+  const [form, setForm] = useState({ name: initial?.name || "" });
   const [errs, setErrs] = useState({});
 
   useEffect(() => {
@@ -33,26 +28,23 @@ export default function SupplierFormModal({ mode, initial, saving, onClose, onSa
 
   const submit = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "입고처명을 입력해 주세요";
+    const name = form.name.trim();
+    if (!name) e.name = "매입처명을 입력해 주세요";
+    else if (name.length > 100) e.name = "매입처명은 100자 이내여야 합니다";
     setErrs(e);
     if (Object.keys(e).length) return;
-    onSave({
-      name:        form.name.trim(),
-      tel:         form.tel.trim(),
-      managerName: form.managerName.trim(),
-      managerTel:  form.managerTel.trim(),
-    });
+    onSave({ name });
   };
 
   return (
-    <ModalShell onClose={onClose} maxWidth={480}>
+    <ModalShell onClose={onClose} maxWidth={460}>
       <div className={styles.header}>
         <div>
           <h2 className={styles.title}>
-            {mode === "create" ? "입고처 등록" : "입고처 수정"}
+            {mode === "create" ? "매입처 등록" : "매입처 수정"}
           </h2>
           <p className={styles.subtitle}>
-            {mode === "create" ? "새 입고처 정보를 입력하세요." : "변경할 내용을 입력하세요."}
+            {mode === "create" ? "새 매입처를 등록합니다." : "매입처명을 변경합니다."}
           </p>
         </div>
         <button type="button" onClick={onClose} className={styles.closeBtn} aria-label="닫기">
@@ -61,39 +53,14 @@ export default function SupplierFormModal({ mode, initial, saving, onClose, onSa
       </div>
 
       <div className={styles.body}>
-        <AField label="입고처명" required error={errs.name}>
+        <AField label="매입처명" required error={errs.name}>
           <AInput
             value={form.name}
             onChange={(v) => set("name", v)}
-            placeholder="예: 한솔제지 영업부"
+            placeholder="예: UPM"
             error={!!errs.name}
           />
         </AField>
-
-        <AField label="연락처" error={errs.tel} hint="선택">
-          <AInput
-            value={form.tel}
-            onChange={(v) => set("tel", v)}
-            placeholder="예: 02-1234-5678"
-          />
-        </AField>
-
-        <div className={styles.row2}>
-          <AField label="담당자명" error={errs.managerName} hint="선택">
-            <AInput
-              value={form.managerName}
-              onChange={(v) => set("managerName", v)}
-              placeholder="예: 홍길동"
-            />
-          </AField>
-          <AField label="담당자 연락처" error={errs.managerTel} hint="선택">
-            <AInput
-              value={form.managerTel}
-              onChange={(v) => set("managerTel", v)}
-              placeholder="예: 010-1234-5678"
-            />
-          </AField>
-        </div>
       </div>
 
       <div className={styles.footer}>

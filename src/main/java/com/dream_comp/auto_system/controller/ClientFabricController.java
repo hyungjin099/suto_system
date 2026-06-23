@@ -1,28 +1,50 @@
 package com.dream_comp.auto_system.controller;
 
+import com.dream_comp.auto_system.dto.ClientAliasAdminDto;
+import com.dream_comp.auto_system.dto.ClientAliasRequestDto;
 import com.dream_comp.auto_system.dto.ClientFabricDto;
 import com.dream_comp.auto_system.service.ClientFabricService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/clients")
 @RequiredArgsConstructor
 public class ClientFabricController {
 
     private final ClientFabricService clientFabricService;
 
-    /**
-     * 고객사 거래처코드(CLI_CODE)로 해당 고객사에 등록된 원단 별칭 목록 반환.
-     * 주문 폼의 셀렉트박스 옵션 생성에 사용.
-     */
-    @GetMapping("/{cliCode}/fabrics")
+    /** 주문 폼: CLI_CODE로 별칭 조회 */
+    @GetMapping("/api/clients/{cliCode}/fabrics")
     public ResponseEntity<List<ClientFabricDto>> getFabrics(@PathVariable String cliCode) {
         return ResponseEntity.ok(clientFabricService.findByCliCode(cliCode));
+    }
+
+    /** 관리자: CLI_NUM으로 별칭 전체 조회 */
+    @GetMapping("/api/aliases")
+    public ResponseEntity<List<ClientAliasAdminDto>> getAliases(@RequestParam Long cliNum) {
+        return ResponseEntity.ok(clientFabricService.findAdminByCliNum(cliNum));
+    }
+
+    /** 관리자: 별칭 신규 등록 */
+    @PostMapping("/api/aliases")
+    public ResponseEntity<ClientAliasAdminDto> create(@Valid @RequestBody ClientAliasRequestDto req) {
+        return ResponseEntity.ok(clientFabricService.create(req));
+    }
+
+    /** 관리자: 별칭 수정 (이름/단가) */
+    @PutMapping("/api/aliases/{aliasNum}")
+    public ResponseEntity<ClientAliasAdminDto> update(@PathVariable Long aliasNum,
+                                                      @Valid @RequestBody ClientAliasRequestDto req) {
+        return ResponseEntity.ok(clientFabricService.update(aliasNum, req));
+    }
+
+    /** 관리자: 별칭 삭제 (매칭 해제) */
+    @DeleteMapping("/api/aliases/{aliasNum}")
+    public ResponseEntity<Void> delete(@PathVariable Long aliasNum) {
+        clientFabricService.delete(aliasNum);
+        return ResponseEntity.noContent().build();
     }
 }
