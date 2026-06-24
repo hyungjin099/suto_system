@@ -10,5 +10,6 @@ public class ProductDto {
     private String prodName;
     private Integer prodPrice;
     private String manufacturer;
+    private String prodStatus; // '사용' / '미사용'
     private LocalDateTime regDate;
 }

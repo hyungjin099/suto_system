@@ -201,3 +201,47 @@
   font-size: 12.5px;
   color: var(--muted);
 }
+
+/* 사용여부 토글 스위치 */
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 26px;
+  min-width: 84px;
+  padding: 0 14px 0 4px;
+  border: 1px solid var(--line-2);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--muted) 12%, var(--surface));
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+  position: relative;
+  white-space: nowrap;
+}
+.toggleKnob {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.18);
+  transition: transform 0.18s;
+  display: inline-block;
+}
+.toggleLabel {
+  letter-spacing: -0.01em;
+}
+.toggleOn {
+  background: var(--brand);
+  color: #fff;
+  border-color: var(--brand);
+}
+.toggleOn .toggleKnob {
+  transform: translateX(2px);
+}
+.toggle:not(.toggleOn) .toggleKnob {
+  transform: translateX(0);
+}

@@ -11,6 +11,7 @@ import {
   fetchClients,
   fetchProducts,
   fetchAliases,
+  fetchAliasCounts,
   createAlias,
   updateAlias,
   deleteAlias,
@@ -29,6 +30,8 @@ export default function FabricAliasAdmin() {
   // aliases: { [prodNum]: { aliasNum, aliasName, price } }
   const [aliasMap, setAliasMap] = useState({});
   const [aliasLoading, setAliasLoading] = useState(false);
+  // 거래처별 별칭 갯수: { [cliNum]: count }
+  const [aliasCounts, setAliasCounts] = useState({});
   const [apiError, setApiError] = useState("");
 
   const [selectedClientId, setSelectedClientId] = useState(null);
@@ -63,6 +66,8 @@ export default function FabricAliasAdmin() {
       .catch(() => setClientsError("거래처 목록을 불러오지 못했습니다."))
       .finally(() => setClientsLoading(false));
 
+    fetchAliasCounts().then(setAliasCounts).catch(() => {});
+
     fetchProducts()
       .then((arr) =>
         setAllFabrics(
@@ -73,6 +78,7 @@ export default function FabricAliasAdmin() {
             name: p.name,
             manufacturer: p.manufacturer,
             price: p.price,
+            status: p.status || "사용",
           }))
         )
       )
@@ -162,6 +168,10 @@ export default function FabricAliasAdmin() {
 
   // ── 드래그 ─────────────────────────────────────────────
   const handleDragStart = (e, fabric) => {
+    if (fabric.status === "미사용") {
+      e.preventDefault();
+      return;
+    }
     e.dataTransfer.setData("fabricId", fabric.id);
     e.dataTransfer.effectAllowed = "move";
     setDraggingId(fabric.id);
@@ -182,7 +192,7 @@ export default function FabricAliasAdmin() {
     if (!selectedClient) return;
     const fabricId = e.dataTransfer.getData("fabricId");
     const fabric = allFabrics.find((f) => f.id === fabricId);
-    if (!fabric || aliasMap[fabric.prodNum]) return;
+    if (!fabric || aliasMap[fabric.prodNum] || fabric.status === "미사용") return;
     setPendingDrop(fabric);
     setPendingAlias("");
     setPendingPrice(fabric.price != null ? String(fabric.price) : "");
@@ -208,6 +218,7 @@ export default function FabricAliasAdmin() {
         ...m,
         [created.prodNum]: { aliasNum: created.aliasNum, aliasName: created.aliasName, price: created.price },
       }));
+      setAliasCounts((c) => ({ ...c, [selectedClientId]: (c[selectedClientId] || 0) + 1 }));
       setPendingDrop(null); setPendingAlias(""); setPendingPrice(""); setPendingError("");
     } catch (err) {
       setPendingError(handleApiError(err, "등록 중 오류가 발생했습니다."));
@@ -257,6 +268,7 @@ export default function FabricAliasAdmin() {
       setAliasMap((m) => {
         const copy = { ...m }; delete copy[prodNum]; return copy;
       });
+      setAliasCounts((c) => ({ ...c, [selectedClientId]: Math.max(0, (c[selectedClientId] || 0) - 1) }));
       if (editingProdNum === prodNum) cancelEdit();
     } catch (err) {
       setApiError(handleApiError(err, "삭제 중 오류가 발생했습니다."));
@@ -264,8 +276,6 @@ export default function FabricAliasAdmin() {
   };
 
   const mappedCount = mappedFabrics.length;
-  const totalCount = allFabrics.length;
-  const progressPct = totalCount > 0 ? (mappedCount / totalCount) * 100 : 0;
 
   return (
     <AdminShell>
@@ -308,7 +318,9 @@ export default function FabricAliasAdmin() {
             ) : (
               filteredClients.map((c) => {
                 const isActive = c.cliNum === selectedClientId;
-                const cnt = isActive ? Object.keys(aliasMap).length : null;
+                const cnt = isActive
+                  ? Object.keys(aliasMap).length
+                  : (aliasCounts[c.cliNum] || 0);
                 return (
                   <button
                     key={c.cliNum}
@@ -331,19 +343,6 @@ export default function FabricAliasAdmin() {
 
         {/* ── 우: 작업 영역 ── */}
         <div className={styles.workArea}>
-
-          {selectedClient && (
-            <div className={styles.statsRow}>
-              <span className={styles.statsText}>
-                <b>{selectedClient.name}</b>&nbsp;매칭 완료&nbsp;
-                <b>{mappedCount}</b>&nbsp;/&nbsp;{totalCount}개
-              </span>
-              <div className={styles.progressTrack}>
-                <div className={styles.progressFill} style={{ width: `${progressPct}%` }} />
-              </div>
-              <span className={styles.statsPercent}>{Math.round(progressPct)}%</span>
-            </div>
-          )}
 
           <div className={styles.panels}>
 
@@ -377,27 +376,38 @@ export default function FabricAliasAdmin() {
                     {unmappedFabrics.length === 0 ? "✓ 모든 원단이 매칭되었습니다" : "검색 결과가 없습니다"}
                   </div>
                 ) : (
-                  filteredLeft.map((fabric) => (
-                    <div
-                      key={fabric.id}
-                      className={cx(styles.fabricCard, draggingId === fabric.id && styles.fabricCardDragging)}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, fabric)}
-                      onDragEnd={handleDragEnd}
-                    >
-                      <span className={styles.grip}>⣿</span>
-                      <div className={styles.fabricMeta}>
-                        <span className={styles.fabricCode}>{fabric.code}</span>
-                        <span className={styles.fabricName}>{fabric.name}</span>
-                      </div>
-                      {fabric.manufacturer && (
-                        <span className={styles.catBadge}
-                              style={{ background: "var(--brand-soft)", color: "var(--brand-ink)" }}>
-                          {fabric.manufacturer}
+                  filteredLeft.map((fabric) => {
+                    const unused = fabric.status === "미사용";
+                    return (
+                      <div
+                        key={fabric.id}
+                        className={cx(
+                          styles.fabricCard,
+                          draggingId === fabric.id && styles.fabricCardDragging,
+                          unused && styles.fabricCardDisabled
+                        )}
+                        draggable={!unused}
+                        onDragStart={(e) => handleDragStart(e, fabric)}
+                        onDragEnd={handleDragEnd}
+                        title={unused ? "미사용 원단은 별칭을 등록할 수 없습니다" : undefined}
+                      >
+                        <span className={styles.grip}>⣿</span>
+                        <div className={styles.fabricMeta}>
+                          <span className={styles.fabricCode}>{fabric.code}</span>
+                          <span className={styles.fabricName}>{fabric.name}</span>
+                        </div>
+                        {fabric.manufacturer && (
+                          <span className={styles.catBadge}
+                                style={{ background: "var(--brand-soft)", color: "var(--brand-ink)" }}>
+                            {fabric.manufacturer}
+                          </span>
+                        )}
+                        <span className={cx(styles.statusChip, unused ? styles.statusChipOff : styles.statusChipOn)}>
+                          {fabric.status || "사용"}
                         </span>
-                      )}
-                    </div>
-                  ))
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -517,8 +527,8 @@ export default function FabricAliasAdmin() {
                           <span className={styles.arrow}>→</span>
                           <span className={styles.aliasValue}>{a?.aliasName}</span>
                           {a?.price != null && (
-                            <span className={styles.aliasValue} style={{ color: "var(--muted)", fontWeight: 500 }}>
-                              · {a.price.toLocaleString("ko-KR")}원
+                            <span className={styles.aliasPrice}>
+                              {a.price.toLocaleString("ko-KR")}원
                             </span>
                           )}
                           <div className={styles.aliasActions}>

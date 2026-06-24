@@ -13,5 +13,7 @@ public interface ProductMapper {
     int countAliasByProdNum(Long prodNum); // 자식(별칭) 존재 여부
     void insert(ProductVo vo);
     void update(ProductVo vo);
+    void updateStatus(@org.apache.ibatis.annotations.Param("prodNum") Long prodNum,
+                      @org.apache.ibatis.annotations.Param("prodStatus") String prodStatus);
     void delete(Long prodNum);
 }

@@ -47,8 +47,14 @@ function toProduct(p) {
     name: p.prodName,
     price: p.prodPrice,
     manufacturer: p.manufacturer,
+    status: p.prodStatus || "사용",
     updatedAt: p.regDate ? new Date(p.regDate) : new Date(),
   };
+}
+
+export async function updateProductStatus(prodNum, prodStatus) {
+  const res = await axios.patch(`${BASE_URL}/api/products/${prodNum}/status`, { prodStatus });
+  return toProduct(res.data);
 }
 
 function toProductReq(form) {
@@ -167,4 +173,9 @@ export async function updateAlias(aliasNum, { aliasName, price }) {
 
 export async function deleteAlias(aliasNum) {
   await axios.delete(`${BASE_URL}/api/aliases/${aliasNum}`);
+}
+
+export async function fetchAliasCounts() {
+  const res = await axios.get(`${BASE_URL}/api/aliases/counts`);
+  return res.data; // { cliNum: count }
 }

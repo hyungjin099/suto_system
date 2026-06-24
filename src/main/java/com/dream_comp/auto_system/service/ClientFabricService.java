@@ -23,6 +23,16 @@ public class ClientFabricService {
         return clientFabricMapper.findAdminByCliNum(cliNum);
     }
 
+    public java.util.Map<Long, Integer> countAllByCli() {
+        java.util.Map<Long, Integer> result = new java.util.HashMap<>();
+        for (java.util.Map<String, Object> row : clientFabricMapper.countAllByCli()) {
+            Number cli = (Number) row.get("cliNum");
+            Number cnt = (Number) row.get("cnt");
+            if (cli != null) result.put(cli.longValue(), cnt == null ? 0 : cnt.intValue());
+        }
+        return result;
+    }
+
     public ClientAliasAdminDto create(ClientAliasRequestDto req) {
         if (clientFabricMapper.countByCliAndProd(req.getCliNum(), req.getProdNum()) > 0) {
             throw new IllegalArgumentException("이미 해당 원단에 별칭이 등록되어 있습니다");

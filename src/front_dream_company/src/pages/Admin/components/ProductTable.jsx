@@ -11,6 +11,7 @@ const COLS = [
   { key: "manufacturer", label: "매입처", align: "center" },
   { key: "price", label: "단가 (원/m)", align: "center" },
   { key: "updated", label: "수정일", align: "center" },
+  { key: "status", label: "사용여부", align: "center" },
   { key: "actions", label: "", align: "center" },
 ];
 
@@ -19,6 +20,7 @@ export default function ProductTable({
   empty,
   onEdit,
   onDelete,
+  onToggleStatus,
   total = 0,
   page = 1,
   pageSize = 15,
@@ -32,6 +34,7 @@ export default function ProductTable({
           <col width="*" />
           <col width="160px" />
           <col width="140px" />
+          <col width="120px" />
           <col width="120px" />
           <col width="180px" />
         </colgroup>
@@ -75,6 +78,19 @@ export default function ProductTable({
                   )}
                 </td>
                 <td className={styles.cellUpdated}>{fmtDate(p.updatedAt)}</td>
+                <td className={styles.cell}>
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={p.status === "사용"}
+                    onClick={() => onToggleStatus?.(p)}
+                    className={`${styles.toggle} ${p.status === "사용" ? styles.toggleOn : ""}`}
+                    title={p.status === "사용" ? "사용 중 (클릭 시 미사용)" : "미사용 (클릭 시 사용)"}
+                  >
+                    <span className={styles.toggleKnob} />
+                    <span className={styles.toggleLabel}>{p.status || "사용"}</span>
+                  </button>
+                </td>
                 <td className={styles.cellActions}>
                   <div className={styles.actions}>
                     <button

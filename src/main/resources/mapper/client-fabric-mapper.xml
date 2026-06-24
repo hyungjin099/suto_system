@@ -36,6 +36,12 @@
         ORDER BY pi.PROD_NAME
     </select>
 
+    <select id="countAllByCli" resultType="map">
+        SELECT CLI_NUM AS cliNum, COUNT(*) AS cnt
+        FROM CLIENT_FABRIC_ALIAS
+        GROUP BY CLI_NUM
+    </select>
+
     <select id="findAdminByCliNum" parameterType="long" resultMap="aliasAdminResultMap">
         SELECT
             cfa.ALIAS_NUM,

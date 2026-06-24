@@ -16,7 +16,7 @@
 /* ── 좌측 고객사 목록 패널 ──────────────────────────────── */
 
 .clientPanel {
-  width: 200px;
+  width: 300px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -336,21 +336,31 @@
   letter-spacing: -2px;
 }
 
+/* 원단 카드: 코드 칩 + 원단명 가로 배치 */
 .fabricMeta {
   flex: 1;
   min-width: 0;
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 .fabricCode {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--muted);
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-ink);
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-line);
+  border-radius: 6px;
+  padding: 2px 8px;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 .fabricName {
+  flex: 1;
+  min-width: 0;
   font-size: 12.5px;
   font-weight: 500;
   color: var(--ink);
@@ -388,10 +398,12 @@
 
 /* ── 오른쪽 별칭 카드 ───────────────────────────────────── */
 
+/* 별칭 카드: 원단명 → 별칭 가로 배치 (보기 모드는 한 줄) */
 .aliasCard {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
   padding: 9px 10px;
   border: 1px solid var(--line);
   border-radius: 9px;
@@ -400,10 +412,17 @@
 }
 .aliasCard:hover { border-color: var(--line-2); }
 
+/* 입력(드롭/수정) 모드일 때는 한 줄로 폼이 길어지므로 wrap 허용 */
+.aliasCard:has(.aliasInputRow) {
+  flex-wrap: wrap;
+}
+
 .aliasCardPending {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
   padding: 9px 10px;
   border: 2px solid oklch(0.82 0.12 75);
   border-radius: 9px;
@@ -416,16 +435,25 @@
   to   { transform: scale(1);    opacity: 1;   }
 }
 
+/* 원단명: 좌측 강조 라벨 */
 .aliasFabricName {
-  font-size: 11px;
-  color: var(--muted);
-  font-weight: 500;
+  flex: 0 0 auto;
+  max-width: 50%;
+  font-size: 12.5px;
+  color: var(--ink);
+  font-weight: 600;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 3px 8px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .aliasInputRow {
+  flex: 1;
+  min-width: 220px;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -489,6 +517,8 @@
 .cancelAliasBtn:hover { color: var(--danger); border-color: var(--danger); }
 
 .aliasViewRow {
+  flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -572,4 +602,48 @@
   text-align: center;
   color: var(--muted);
   font-size: 13px;
+}
+
+/* 단가: 우측 정렬 (수정/삭제 버튼 바로 왼쪽) */
+.aliasPrice {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* 사용여부 칩 (공식 원단 카드 우측) */
+.statusChip {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.statusChipOn {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border-color: var(--brand-line);
+}
+.statusChipOff {
+  background: color-mix(in oklab, var(--muted) 14%, transparent);
+  color: var(--muted);
+}
+
+/* 미사용 원단 카드 — 드래그 불가 비주얼 */
+.fabricCardDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.fabricCardDisabled:hover {
+  box-shadow: none;
+  border-color: var(--line);
+}
+.fabricCardDisabled:active {
+  cursor: not-allowed;
 }

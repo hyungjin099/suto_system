@@ -10,17 +10,18 @@
         <result property="prodName"     column="PROD_NAME"/>
         <result property="prodPrice"    column="PROD_PRICE"/>
         <result property="manufacturer" column="MANUFACTURER"/>
+        <result property="prodStatus"   column="PROD_STATUS"/>
         <result property="regDate"      column="REG_DATE"/>
     </resultMap>
 
     <select id="findAll" resultMap="productResultMap">
-        SELECT PROD_NUM, PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER, REG_DATE
+        SELECT PROD_NUM, PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER, PROD_STATUS, REG_DATE
         FROM PRODUCT_INFO
         ORDER BY PROD_NUM DESC
     </select>
 
     <select id="findByProdNum" parameterType="long" resultMap="productResultMap">
-        SELECT PROD_NUM, PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER, REG_DATE
+        SELECT PROD_NUM, PROD_CODE, PROD_NAME, PROD_PRICE, MANUFACTURER, PROD_STATUS, REG_DATE
         FROM PRODUCT_INFO
         WHERE PROD_NUM = #{prodNum}
     </select>
@@ -45,6 +46,10 @@
             PROD_PRICE    = #{prodPrice},
             MANUFACTURER  = #{manufacturer}
         WHERE PROD_NUM = #{prodNum}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE PRODUCT_INFO SET PROD_STATUS = #{prodStatus} WHERE PROD_NUM = #{prodNum}
     </update>
 
     <delete id="delete">

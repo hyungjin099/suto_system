@@ -32,6 +32,12 @@ public class ProductController {
         return ResponseEntity.ok(productService.update(prodNum, req));
     }
 
+    @PatchMapping("/{prodNum}/status")
+    public ResponseEntity<ProductDto> updateStatus(@PathVariable Long prodNum,
+                                                   @RequestBody java.util.Map<String, String> body) {
+        return ResponseEntity.ok(productService.updateStatus(prodNum, body.get("prodStatus")));
+    }
+
     @DeleteMapping("/{prodNum}")
     public ResponseEntity<Void> delete(@PathVariable Long prodNum) {
         productService.delete(prodNum);

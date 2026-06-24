@@ -28,6 +28,12 @@ public class ClientFabricController {
         return ResponseEntity.ok(clientFabricService.findAdminByCliNum(cliNum));
     }
 
+    /** 관리자: 거래처별 별칭 갯수 일괄 조회 ({cliNum: count}) */
+    @GetMapping("/api/aliases/counts")
+    public ResponseEntity<java.util.Map<Long, Integer>> getCounts() {
+        return ResponseEntity.ok(clientFabricService.countAllByCli());
+    }
+
     /** 관리자: 별칭 신규 등록 */
     @PostMapping("/api/aliases")
     public ResponseEntity<ClientAliasAdminDto> create(@Valid @RequestBody ClientAliasRequestDto req) {

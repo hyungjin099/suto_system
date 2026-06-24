@@ -10,5 +10,6 @@ public class ProductVo {
     private String prodName;
     private Integer prodPrice;
     private String manufacturer;
+    private String prodStatus;
     private LocalDateTime regDate;
 }

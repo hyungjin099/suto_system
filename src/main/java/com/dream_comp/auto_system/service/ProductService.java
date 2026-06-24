@@ -42,6 +42,17 @@ public class ProductService {
         return productMapper.findByProdNum(prodNum);
     }
 
+    public ProductDto updateStatus(Long prodNum, String prodStatus) {
+        if (!"사용".equals(prodStatus) && !"미사용".equals(prodStatus)) {
+            throw new IllegalArgumentException("사용여부는 '사용' 또는 '미사용'이어야 합니다");
+        }
+        if (productMapper.findByProdNum(prodNum) == null) {
+            throw new IllegalArgumentException("존재하지 않는 제품입니다");
+        }
+        productMapper.updateStatus(prodNum, prodStatus);
+        return productMapper.findByProdNum(prodNum);
+    }
+
     public void delete(Long prodNum) {
         int aliasCount = productMapper.countAliasByProdNum(prodNum);
         if (aliasCount > 0) {

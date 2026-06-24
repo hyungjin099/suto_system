@@ -13,7 +13,8 @@
       "Bash(python _read_xlsx.py)",
       "Bash(pip install *)",
       "Bash(python _gen_insert.py)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(python _gen_alias.py)"
     ]
   }
 }

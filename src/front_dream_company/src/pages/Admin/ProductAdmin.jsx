@@ -10,7 +10,7 @@ import ProductTable from "./components/ProductTable";
 import Pagination from "./components/Pagination";
 import ProductFormModal from "./components/ProductFormModal";
 import ConfirmDialog from "./components/ConfirmDialog";
-import { fetchProducts, createProduct, updateProduct, deleteProduct } from "./api";
+import { fetchProducts, createProduct, updateProduct, deleteProduct, updateProductStatus } from "./api";
 import styles from "./ProductAdmin.module.css";
 
 const PAGE_SIZE = 15;
@@ -144,6 +144,16 @@ export default function ProductAdmin() {
         pageSize={PAGE_SIZE}
         onEdit={(item) => setModal({ mode: "edit", item })}
         onDelete={(item) => setConfirmDel(item)}
+        onToggleStatus={async (item) => {
+          const next = item.status === "사용" ? "미사용" : "사용";
+          try {
+            const updated = await updateProductStatus(item.prodNum, next);
+            setProducts((arr) => arr.map((p) => (p.id === updated.id ? updated : p)));
+          } catch (err) {
+            const msg = err?.response?.data?.message || "사용여부 변경 중 오류가 발생했습니다.";
+            setApiError(msg);
+          }
+        }}
       />
 
       <Pagination

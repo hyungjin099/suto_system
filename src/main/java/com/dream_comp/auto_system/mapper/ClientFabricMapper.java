@@ -13,6 +13,7 @@ public interface ClientFabricMapper {
 
     // 관리자 페이지용 (CLI_NUM 기반, ALIAS_NUM 포함)
     List<ClientAliasAdminDto> findAdminByCliNum(Long cliNum);
+    List<java.util.Map<String, Object>> countAllByCli();
     int countByCliAndProd(Long cliNum, Long prodNum);
     int countByCliAndName(Long cliNum, String clientFabName);
     int countByCliAndNameExcept(Long cliNum, String clientFabName, Long aliasNum);
