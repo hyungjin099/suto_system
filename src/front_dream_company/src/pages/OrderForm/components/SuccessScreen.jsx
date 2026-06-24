@@ -3,8 +3,6 @@
 import { formatNumber } from "../utils";
 import styles from "./SuccessScreen.module.css";
 
-const cx = (...args) => args.filter(Boolean).join(" ");
-
 export default function SuccessScreen({ data, onReset }) {
   const dt = new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
@@ -58,6 +56,12 @@ export default function SuccessScreen({ data, onReset }) {
                 <div className={styles.itemDims}>
                   {formatNumber(it.width)}mm × {formatNumber(it.length)}m
                 </div>
+                {(it.destination || "").trim() && (
+                  <div className={styles.itemDest}>
+                    <span className={styles.itemDestLabel}>납품처</span>
+                    {it.destination.trim()}
+                  </div>
+                )}
               </div>
               <div className={styles.itemRolls}>
                 {parseInt(it.rolls, 10)}롤
@@ -70,18 +74,6 @@ export default function SuccessScreen({ data, onReset }) {
             <span className={styles.totalValue}>
               {data.items.length}개 제품 · {data.totalRolls}롤
             </span>
-          </div>
-
-          <div className={styles.destBox}>
-            <div className={styles.destLabel}>납품처</div>
-            <div
-              className={cx(
-                styles.destValue,
-                !data.destination.trim() && styles.empty
-              )}
-            >
-              {data.destination.trim() || "미입력"}
-            </div>
           </div>
         </div>
 
