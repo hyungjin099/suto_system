@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useParams } from "react-router-dom";
+import PasswordGate from "./components/PasswordGate";
+import OrderHistory from "./components/OrderHistory";
 import Header from "./components/Header";
 import SectionHeader from "./components/SectionHeader";
 import ProductCard from "./components/ProductCard";
@@ -28,6 +30,7 @@ export default function OrderForm() {
   const [errors, setErrors] = useState({ items: {} });
   const [showSummary, setShowSummary] = useState(false);
   const [submitted, setSubmitted] = useState(null);
+  const [tab, setTab] = useState("order"); // 'order' | 'history'
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [blockMsg, setBlockMsg] = useState("");
@@ -145,9 +148,33 @@ export default function OrderForm() {
   if (submitted) return <SuccessScreen data={submitted} onReset={resetAll} />;
 
   return (
+    <PasswordGate cliCode={cliCode}>
     <div className={styles.page}>
       <Header clientCompany={clientName} />
 
+      <div className={styles.tabBar}>
+        <button
+          type="button"
+          className={cx(styles.tabBtn, tab === "order" && styles.tabBtnActive)}
+          onClick={() => setTab("order")}
+        >
+          주문하기
+        </button>
+        <button
+          type="button"
+          className={cx(styles.tabBtn, tab === "history" && styles.tabBtnActive)}
+          onClick={() => setTab("history")}
+        >
+          주문 내역
+        </button>
+      </div>
+
+      {tab === "history" ? (
+        <main className={styles.main}>
+          <OrderHistory cliCode={cliCode} />
+        </main>
+      ) : (
+      <>
       <main className={styles.main}>
         {/* Intro */}
         <section className={styles.intro}>
@@ -225,8 +252,10 @@ export default function OrderForm() {
           </button>
         </div>
       </div>
+      </>
+      )}
 
-      {showSummary && (
+      {tab === "order" && showSummary && (
         <SummaryModal
           items={items}
           clientName={clientName}
@@ -239,5 +268,6 @@ export default function OrderForm() {
         />
       )}
     </div>
+    </PasswordGate>
   );
 }

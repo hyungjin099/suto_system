@@ -4,6 +4,38 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
+export async function loginClient(cliCode, password) {
+  const res = await axios.post(`${BASE_URL}/api/clients/${cliCode}/login`, { password });
+  return res.data; // {ok, mustChangePassword}
+}
+
+export async function changeClientPassword(cliCode, currentPassword, newPassword) {
+  const res = await axios.patch(`${BASE_URL}/api/clients/${cliCode}/password`, {
+    currentPassword, newPassword,
+  });
+  return res.data;
+}
+
+export async function fetchClientOrders(cliCode) {
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/orders`);
+  return res.data.map((o) => ({
+    orderNum: o.orderNum,
+    orderId: o.orderId,
+    orderDate: o.orderDate ? new Date(o.orderDate) : null,
+    status: o.status,
+    items: (o.items || []).map((it) => ({
+      itemNum: it.itemNum,
+      product: it.product,
+      productLabel: it.productLabel,
+      width: it.width,
+      length: it.length,
+      rolls: it.rolls,
+      destination: it.destination,
+      note: it.note,
+    })),
+  }));
+}
+
 export async function fetchClientFabrics(cliCode) {
   const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/fabrics`);
   return res.data.map((f) => ({

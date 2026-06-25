@@ -1,0 +1,189 @@
+.apiError {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+.search {
+  flex: 1;
+  min-width: 0;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  outline: none;
+}
+.search:focus { border-color: var(--brand-line); }
+.select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 13px;
+  outline: none;
+}
+.counts {
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+  padding: 0 6px;
+}
+.counts b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.numOk   { color: var(--brand-ink) !important; }
+.numFail { color: var(--danger) !important; }
+
+.wrap {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: auto;
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 1400px;
+}
+.headRow {
+  background: var(--bg);
+}
+.headRow th {
+  padding: 9px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--line);
+  text-align: center;
+  white-space: nowrap;
+}
+.row {
+  border-bottom: 1px solid var(--line);
+  transition: background 0.12s;
+}
+.row:nth-child(even) {
+  background: color-mix(in oklab, var(--brand-soft) 12%, transparent);
+}
+.row:hover {
+  background: color-mix(in oklab, var(--brand-soft) 30%, transparent);
+}
+.row td {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--ink);
+  vertical-align: middle;
+}
+.cellNum {
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.cellMono {
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12.5px;
+  white-space: nowrap;
+}
+.cellName {
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cellNote {
+  font-size: 12px;
+  color: var(--ink-2, #4a544c);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stateCell {
+  padding: 40px 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.chip {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+.chipOk {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border-color: var(--brand-line);
+}
+.chipFail {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+.chipPending {
+  background: color-mix(in oklab, var(--muted) 14%, transparent);
+  color: var(--muted);
+}
+
+/* 발주일 범위 선택 */
+.dateRange {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+.dateInput {
+  height: 28px;
+  padding: 0 6px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 13px;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.dateSep {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.clearDateBtn {
+  margin-left: 2px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.clearDateBtn:hover {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border-color: var(--brand-line);
+}

@@ -23,7 +23,7 @@ const MENU_ITEMS = [
     path: "/admin/products",
     Icon: IconBox,
   },
-  { key: "orders", label: "주문 관리", path: null, Icon: IconCart },
+  { key: "orders", label: "주문 내역", path: "/admin/orders", Icon: IconCart },
   {
     key: "clients",
     label: "고객사 관리",
@@ -51,6 +51,8 @@ function resolveActive(pathname) {
     return { key: "clients", category: "고객사 관리", page: "등록 고객사 목록" };
   if (pathname.startsWith("/admin/suppliers"))
     return { key: "suppliers", category: "매입처 관리", page: "매입처 목록" };
+  if (pathname.startsWith("/admin/orders"))
+    return { key: "orders", category: "주문 내역", page: "전체 주문" };
   if (pathname.startsWith("/admin/fabric-alias"))
     return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
   // 기본값(제품 관리)

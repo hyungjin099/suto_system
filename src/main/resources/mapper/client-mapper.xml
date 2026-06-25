@@ -40,6 +40,18 @@
         SELECT COUNT(*) FROM CLIENT_INFO WHERE CLI_CODE = #{cliCode}
     </select>
 
+    <select id="findPasswordByCliCode" parameterType="string" resultType="string">
+        SELECT CLI_PASSWORD FROM CLIENT_INFO WHERE CLI_CODE = #{cliCode}
+    </select>
+
+    <update id="updatePasswordByCliCode">
+        UPDATE CLIENT_INFO SET CLI_PASSWORD = #{password} WHERE CLI_CODE = #{cliCode}
+    </update>
+
+    <update id="updatePasswordByCliNum">
+        UPDATE CLIENT_INFO SET CLI_PASSWORD = #{password} WHERE CLI_NUM = #{cliNum}
+    </update>
+
     <!-- 등록 시 CLI_USE_TYPE은 DB DEFAULT('YES')에 맡김 -->
     <insert id="insert" useGeneratedKeys="true" keyProperty="cliNum" keyColumn="CLI_NUM">
         INSERT INTO CLIENT_INFO (

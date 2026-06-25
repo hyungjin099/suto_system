@@ -179,3 +179,39 @@ export async function fetchAliasCounts() {
   const res = await axios.get(`${BASE_URL}/api/aliases/counts`);
   return res.data; // { cliNum: count }
 }
+
+export async function resetClientPassword(cliNum) {
+  const res = await axios.patch(`${BASE_URL}/api/clients/${cliNum}/reset-password`);
+  return res.data;
+}
+
+// ── 관리자 주문 내역 (스프레드시트 비교용) ───────────────
+export async function fetchAdminOrders() {
+  const res = await axios.get(`${BASE_URL}/api/admin/orders`);
+  return res.data.map((r) => ({
+    orderNum: r.orderNum,
+    itemNum: r.itemNum,
+    orderId: r.orderId,
+    orderDate: r.orderDate ? new Date(r.orderDate) : null,
+    status: r.status,          // 'PENDING' | 'OK' | 'FAILED'
+    cliCode: r.cliCode,
+    cliCompName: r.cliCompName,
+    product: r.product,
+    productLabel: r.productLabel,
+    width: r.width,
+    length: r.length,
+    rolls: r.rolls,
+    destination: r.destination,
+    note: r.note,
+    deliveryDate: r.deliveryDate || "",
+  }));
+}
+
+export async function updateAdminOrderItem(itemNum, body) {
+  const res = await axios.patch(`${BASE_URL}/api/admin/orders/items/${itemNum}`, body);
+  return res.data; // AdminOrderRow (서버 반환 그대로)
+}
+
+export async function deleteAdminOrderItem(itemNum) {
+  await axios.delete(`${BASE_URL}/api/admin/orders/items/${itemNum}`);
+}

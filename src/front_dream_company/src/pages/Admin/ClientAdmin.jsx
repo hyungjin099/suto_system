@@ -9,7 +9,7 @@ import ClientFilterBar from "./components/ClientFilterBar";
 import ClientTable from "./components/ClientTable";
 import Pagination from "./components/Pagination";
 import ClientFormModal from "./components/ClientFormModal";
-import { fetchClients, createClient, updateClient } from "./api";
+import { fetchClients, createClient, updateClient, resetClientPassword } from "./api";
 import styles from "./ProductAdmin.module.css";
 
 const PAGE_SIZE = 15;
@@ -124,6 +124,15 @@ export default function ClientAdmin() {
         loading={loading}
         empty={!loading && filtered.length === 0}
         onEdit={(item) => setModal({ mode: "edit", item })}
+        onResetPassword={async (item) => {
+          if (!window.confirm(`${item.name}의 비밀번호를 '1234'로 초기화합니다.\n계속하시겠어요?`)) return;
+          try {
+            await resetClientPassword(item.cliNum);
+            alert("비밀번호가 '1234'로 초기화되었습니다.");
+          } catch (err) {
+            alert(err?.response?.data?.message || "초기화 중 오류가 발생했습니다.");
+          }
+        }}
       />
 
       <Pagination

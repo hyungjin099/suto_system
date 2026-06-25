@@ -23,7 +23,7 @@ const COLS = [
   { key: "actions", label: "", align: "center" },
 ];
 
-export default function ClientTable({ items, empty, onEdit }) {
+export default function ClientTable({ items, empty, onEdit, onResetPassword }) {
   const [infoModal, setInfoModal] = useState(null); // { type: 'company'|'manager', item }
 
   return (
@@ -33,11 +33,11 @@ export default function ClientTable({ items, empty, onEdit }) {
           <col width="60px" />
           <col width="6%" />
           <col width="12%" />
-          <col width="27%" />
+          <col width="20%" />
           <col width="7%" />
           <col width="12%" />
           <col width="*" />
-          <col width="8%" />
+          <col width="200px" />
         </colgroup>
         <thead>
           <tr className={styles.headRow}>
@@ -109,6 +109,17 @@ export default function ClientTable({ items, empty, onEdit }) {
                       <IconEdit />
                       <span className={styles.editLabel}>수정</span>
                     </button>
+                    {onResetPassword && (
+                      <button
+                        type="button"
+                        onClick={() => onResetPassword(c)}
+                        className={styles.editBtn}
+                        title="비밀번호를 '1234'로 초기화"
+                        style={{ marginLeft: 6 }}
+                      >
+                        <span className={styles.editLabel}>비번 초기화</span>
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>

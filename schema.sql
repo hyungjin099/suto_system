@@ -42,6 +42,7 @@ CREATE TABLE CLIENT_INFO (
     CLI_EMAIL         VARCHAR(100),                        -- 담당자 Email
     CLI_ADDRESS       VARCHAR(200),                        -- 주소 (기본 + 상세 결합)
     CLI_USE_TYPE      VARCHAR(20) DEFAULT 'YES',           -- 사용구분 ('YES' / 'NO')
+    CLI_PASSWORD      VARCHAR(100) DEFAULT '1234',         -- 주문 페이지 접근 비밀번호 (최초 '1234')
     JOIN_DATE         DATETIME DEFAULT SYSDATE(),
     CONSTRAINT PK_CLIENT_INFO PRIMARY KEY (CLI_NUM)
 );
@@ -107,6 +108,7 @@ CREATE TABLE ORDER_ITEM (
     ROLLS         INT,
     DESTINATION   VARCHAR(500),                            -- 납품처
     NOTE          TEXT,                                    -- 비고
+    DELIVERY_DATE VARCHAR(20),                             -- 납품예정일 (override, NULL이면 발주일 기준 자동계산)
     CONSTRAINT PK_ORDER_ITEM PRIMARY KEY (ITEM_NUM),
     CONSTRAINT FK_ITEM_ORDER FOREIGN KEY (ORDER_NUM) REFERENCES ORDER_INFO(ORDER_NUM)
 );

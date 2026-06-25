@@ -56,14 +56,14 @@ public class SheetsWebhookService {
         }
     }
 
-    public void push(String orderId, OrderRequestDto dto) {
+    public boolean push(String orderId, OrderRequestDto dto, List<Long> itemNums) {
         if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
             log.warn("Sheets webhook URL 미설정 → 시트 전송 건너뜀 (orderId={})", orderId);
-            return;
+            return false;
         }
 
         try {
-            String json = objectMapper.writeValueAsString(buildPayload(orderId, dto));
+            String json = objectMapper.writeValueAsString(buildPayload(orderId, dto, itemNums));
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(webhookUrl))
@@ -72,21 +72,90 @@ public class SheetsWebhookService {
                     .build();
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() >= 200 && response.statusCode() < 300) {
+            boolean ok = response.statusCode() >= 200 && response.statusCode() < 300;
+            if (ok) {
                 log.info("Sheets push 완료 (orderId={}, status={}, body={})",
                         orderId, response.statusCode(), response.body());
             } else {
                 log.warn("Sheets push 응답 오류 (orderId={}, status={}, body={})",
                         orderId, response.statusCode(), response.body());
             }
+            return ok;
 
         } catch (Exception e) {
-            // 흐름 B: 시트 push 실패해도 DB에는 이미 저장되어 있으므로 주문 유실 없음
             log.warn("Sheets push 실패 (orderId={}) → DB 저장은 유지됨: {}", orderId, e.getMessage());
+            return false;
         }
     }
 
-    private Map<String, Object> buildPayload(String orderId, OrderRequestDto dto) {
+    /** 시트의 행 삭제(비우기) 신호 */
+    public boolean pushItemDelete(Long itemNum) {
+        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
+            log.warn("Sheets webhook URL 미설정 → 삭제 동기화 건너뜀 (itemNum={})", itemNum);
+            return false;
+        }
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("action", "delete");
+            payload.put("itemNum", itemNum);
+            String json = objectMapper.writeValueAsString(payload);
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(webhookUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            log.info("Sheets delete push (itemNum={}, http={}, body={})",
+                    itemNum, res.statusCode(), res.body());
+            return res.statusCode() >= 200 && res.statusCode() < 300;
+        } catch (Exception e) {
+            log.warn("Sheets delete push 실패 (itemNum={}): {}", itemNum, e.getMessage());
+            return false;
+        }
+    }
+
+    /** 시트의 기존 행을 itemNum 기준으로 찾아 갱신하라는 신호 */
+    public boolean pushItemUpdate(com.dream_comp.auto_system.dto.AdminOrderRowDto row) {
+        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
+            log.warn("Sheets webhook URL 미설정 → 수정 동기화 건너뜀 (itemNum={})", row.getItemNum());
+            return false;
+        }
+        try {
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("action", "update");
+            payload.put("itemNum", row.getItemNum());
+            payload.put("orderId", row.getOrderId());
+            payload.put("orderDate", row.getOrderDate() == null ? "" :
+                    row.getOrderDate().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            payload.put("product", row.getProduct());
+            payload.put("productLabel", row.getProductLabel());
+            payload.put("width", row.getWidth());
+            payload.put("length", row.getLength());
+            payload.put("rolls", row.getRolls());
+            payload.put("clientName", row.getCliCompName());
+            payload.put("destination", row.getDestination());
+            payload.put("note", row.getNote());
+            // 사용자가 직접 수정한 납품예정일 (null이면 시트에서 자동계산)
+            payload.put("deliveryDate", row.getDeliveryDate());
+
+            String json = objectMapper.writeValueAsString(payload);
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(webhookUrl))
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            boolean ok = res.statusCode() >= 200 && res.statusCode() < 300;
+            log.info("Sheets update push (itemNum={}, http={}, body={})",
+                    row.getItemNum(), res.statusCode(), res.body());
+            return ok;
+        } catch (Exception e) {
+            log.warn("Sheets update push 실패 (itemNum={}): {}", row.getItemNum(), e.getMessage());
+            return false;
+        }
+    }
+
+    private Map<String, Object> buildPayload(String orderId, OrderRequestDto dto, List<Long> itemNums) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("orderId", orderId);
         payload.put("cliCode", dto.getCliCode());
@@ -96,8 +165,11 @@ public class SheetsWebhookService {
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
         List<Map<String, Object>> itemList = new ArrayList<>();
-        for (OrderItemDto item : dto.getItems()) {
+        for (int i = 0; i < dto.getItems().size(); i++) {
+            OrderItemDto item = dto.getItems().get(i);
             Map<String, Object> row = new HashMap<>();
+            // ★ 시트 P열 매칭용 itemNum
+            if (itemNums != null && i < itemNums.size()) row.put("itemNum", itemNums.get(i));
             row.put("product", item.getProduct());
             row.put("productLabel", item.getProductLabel());
             row.put("width", item.getWidth());

@@ -10,6 +10,11 @@ public interface ClientMapper {
     List<ClientDto> findAll();
     ClientDto findByCliNum(Long cliNum);
     int countByCliCode(String cliCode);
+    String findPasswordByCliCode(String cliCode);
+    int updatePasswordByCliCode(@org.apache.ibatis.annotations.Param("cliCode") String cliCode,
+                                @org.apache.ibatis.annotations.Param("password") String password);
+    int updatePasswordByCliNum(@org.apache.ibatis.annotations.Param("cliNum") Long cliNum,
+                               @org.apache.ibatis.annotations.Param("password") String password);
     void insert(ClientVo vo);
     void update(ClientVo vo);
 }

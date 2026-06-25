@@ -210,3 +210,35 @@
 .reviewBtn:active {
   transform: translateY(1px);
 }
+
+/* 탭 바 (주문하기 / 주문 내역) */
+.tabBar {
+  display: flex;
+  gap: 4px;
+  padding: 0 20px;
+  background: var(--surface, #fff);
+  border-bottom: 1px solid var(--line, #e6e8df);
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+.tabBtn {
+  flex: 1;
+  padding: 14px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted, #79847b);
+  cursor: pointer;
+  transition: color 0.12s, border-color 0.12s;
+}
+.tabBtn:hover {
+  color: var(--ink, #18221b);
+}
+.tabBtnActive {
+  color: var(--brand, #2563eb);
+  border-bottom-color: var(--brand, #2563eb);
+}

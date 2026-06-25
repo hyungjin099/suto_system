@@ -194,7 +194,7 @@ export default function FabricAliasAdmin() {
     const fabric = allFabrics.find((f) => f.id === fabricId);
     if (!fabric || aliasMap[fabric.prodNum] || fabric.status === "미사용") return;
     setPendingDrop(fabric);
-    setPendingAlias("");
+    setPendingAlias(fabric.name || "");
     setPendingPrice(fabric.price != null ? String(fabric.price) : "");
     setPendingError("");
   };

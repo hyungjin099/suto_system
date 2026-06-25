@@ -4,6 +4,7 @@ import ProductAdmin from "./pages/Admin/ProductAdmin";
 import ClientAdmin from "./pages/Admin/ClientAdmin";
 import FabricAliasAdmin from "./pages/Admin/FabricAliasAdmin";
 import SupplierAdmin from "./pages/Admin/SupplierAdmin";
+import OrderAdmin from "./pages/Admin/OrderAdmin";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
       <Route path="/admin/clients" element={<ClientAdmin />} />
       <Route path="/admin/suppliers" element={<SupplierAdmin />} />
       <Route path="/admin/fabric-alias" element={<FabricAliasAdmin />} />
+      <Route path="/admin/orders" element={<OrderAdmin />} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
