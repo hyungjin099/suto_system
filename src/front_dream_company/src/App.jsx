@@ -5,22 +5,26 @@ import ClientAdmin from "./pages/Admin/ClientAdmin";
 import FabricAliasAdmin from "./pages/Admin/FabricAliasAdmin";
 import SupplierAdmin from "./pages/Admin/SupplierAdmin";
 import OrderAdmin from "./pages/Admin/OrderAdmin";
+import AdminLogin from "./pages/Admin/AdminLogin";
+import AdminGuard from "./pages/Admin/AdminGuard";
 
 function App() {
   return (
     <Routes>
       {/* 고객 주문 페이지 */}
       <Route path="/" element={<OrderForm />} />
-      {/* 5자리 accessCode 를 URL parameter 로 받아 고객사 식별 */}
       <Route path="/:clientCode" element={<OrderForm />} />
 
-      {/* 관리자 페이지 */}
-      <Route path="/admin" element={<Navigate to="/admin/products" replace />} />
-      <Route path="/admin/products" element={<ProductAdmin />} />
-      <Route path="/admin/clients" element={<ClientAdmin />} />
-      <Route path="/admin/suppliers" element={<SupplierAdmin />} />
-      <Route path="/admin/fabric-alias" element={<FabricAliasAdmin />} />
-      <Route path="/admin/orders" element={<OrderAdmin />} />
+      {/* 관리자 로그인 (가드 없음) */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+
+      {/* 관리자 페이지 — 모두 AdminGuard로 보호 */}
+      <Route path="/admin" element={<AdminGuard><Navigate to="/admin/products" replace /></AdminGuard>} />
+      <Route path="/admin/products" element={<AdminGuard><ProductAdmin /></AdminGuard>} />
+      <Route path="/admin/clients" element={<AdminGuard><ClientAdmin /></AdminGuard>} />
+      <Route path="/admin/suppliers" element={<AdminGuard><SupplierAdmin /></AdminGuard>} />
+      <Route path="/admin/fabric-alias" element={<AdminGuard><FabricAliasAdmin /></AdminGuard>} />
+      <Route path="/admin/orders" element={<AdminGuard><OrderAdmin /></AdminGuard>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

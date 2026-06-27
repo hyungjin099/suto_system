@@ -23,6 +23,19 @@
         <result property="clientFabPrice" column="CLIENT_FAB_PRICE"/>
     </resultMap>
 
+    <select id="findOneByCliCodeAndProdCode" resultMap="clientFabricResultMap">
+        SELECT
+            cfa.CLIENT_FAB_NAME  AS ALIAS_NAME,
+            pi.PROD_CODE         AS PROD_CODE,
+            pi.PROD_NAME         AS PROD_NAME,
+            cfa.CLIENT_FAB_PRICE AS CLIENT_FAB_PRICE
+        FROM CLIENT_FABRIC_ALIAS cfa
+        JOIN PRODUCT_INFO pi ON pi.PROD_NUM = cfa.PROD_NUM
+        JOIN CLIENT_INFO  ci ON ci.CLI_NUM  = cfa.CLI_NUM
+        WHERE ci.CLI_CODE = #{cliCode} AND pi.PROD_CODE = #{prodCode}
+        LIMIT 1
+    </select>
+
     <select id="findByCliCode" parameterType="string" resultMap="clientFabricResultMap">
         SELECT
             cfa.CLIENT_FAB_NAME  AS ALIAS_NAME,

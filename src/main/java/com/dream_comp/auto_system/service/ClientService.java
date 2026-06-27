@@ -5,6 +5,7 @@ import com.dream_comp.auto_system.dto.ClientRequestDto;
 import com.dream_comp.auto_system.mapper.ClientMapper;
 import com.dream_comp.auto_system.vo.ClientVo;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import java.util.List;
 
@@ -12,7 +13,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ClientService {
 
+    public static final String DEFAULT_PASSWORD = "1234";
+
     private final ClientMapper clientMapper;
+    private final PasswordEncoder passwordEncoder;
 
     public List<ClientDto> findAll() {
         return clientMapper.findAll();
@@ -24,6 +28,8 @@ public class ClientService {
         }
         ClientVo vo = toVo(null, req);
         clientMapper.insert(vo);
+        // DB DEFAULT '1234'가 들어간 상태를 해시로 교체
+        clientMapper.updatePasswordByCliCode(req.getCliCode(), passwordEncoder.encode(DEFAULT_PASSWORD));
         return clientMapper.findByCliNum(vo.getCliNum());
     }
 
@@ -33,39 +39,52 @@ public class ClientService {
         return clientMapper.findByCliNum(cliNum);
     }
 
-    public static final String DEFAULT_PASSWORD = "1234";
-
-    /** 로그인. (ok, mustChangePassword) 반환 */
+    /** 로그인. (ok, mustChangePassword). 지연 마이그레이션: 평문이면 해시로 교체 후 진행 */
     public java.util.Map<String, Object> login(String cliCode, String password) {
         String stored = clientMapper.findPasswordByCliCode(cliCode);
         if (stored == null) {
             throw new IllegalArgumentException("존재하지 않는 거래처입니다");
         }
-        if (!stored.equals(password)) {
+        boolean isHash = stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$");
+        boolean ok = isHash
+                ? passwordEncoder.matches(password, stored)
+                : stored.equals(password);
+        if (!ok) {
             throw new IllegalArgumentException("비밀번호가 일치하지 않습니다");
+        }
+        boolean wasDefault = isHash
+                ? passwordEncoder.matches(DEFAULT_PASSWORD, stored)
+                : DEFAULT_PASSWORD.equals(stored);
+        if (!isHash) {
+            // 평문 → 해시로 lazy migration
+            clientMapper.updatePasswordByCliCode(cliCode, passwordEncoder.encode(stored));
         }
         java.util.Map<String, Object> r = new java.util.HashMap<>();
         r.put("ok", true);
-        r.put("mustChangePassword", DEFAULT_PASSWORD.equals(stored));
+        r.put("mustChangePassword", wasDefault);
         return r;
     }
 
-    /** 비밀번호 변경. currentPassword 검증 후 4자 이상 newPassword로 업데이트 */
     public void changePassword(String cliCode, String currentPassword, String newPassword) {
         String stored = clientMapper.findPasswordByCliCode(cliCode);
         if (stored == null) throw new IllegalArgumentException("존재하지 않는 거래처입니다");
-        if (!stored.equals(currentPassword))
-            throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다");
+
+        boolean isHash = stored.startsWith("$2a$") || stored.startsWith("$2b$") || stored.startsWith("$2y$");
+        boolean ok = isHash
+                ? passwordEncoder.matches(currentPassword, stored)
+                : stored.equals(currentPassword);
+        if (!ok) throw new IllegalArgumentException("현재 비밀번호가 일치하지 않습니다");
+
         if (newPassword == null || newPassword.length() < 4)
             throw new IllegalArgumentException("새 비밀번호는 4자 이상이어야 합니다");
         if (DEFAULT_PASSWORD.equals(newPassword))
             throw new IllegalArgumentException("기본 비밀번호로는 변경할 수 없습니다");
-        clientMapper.updatePasswordByCliCode(cliCode, newPassword);
+
+        clientMapper.updatePasswordByCliCode(cliCode, passwordEncoder.encode(newPassword));
     }
 
-    /** 관리자: 비밀번호를 기본값('1234')으로 리셋 */
     public void resetPassword(Long cliNum) {
-        int updated = clientMapper.updatePasswordByCliNum(cliNum, DEFAULT_PASSWORD);
+        int updated = clientMapper.updatePasswordByCliNum(cliNum, passwordEncoder.encode(DEFAULT_PASSWORD));
         if (updated == 0) throw new IllegalArgumentException("존재하지 않는 거래처입니다");
     }
 

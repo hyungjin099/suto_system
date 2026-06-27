@@ -1,0 +1,249 @@
+.form { padding: 0; }
+
+/* ── 헤더 (brand 그라데이션) ────────────────────── */
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 24px 18px;
+  background: linear-gradient(135deg, var(--brand-soft) 0%, var(--surface) 100%);
+  border-bottom: 1px solid var(--brand-line);
+}
+.headerText {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--brand);
+  text-transform: uppercase;
+}
+.title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.015em;
+}
+.subtitle {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.closeBtn {
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.closeBtn:hover {
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  border-color: var(--brand-line);
+}
+
+/* ── 본문 ───────────────────────────────────────── */
+.body {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 섹션 (거래처 / 품목) */
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px 18px 18px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--brand-line);
+}
+.sectionTitleWrap {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+.sectionEyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--brand);
+}
+.sectionTitle {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.addItemBtn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--brand-ink);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.addItemBtn:hover {
+  background: var(--brand);
+  color: #fff;
+}
+
+/* 라벨 + 인풋 */
+.field { display: flex; flex-direction: column; gap: 4px; }
+.label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+}
+.hint { color: var(--muted); font-weight: 400; margin-left: 4px; font-size: 11.5px; }
+
+.input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13.5px;
+  outline: none;
+  background: var(--surface);
+  color: var(--ink);
+  box-sizing: border-box;
+  transition: border-color 0.12s;
+}
+.input:focus { border-color: var(--brand); }
+.select { composes: input; }
+
+.row3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+/* 품목 카드 */
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.itemCard {
+  position: relative;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.itemHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.itemBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--brand-line);
+  color: var(--brand-ink);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+.itemRemove {
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 7px;
+  border: 1px solid var(--danger);
+  background: var(--surface);
+  color: var(--danger);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.itemRemove:hover {
+  background: color-mix(in oklab, var(--danger) 12%, transparent);
+}
+
+/* 에러 박스 */
+.errorBox {
+  margin-top: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger);
+  border-radius: 8px;
+  background: color-mix(in oklab, var(--danger) 8%, transparent);
+  color: var(--danger);
+  font-size: 12.5px;
+}
+
+/* 푸터 */
+.footer {
+  padding: 14px 24px 18px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  background: var(--bg);
+}
+.btnCancel {
+  min-width: 96px;
+  height: 38px;
+  padding: 0 16px;
+  background: var(--surface);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btnCancel:hover { background: var(--bg); }
+.btnSubmit {
+  min-width: 120px;
+  height: 38px;
+  padding: 0 18px;
+  background: var(--brand);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--brand) 60%, transparent);
+  transition: opacity 0.12s;
+}
+.btnSubmit:disabled, .btnCancel:disabled { opacity: 0.55; cursor: not-allowed; }

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dream_comp.auto_system.mapper.OrderAuditMapper">
+
+    <resultMap id="auditMap" type="com.dream_comp.auto_system.dto.OrderAuditDto">
+        <id     property="auditNum"   column="AUDIT_NUM"/>
+        <result property="orderNum"   column="ORDER_NUM"/>
+        <result property="itemNum"    column="ITEM_NUM"/>
+        <result property="action"     column="ACTION"/>
+        <result property="actor"      column="ACTOR"/>
+        <result property="beforeJson" column="BEFORE_JSON"/>
+        <result property="afterJson"  column="AFTER_JSON"/>
+        <result property="memo"       column="MEMO"/>
+        <result property="at"         column="AT"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.dream_comp.auto_system.dto.OrderAuditDto"
+            useGeneratedKeys="true" keyProperty="auditNum" keyColumn="AUDIT_NUM">
+        INSERT INTO ORDER_AUDIT (ORDER_NUM, ITEM_NUM, ACTION, ACTOR, BEFORE_JSON, AFTER_JSON, MEMO)
+        VALUES (#{orderNum}, #{itemNum}, #{action}, #{actor}, #{beforeJson}, #{afterJson}, #{memo})
+    </insert>
+
+    <select id="findByOrderNum" parameterType="long" resultMap="auditMap">
+        SELECT AUDIT_NUM, ORDER_NUM, ITEM_NUM, ACTION, ACTOR, BEFORE_JSON, AFTER_JSON, MEMO, AT
+        FROM ORDER_AUDIT
+        WHERE ORDER_NUM = #{orderNum}
+        ORDER BY AT DESC, AUDIT_NUM DESC
+    </select>
+</mapper>

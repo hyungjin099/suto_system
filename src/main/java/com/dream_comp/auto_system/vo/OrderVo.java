@@ -11,6 +11,7 @@ public class OrderVo {
     private String orderId;
     private String destination;
     private String status;
+    private String workflowStatus;
     private LocalDateTime orderDate;
     private List<OrderItemVo> items;
 }

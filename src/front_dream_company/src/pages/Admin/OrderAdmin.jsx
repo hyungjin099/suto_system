@@ -7,8 +7,24 @@ import { useEffect, useMemo, useState } from "react";
 import { AdminShell } from "./components/Layout";
 import PageHeader from "./components/PageHeader";
 import Pagination from "./components/Pagination";
-import { fetchAdminOrders, updateAdminOrderItem, deleteAdminOrderItem } from "./api";
+import {
+  fetchAdminOrders,
+  updateAdminOrderItem,
+  deleteAdminOrderItem,
+  fetchClients,
+  updateOrderWorkflowStatus,
+} from "./api";
 import OrderEditModal from "./components/OrderEditModal";
+import OrderCreateModal from "./components/OrderCreateModal";
+
+// 워크플로 상태 → 한글 + 색 (UI에서 공용)
+export const WORKFLOW_LABELS = {
+  RECEIVED:    { label: "접수",   color: "#0e7490" },
+  IN_PROGRESS: { label: "작업중", color: "#b45309" },
+  SHIPPED:     { label: "출고",   color: "#1d4ed8" },
+  DONE:        { label: "완료",   color: "#15803d" },
+  CANCELLED:   { label: "취소",   color: "#b91c1c" },
+};
 import styles from "./OrderAdmin.module.css";
 
 const PAGE_SIZE = 20;
@@ -51,20 +67,43 @@ function StatusChip({ status }) {
   return <span className={`${styles.chip} ${v.cls}`}>{v.label}</span>;
 }
 
+function WorkflowChip({ value }) {
+  const v = WORKFLOW_LABELS[value] || { label: value || "-", color: "#666" };
+  return (
+    <span
+      className={styles.chip}
+      style={{ background: v.color + "22", color: v.color, borderColor: v.color + "44" }}
+    >
+      {v.label}
+    </span>
+  );
+}
+
 export default function OrderAdmin() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [workflowFilter, setWorkflowFilter] = useState("");
   const [dateFrom, setDateFrom] = useState(""); // 'YYYY-MM-DD'
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
   const [editingRow, setEditingRow] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createSaving, setCreateSaving] = useState(false);
+  const [clients, setClients] = useState([]);
 
-  useEffect(() => { setPage(1); }, [q, statusFilter, dateFrom, dateTo]);
+  // 새 주문 추가 모달용 거래처 목록 로드 (사용구분 YES만)
+  useEffect(() => {
+    fetchClients()
+      .then((arr) => setClients(arr.filter((c) => c.useType === "YES" || c.useType === "등록")))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => { setPage(1); }, [q, statusFilter, workflowFilter, dateFrom, dateTo]);
 
   const onSaveEdit = async (body) => {
     if (!editingRow) return;
@@ -125,6 +164,7 @@ export default function OrderAdmin() {
     const toTs = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
     return rows.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
+      if (workflowFilter && r.workflowStatus !== workflowFilter) return false;
       if (fromTs != null) {
         if (!r.orderDate || r.orderDate.getTime() < fromTs) return false;
       }
@@ -140,7 +180,7 @@ export default function OrderAdmin() {
         (r.destination || "").toLowerCase().includes(kw)
       );
     });
-  }, [rows, q, statusFilter, dateFrom, dateTo]);
+  }, [rows, q, statusFilter, workflowFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -159,6 +199,18 @@ export default function OrderAdmin() {
             <br />
             시트 전송 상태(전송완료/실패/대기)로 누락 여부를 빠르게 점검하세요.
           </>
+        }
+        actions={
+          <button
+            type="button"
+            onClick={() => setCreating(true)}
+            style={{
+              height: 36, padding: "0 16px", borderRadius: 8, border: "none",
+              background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            + 새 주문 추가
+          </button>
         }
       />
 
@@ -202,10 +254,20 @@ export default function OrderAdmin() {
         </div>
         <select
           className={styles.select}
+          value={workflowFilter}
+          onChange={(e) => setWorkflowFilter(e.target.value)}
+        >
+          <option value="">전체 진행상태</option>
+          {Object.entries(WORKFLOW_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v.label}</option>
+          ))}
+        </select>
+        <select
+          className={styles.select}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
-          <option value="">전체 상태</option>
+          <option value="">전체 시트상태</option>
           <option value="OK">전송완료</option>
           <option value="FAILED">전송실패</option>
           <option value="PENDING">미전송</option>
@@ -230,6 +292,8 @@ export default function OrderAdmin() {
             <col width="140px" />
             <col width="160px" />
             <col width="120px" />
+            <col width="80px" />
+            <col width="80px" />
             <col width="100px" />
           </colgroup>
           <thead>
@@ -246,14 +310,16 @@ export default function OrderAdmin() {
               <th>납품처</th>
               <th>비고</th>
               <th>납품예정일</th>
+              <th>단가</th>
+              <th>진행상태</th>
               <th>시트상태</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={13} className={styles.stateCell}>불러오는 중…</td></tr>
+              <tr><td colSpan={15} className={styles.stateCell}>불러오는 중…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={13} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
+              <tr><td colSpan={15} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
             ) : (
               pageItems.map((r, i) => (
                 <tr
@@ -274,7 +340,11 @@ export default function OrderAdmin() {
                   <td>{r.cliCompName || r.cliCode || "-"}</td>
                   <td>{r.destination || "-"}</td>
                   <td className={styles.cellNote}>{r.note || "-"}</td>
-                  <td className={styles.cellNum}>{calcDelivery(r.orderDate)}</td>
+                  <td className={styles.cellNum}>{r.deliveryDate || calcDelivery(r.orderDate)}</td>
+                  <td className={styles.cellNum}>
+                    {r.unitPrice != null ? r.unitPrice.toLocaleString("ko-KR") : "-"}
+                  </td>
+                  <td className={styles.cellNum}><WorkflowChip value={r.workflowStatus} /></td>
                   <td className={styles.cellNum}><StatusChip status={r.status} /></td>
                 </tr>
               ))
@@ -298,6 +368,32 @@ export default function OrderAdmin() {
           onClose={() => setEditingRow(null)}
           onSave={onSaveEdit}
           onDelete={onDeleteEdit}
+          onWorkflowChange={(orderNum, next) => {
+            // 같은 주문번호의 모든 행(품목)에 동일하게 적용
+            setRows((arr) =>
+              arr.map((r) => (r.orderNum === orderNum ? { ...r, workflowStatus: next } : r))
+            );
+            setEditingRow((cur) =>
+              cur && cur.orderNum === orderNum ? { ...cur, workflowStatus: next } : cur
+            );
+          }}
+        />
+      )}
+
+      {creating && (
+        <OrderCreateModal
+          clients={clients}
+          saving={createSaving}
+          setSaving={setCreateSaving}
+          onClose={() => setCreating(false)}
+          onCreated={async () => {
+            setCreating(false);
+            // 목록 새로고침
+            try {
+              const fresh = await fetchAdminOrders();
+              setRows(fresh);
+            } catch {}
+          }}
         />
       )}
     </AdminShell>

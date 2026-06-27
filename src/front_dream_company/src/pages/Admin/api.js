@@ -204,6 +204,9 @@ export async function fetchAdminOrders() {
     destination: r.destination,
     note: r.note,
     deliveryDate: r.deliveryDate || "",
+    unitPrice: r.unitPrice,
+    aliasName: r.aliasName || "",
+    workflowStatus: r.workflowStatus || "RECEIVED",
   }));
 }
 
@@ -214,4 +217,27 @@ export async function updateAdminOrderItem(itemNum, body) {
 
 export async function deleteAdminOrderItem(itemNum) {
   await axios.delete(`${BASE_URL}/api/admin/orders/items/${itemNum}`);
+}
+
+export async function updateOrderWorkflowStatus(orderNum, workflowStatus) {
+  const res = await axios.patch(
+    `${BASE_URL}/api/admin/orders/${orderNum}/workflow-status`,
+    { workflowStatus }
+  );
+  return res.data;
+}
+
+export async function fetchOrderAudit(orderNum) {
+  const res = await axios.get(`${BASE_URL}/api/admin/orders/${orderNum}/audit`);
+  return res.data.map((a) => ({
+    auditNum: a.auditNum,
+    orderNum: a.orderNum,
+    itemNum: a.itemNum,
+    action: a.action,
+    actor: a.actor,
+    beforeJson: a.beforeJson,
+    afterJson: a.afterJson,
+    memo: a.memo,
+    at: a.at ? new Date(a.at) : null,
+  }));
 }

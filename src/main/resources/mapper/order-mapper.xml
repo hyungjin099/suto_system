@@ -6,11 +6,12 @@
 
     <!-- 주문 헤더 ResultMap (items 컬렉션 포함) -->
     <resultMap id="orderResultMap" type="com.dream_comp.auto_system.vo.OrderVo">
-        <id     property="orderNum"  column="ORDER_NUM"/>
-        <result property="cliCode"   column="CLI_CODE"/>
-        <result property="orderId"   column="ORDER_ID"/>
-        <result property="status"    column="STATUS"/>
-        <result property="orderDate" column="ORDER_DATE"/>
+        <id     property="orderNum"       column="ORDER_NUM"/>
+        <result property="cliCode"        column="CLI_CODE"/>
+        <result property="orderId"        column="ORDER_ID"/>
+        <result property="status"         column="STATUS"/>
+        <result property="workflowStatus" column="WORKFLOW_STATUS"/>
+        <result property="orderDate"      column="ORDER_DATE"/>
         <collection property="items" ofType="com.dream_comp.auto_system.vo.OrderItemVo">
             <id     property="itemNum"      column="ITEM_NUM"/>
             <result property="orderNum"     column="ORDER_NUM"/>
@@ -21,7 +22,9 @@
             <result property="rolls"        column="ROLLS"/>
             <result property="destination"  column="DESTINATION"/>
             <result property="note"         column="NOTE"/>
-        <result property="deliveryDate" column="DELIVERY_DATE"/>
+            <result property="deliveryDate" column="DELIVERY_DATE"/>
+            <result property="unitPrice"    column="UNIT_PRICE"/>
+            <result property="aliasName"    column="ALIAS_NAME"/>
         </collection>
     </resultMap>
 
@@ -36,29 +39,33 @@
 
     <!-- 관리자: 전체 주문을 품목 단위 평면으로 조회 (스프레드시트와 비교용) -->
     <resultMap id="adminRowMap" type="com.dream_comp.auto_system.dto.AdminOrderRowDto">
-        <result property="orderNum"     column="ORDER_NUM"/>
-        <result property="itemNum"      column="ITEM_NUM"/>
-        <result property="orderId"      column="ORDER_ID"/>
-        <result property="orderDate"    column="ORDER_DATE"/>
-        <result property="status"       column="STATUS"/>
-        <result property="cliCode"      column="CLI_CODE"/>
-        <result property="cliCompName"  column="CLI_COMP_NAME"/>
-        <result property="product"      column="PRODUCT"/>
-        <result property="productLabel" column="PRODUCT_LABEL"/>
-        <result property="width"        column="WIDTH"/>
-        <result property="length"       column="LENGTH"/>
-        <result property="rolls"        column="ROLLS"/>
-        <result property="destination"  column="DESTINATION"/>
-        <result property="note"         column="NOTE"/>
-        <result property="deliveryDate" column="DELIVERY_DATE"/>
+        <result property="orderNum"       column="ORDER_NUM"/>
+        <result property="itemNum"        column="ITEM_NUM"/>
+        <result property="orderId"        column="ORDER_ID"/>
+        <result property="orderDate"      column="ORDER_DATE"/>
+        <result property="status"         column="STATUS"/>
+        <result property="workflowStatus" column="WORKFLOW_STATUS"/>
+        <result property="cliCode"        column="CLI_CODE"/>
+        <result property="cliCompName"    column="CLI_COMP_NAME"/>
+        <result property="product"        column="PRODUCT"/>
+        <result property="productLabel"   column="PRODUCT_LABEL"/>
+        <result property="width"          column="WIDTH"/>
+        <result property="length"         column="LENGTH"/>
+        <result property="rolls"          column="ROLLS"/>
+        <result property="destination"    column="DESTINATION"/>
+        <result property="note"           column="NOTE"/>
+        <result property="deliveryDate"   column="DELIVERY_DATE"/>
+        <result property="unitPrice"      column="UNIT_PRICE"/>
+        <result property="aliasName"      column="ALIAS_NAME"/>
     </resultMap>
 
     <select id="findAllAdmin" resultMap="adminRowMap">
         SELECT
-            oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE, oi.STATUS,
+            oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE,
+            oi.STATUS, oi.WORKFLOW_STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
         FROM ORDER_INFO oi
         LEFT JOIN ORDER_ITEM it ON it.ORDER_NUM = oi.ORDER_NUM
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
@@ -75,10 +82,11 @@
 
     <select id="findAdminItemByNum" parameterType="long" resultMap="adminRowMap">
         SELECT
-            oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE, oi.STATUS,
+            oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE,
+            oi.STATUS, oi.WORKFLOW_STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
         FROM ORDER_ITEM it
         JOIN ORDER_INFO  oi ON oi.ORDER_NUM = it.ORDER_NUM
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
@@ -94,8 +102,14 @@
             ROLLS         = #{rolls},
             DESTINATION   = #{destination},
             NOTE          = #{note},
-            DELIVERY_DATE = #{deliveryDate}
+            DELIVERY_DATE = #{deliveryDate},
+            UNIT_PRICE    = #{unitPrice},
+            ALIAS_NAME    = #{aliasName}
         WHERE ITEM_NUM = #{itemNum}
+    </update>
+
+    <update id="updateWorkflowStatus">
+        UPDATE ORDER_INFO SET WORKFLOW_STATUS = #{workflowStatus} WHERE ORDER_NUM = #{orderNum}
     </update>
 
     <delete id="deleteItem">
@@ -113,22 +127,24 @@
     <!-- 거래처별 주문 내역 조회 (최신순) -->
     <select id="findByCliCode" parameterType="string" resultMap="orderResultMap">
         SELECT
-            oi.ORDER_NUM, oi.CLI_CODE, oi.ORDER_ID, oi.STATUS, oi.ORDER_DATE,
+            oi.ORDER_NUM, oi.CLI_CODE, oi.ORDER_ID, oi.STATUS, oi.WORKFLOW_STATUS, oi.ORDER_DATE,
             it.ITEM_NUM, it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH,
-            it.ROLLS, it.DESTINATION, it.NOTE
+            it.ROLLS, it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
         FROM ORDER_INFO oi
         LEFT JOIN ORDER_ITEM it ON it.ORDER_NUM = oi.ORDER_NUM
         WHERE oi.CLI_CODE = #{cliCode}
         ORDER BY oi.ORDER_DATE DESC, oi.ORDER_NUM DESC, it.ITEM_NUM ASC
     </select>
 
-    <!-- 주문 품목 INSERT -->
+    <!-- 주문 품목 INSERT (가격 스냅샷 포함) -->
     <insert id="insertOrderItem"
             useGeneratedKeys="true"
             keyProperty="itemNum"
             keyColumn="ITEM_NUM">
-        INSERT INTO ORDER_ITEM (ORDER_NUM, PRODUCT, PRODUCT_LABEL, WIDTH, LENGTH, ROLLS, DESTINATION, NOTE)
-        VALUES (#{orderNum}, #{product}, #{productLabel}, #{width}, #{length}, #{rolls}, #{destination}, #{note})
+        INSERT INTO ORDER_ITEM
+            (ORDER_NUM, PRODUCT, PRODUCT_LABEL, WIDTH, LENGTH, ROLLS, DESTINATION, NOTE, UNIT_PRICE, ALIAS_NAME)
+        VALUES
+            (#{orderNum}, #{product}, #{productLabel}, #{width}, #{length}, #{rolls}, #{destination}, #{note}, #{unitPrice}, #{aliasName})
     </insert>
 
 </mapper>

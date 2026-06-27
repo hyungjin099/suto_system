@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import ModalShell from "./ModalShell";
+import { updateOrderWorkflowStatus, fetchOrderAudit } from "../api";
+import { WORKFLOW_LABELS } from "../OrderAdmin";
 
 const fmtLocal = (d) => {
   if (!d) return "";
@@ -9,7 +11,7 @@ const fmtLocal = (d) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-export default function OrderEditModal({ row, onClose, onSave, onDelete, saving, deleting }) {
+export default function OrderEditModal({ row, onClose, onSave, onDelete, onWorkflowChange, saving, deleting }) {
   const [form, setForm] = useState({
     product: "",
     productLabel: "",
@@ -19,9 +21,16 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, saving,
     destination: "",
     note: "",
     deliveryDate: "",
+    unitPrice: "",
+    aliasName: "",
     orderDate: "",
   });
   const [errs, setErrs] = useState({});
+  const [workflowStatus, setWorkflowStatus] = useState("RECEIVED");
+  const [workflowSaving, setWorkflowSaving] = useState(false);
+  const [auditOpen, setAuditOpen] = useState(false);
+  const [audit, setAudit] = useState([]);
+  const [auditLoading, setAuditLoading] = useState(false);
 
   useEffect(() => {
     if (!row) return;
@@ -34,10 +43,40 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, saving,
       destination: row.destination || "",
       note: row.note || "",
       deliveryDate: row.deliveryDate || "",
+      unitPrice: row.unitPrice ?? "",
+      aliasName: row.aliasName || "",
       orderDate: row.orderDate ? fmtLocal(row.orderDate) : "",
     });
+    setWorkflowStatus(row.workflowStatus || "RECEIVED");
     setErrs({});
+    setAuditOpen(false);
+    setAudit([]);
   }, [row]);
+
+  const onChangeWorkflow = async (next) => {
+    if (next === workflowStatus) return;
+    setWorkflowSaving(true);
+    try {
+      const updated = await updateOrderWorkflowStatus(row.orderNum, next);
+      setWorkflowStatus(updated.workflowStatus);
+      onWorkflowChange?.(row.orderNum, updated.workflowStatus);
+    } catch (err) {
+      alert(err?.response?.data?.message || "상태 변경 실패");
+    } finally {
+      setWorkflowSaving(false);
+    }
+  };
+
+  const toggleAudit = async () => {
+    const next = !auditOpen;
+    setAuditOpen(next);
+    if (next && audit.length === 0) {
+      setAuditLoading(true);
+      try { setAudit(await fetchOrderAudit(row.orderNum)); }
+      catch (_) {}
+      finally { setAuditLoading(false); }
+    }
+  };
 
   if (!row) return null;
 
@@ -65,6 +104,8 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, saving,
       destination: form.destination.trim(),
       note: form.note.trim(),
       deliveryDate: form.deliveryDate.trim() || null,
+      unitPrice: form.unitPrice === "" ? null : parseInt(form.unitPrice, 10),
+      aliasName: form.aliasName.trim() || null,
       orderDate: form.orderDate ? form.orderDate + ":00" : null,
     });
   };
@@ -99,12 +140,89 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, saving,
         <Field label="납품처"><Input value={form.destination} onChange={(v) => set("destination", v)} /></Field>
         <Field label="비고"><Input value={form.note} onChange={(v) => set("note", v)} /></Field>
         <div style={grid2}>
+          <Field label="단가 (원)" hint="비우면 가격 미지정">
+            <Input
+              value={form.unitPrice}
+              onChange={(v) => set("unitPrice", v.replace(/[^\d]/g, ""))}
+              inputMode="numeric"
+            />
+          </Field>
+          <Field label="별칭" hint="주문 당시 거래처가 부르던 이름">
+            <Input value={form.aliasName} onChange={(v) => set("aliasName", v)} />
+          </Field>
+        </div>
+
+        <div style={grid2}>
           <Field label="납품예정일" hint="비우면 발주일 기준 자동계산">
             <Input type="date" value={form.deliveryDate} onChange={(v) => set("deliveryDate", v)} />
           </Field>
           <Field label="발주일시" hint="시트 색상도 이 시각 기준으로 재계산됩니다.">
             <Input type="datetime-local" value={form.orderDate} onChange={(v) => set("orderDate", v)} />
           </Field>
+        </div>
+
+        {/* 진행 상태 + 감사 로그 토글 */}
+        <div style={{ marginTop: 14, padding: "10px 0", borderTop: "1px dashed var(--line)" }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", letterSpacing: 0.04, marginBottom: 8 }}>
+            진행 상태
+          </div>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {Object.entries(WORKFLOW_LABELS).map(([k, v]) => {
+              const active = workflowStatus === k;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => onChangeWorkflow(k)}
+                  disabled={workflowSaving}
+                  style={{
+                    height: 28, padding: "0 12px", borderRadius: 999,
+                    border: `1px solid ${active ? v.color : "var(--line)"}`,
+                    background: active ? v.color + "22" : "var(--surface)",
+                    color: active ? v.color : "var(--ink-2)",
+                    fontSize: 12, fontWeight: 700, cursor: workflowSaving ? "wait" : "pointer",
+                  }}
+                >
+                  {v.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div style={{ marginTop: 10 }}>
+          <button
+            type="button"
+            onClick={toggleAudit}
+            style={{
+              padding: "6px 10px", borderRadius: 6, border: "1px solid var(--line)",
+              background: "var(--surface)", fontSize: 12, color: "var(--ink-2)", cursor: "pointer",
+            }}
+          >
+            {auditOpen ? "변경 이력 닫기 ▲" : "변경 이력 보기 ▼"}
+          </button>
+          {auditOpen && (
+            <div style={{
+              marginTop: 8, maxHeight: 220, overflow: "auto",
+              border: "1px solid var(--line)", borderRadius: 8, padding: 8,
+              background: "var(--bg)", fontSize: 12,
+            }}>
+              {auditLoading ? "불러오는 중…" :
+                audit.length === 0 ? <div style={{ color: "var(--muted)" }}>기록 없음</div> :
+                audit.map((a) => (
+                  <div key={a.auditNum} style={{ padding: "6px 4px", borderBottom: "1px dashed var(--line)" }}>
+                    <div style={{ fontWeight: 700, color: "var(--ink)" }}>
+                      [{a.action}] <span style={{ color: "var(--muted)", fontWeight: 400 }}>by {a.actor}</span>
+                      <span style={{ float: "right", color: "var(--muted)", fontWeight: 400 }}>
+                        {a.at ? new Intl.DateTimeFormat("ko-KR", { dateStyle: "short", timeStyle: "short" }).format(a.at) : ""}
+                      </span>
+                    </div>
+                    <div style={{ marginTop: 2, color: "var(--ink-2)" }}>{a.memo}</div>
+                  </div>
+                ))
+              }
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 18 }}>

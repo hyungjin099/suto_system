@@ -16,6 +16,8 @@ public interface OrderMapper {
     List<AdminOrderRowDto> findAllAdmin();
     AdminOrderRowDto findAdminItemByNum(Long itemNum);
     int updateStatus(@Param("orderNum") Long orderNum, @Param("status") String status);
+    int updateWorkflowStatus(@Param("orderNum") Long orderNum,
+                              @Param("workflowStatus") String workflowStatus);
     int updateOrderDate(@Param("orderNum") Long orderNum,
                         @Param("orderDate") java.time.LocalDateTime orderDate);
     int updateItem(OrderItemUpdateVo vo);

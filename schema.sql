@@ -88,8 +88,9 @@ CREATE TABLE ORDER_INFO (
     ORDER_NUM  INT AUTO_INCREMENT,
     CLI_CODE   VARCHAR(20) NOT NULL,                       -- FK CLIENT_INFO.CLI_CODE
     ORDER_ID   VARCHAR(30) NOT NULL UNIQUE,                -- 'ORD-XXXXXX'
-    STATUS     VARCHAR(20) DEFAULT 'PENDING',
-    ORDER_DATE DATETIME    DEFAULT SYSDATE(),
+    STATUS          VARCHAR(20) DEFAULT 'PENDING',                  -- 시트 전송 상태 ('PENDING'/'OK'/'FAILED')
+    WORKFLOW_STATUS VARCHAR(20) DEFAULT 'RECEIVED',                  -- 비즈니스 상태 (RECEIVED → IN_PROGRESS → SHIPPED → DONE / CANCELLED)
+    ORDER_DATE      DATETIME    DEFAULT SYSDATE(),
     CONSTRAINT PK_ORDER_INFO  PRIMARY KEY (ORDER_NUM),
     CONSTRAINT FK_ORDER_CLIENT FOREIGN KEY (CLI_CODE) REFERENCES CLIENT_INFO(CLI_CODE)
 );
@@ -109,9 +110,43 @@ CREATE TABLE ORDER_ITEM (
     DESTINATION   VARCHAR(500),                            -- 납품처
     NOTE          TEXT,                                    -- 비고
     DELIVERY_DATE VARCHAR(20),                             -- 납품예정일 (override, NULL이면 발주일 기준 자동계산)
+    UNIT_PRICE    INT NULL,                                -- 주문 당시 단가 (가격 스냅샷)
+    ALIAS_NAME    VARCHAR(100) NULL,                       -- 주문 당시 거래처 별칭 (스냅샷)
     CONSTRAINT PK_ORDER_ITEM PRIMARY KEY (ITEM_NUM),
     CONSTRAINT FK_ITEM_ORDER FOREIGN KEY (ORDER_NUM) REFERENCES ORDER_INFO(ORDER_NUM)
 );
+
+
+-- ==========================================================================
+-- 7. 관리자 계정
+-- ==========================================================================
+CREATE TABLE ADMIN_USER (
+    ADMIN_NUM    INT AUTO_INCREMENT,
+    USERNAME     VARCHAR(50)  NOT NULL UNIQUE,
+    PASSWORD     VARCHAR(100) NOT NULL,                  -- BCrypt 해시
+    DISPLAY_NAME VARCHAR(50),
+    REG_DATE     DATETIME DEFAULT SYSDATE(),
+    CONSTRAINT PK_ADMIN_USER PRIMARY KEY (ADMIN_NUM)
+);
+-- 기본 관리자(admin / admin1234)는 백엔드 시작 시 AdminUserService.ensureDefaultAdmin()에서 자동 생성됨.
+
+
+-- ==========================================================================
+-- 8. 주문 감사 로그 (누가 언제 무엇을 변경했는지 기록)
+-- ==========================================================================
+CREATE TABLE ORDER_AUDIT (
+    AUDIT_NUM   BIGINT AUTO_INCREMENT,
+    ORDER_NUM   INT NOT NULL,
+    ITEM_NUM    INT NULL,                                  -- 품목 단위 변경이면 채움
+    ACTION      VARCHAR(30) NOT NULL,                      -- CREATE / UPDATE / DELETE / STATUS_CHANGE / WORKFLOW_CHANGE
+    ACTOR       VARCHAR(50),                               -- 관리자 username, 고객 주문은 'CUSTOMER'
+    BEFORE_JSON TEXT NULL,
+    AFTER_JSON  TEXT NULL,
+    MEMO        VARCHAR(200) NULL,                         -- 사람이 보는 요약
+    AT          DATETIME DEFAULT SYSDATE(),
+    CONSTRAINT PK_ORDER_AUDIT PRIMARY KEY (AUDIT_NUM)
+);
+CREATE INDEX IX_ORDER_AUDIT_ORDER ON ORDER_AUDIT(ORDER_NUM);
 
 
 -- ==========================================================================

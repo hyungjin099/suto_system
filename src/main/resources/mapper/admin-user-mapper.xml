@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dream_comp.auto_system.mapper.AdminUserMapper">
+
+    <resultMap id="adminUserMap" type="com.dream_comp.auto_system.dto.AdminUserDto">
+        <id     property="adminNum"    column="ADMIN_NUM"/>
+        <result property="username"    column="USERNAME"/>
+        <result property="password"    column="PASSWORD"/>
+        <result property="displayName" column="DISPLAY_NAME"/>
+    </resultMap>
+
+    <select id="findByUsername" parameterType="string" resultMap="adminUserMap">
+        SELECT ADMIN_NUM, USERNAME, PASSWORD, DISPLAY_NAME
+        FROM ADMIN_USER WHERE USERNAME = #{username}
+    </select>
+
+    <select id="count" resultType="int">
+        SELECT COUNT(*) FROM ADMIN_USER
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="adminNum" keyColumn="ADMIN_NUM">
+        INSERT INTO ADMIN_USER (USERNAME, PASSWORD, DISPLAY_NAME)
+        VALUES (#{username}, #{password}, #{displayName})
+    </insert>
+
+    <update id="updatePassword">
+        UPDATE ADMIN_USER SET PASSWORD = #{password} WHERE ADMIN_NUM = #{adminNum}
+    </update>
+</mapper>

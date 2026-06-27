@@ -11,6 +11,10 @@ public interface ClientFabricMapper {
     // 주문 폼용 (CLI_CODE 기반)
     List<ClientFabricDto> findByCliCode(String cliCode);
 
+    /** 가격 스냅샷용: 주문 등록 시 현재 별칭/단가 조회 */
+    ClientFabricDto findOneByCliCodeAndProdCode(@org.apache.ibatis.annotations.Param("cliCode") String cliCode,
+                                                @org.apache.ibatis.annotations.Param("prodCode") String prodCode);
+
     // 관리자 페이지용 (CLI_NUM 기반, ALIAS_NUM 포함)
     List<ClientAliasAdminDto> findAdminByCliNum(Long cliNum);
     List<java.util.Map<String, Object>> countAllByCli();

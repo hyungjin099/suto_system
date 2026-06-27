@@ -17,7 +17,8 @@
       "Bash(python _gen_alias.py)",
       "Bash(grep -nA 15 \"CREATE TABLE ORDER_INFO\\\\|CREATE TABLE ORDER_ITEM\" auto_system.sql)",
       "Bash(python _build_clean_sql.py)",
-      "Bash(grep -nA 3 \"insertOrderItem\" src/main/resources/mapper/order-mapper.xml)"
+      "Bash(grep -nA 3 \"insertOrderItem\" src/main/resources/mapper/order-mapper.xml)",
+      "Bash(grep -nA2 \"orderResultMap\" src/main/resources/mapper/order-mapper.xml)"
     ]
   }
 }

@@ -13,4 +13,6 @@ public class OrderItemUpdateVo {
     private String destination;
     private String note;
     private String deliveryDate;
+    private Integer unitPrice;
+    private String aliasName;
 }

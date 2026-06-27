@@ -47,4 +47,19 @@ public class OrderController {
         orderService.deleteItem(itemNum);
         return ResponseEntity.noContent().build();
     }
+
+    /** 관리자: 비즈니스 워크플로 상태 변경 */
+    @PatchMapping("/api/admin/orders/{orderNum}/workflow-status")
+    public ResponseEntity<com.dream_comp.auto_system.dto.AdminOrderRowDto> updateWorkflowStatus(
+            @PathVariable Long orderNum,
+            @RequestBody java.util.Map<String, String> body) {
+        return ResponseEntity.ok(orderService.updateWorkflowStatus(orderNum, body.get("workflowStatus")));
+    }
+
+    /** 관리자: 주문 1건의 감사 로그 조회 */
+    @GetMapping("/api/admin/orders/{orderNum}/audit")
+    public ResponseEntity<java.util.List<com.dream_comp.auto_system.dto.OrderAuditDto>> findAudit(
+            @PathVariable Long orderNum) {
+        return ResponseEntity.ok(orderService.findAuditByOrderNum(orderNum));
+    }
 }

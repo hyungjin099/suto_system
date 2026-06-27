@@ -3,7 +3,9 @@
  * - 일부 메뉴(주문 관리/매출 리포트)는 페이지 미구현으로 disabled 처리.
  */
 
-import { Link, useLocation } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { adminLogout, adminMe } from "../adminAuth";
 import {
   IconLeaf,
   IconBox,
@@ -130,6 +132,20 @@ function Sidebar({ activeKey }) {
 }
 
 function Topbar({ category, page }) {
+  const navigate = useNavigate();
+  const [me, setMe] = useState({ username: "", displayName: "" });
+
+  useEffect(() => {
+    adminMe().then((r) => {
+      if (r.authenticated) setMe({ username: r.username, displayName: r.displayName });
+    });
+  }, []);
+
+  const onLogout = async () => {
+    await adminLogout();
+    navigate("/admin/login", { replace: true });
+  };
+
   return (
     <header className={styles.topbar}>
       <div className={styles.crumbs}>
@@ -138,11 +154,23 @@ function Topbar({ category, page }) {
         <span className={styles.crumbCurrent}>{page}</span>
       </div>
       <div className={styles.userArea}>
-        <div className={styles.avatar}>관</div>
-        <div>
-          <div className={styles.userName}>관리자</div>
-          <div className={styles.userEmail}>admin@dreamcompany.kr</div>
+        <div className={styles.avatar}>{(me.displayName || "관")[0]}</div>
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div className={styles.userName}>{me.displayName || "관리자"}</div>
+          <div className={styles.userEmail}>{me.username || "—"}</div>
         </div>
+        <button
+          type="button"
+          onClick={onLogout}
+          style={{
+            marginLeft: 12, height: 32, padding: "0 12px",
+            background: "var(--surface)", border: "1px solid var(--line)",
+            borderRadius: 8, color: "var(--ink-2)", fontSize: 12.5,
+            fontWeight: 600, cursor: "pointer",
+          }}
+        >
+          로그아웃
+        </button>
       </div>
     </header>
   );
