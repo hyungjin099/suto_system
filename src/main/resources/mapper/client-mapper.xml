@@ -40,6 +40,15 @@
         SELECT COUNT(*) FROM CLIENT_INFO WHERE CLI_CODE = #{cliCode}
     </select>
 
+    <select id="findPublicByCliCode" parameterType="string"
+            resultType="com.dream_comp.auto_system.dto.ClientPublicDto">
+        SELECT CLI_CODE AS cliCode,
+               CLI_COMP_NAME AS cliCompName,
+               CLI_MANAGER_TEL AS cliManagerTel,
+               CLI_USE_TYPE AS cliUseType
+        FROM CLIENT_INFO WHERE CLI_CODE = #{cliCode}
+    </select>
+
     <select id="findPasswordByCliCode" parameterType="string" resultType="string">
         SELECT CLI_PASSWORD FROM CLIENT_INFO WHERE CLI_CODE = #{cliCode}
     </select>

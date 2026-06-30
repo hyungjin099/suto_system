@@ -11,8 +11,7 @@ import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
 import { IconPlus, IconChevron } from "./components/Icons";
 import { emptyItem, validateItem } from "./constants";
-import { fetchClientFabrics, submitOrder } from "./api";
-import { seedClients } from "../Admin/clientData";
+import { fetchClientFabrics, submitOrder, fetchClientInfo } from "./api";
 import styles from "./OrderForm.module.css";
 
 const cx = (...args) => args.filter(Boolean).join(" ");
@@ -20,9 +19,20 @@ const cx = (...args) => args.filter(Boolean).join(" ");
 export default function OrderForm() {
   const { clientCode } = useParams(); // URL 경로의 거래처코드 = CLI_CODE
   const cliCode = clientCode || "";
-  const clientData = seedClients().find((c) => c.cliCode === clientCode);
-  const clientName = clientData?.name || "드림컴퍼니";
-  const managerPhone = clientData?.managerPhone || "";
+  const [clientInfo, setClientInfo] = useState({ name: "", managerPhone: "" });
+  const clientName = clientInfo.name;
+  const managerPhone = clientInfo.managerPhone;
+
+  // 백엔드에서 거래처명/담당자 정보 조회 (URL이 유효해도 DB에 없으면 비어둠)
+  useEffect(() => {
+    if (!cliCode) return;
+    fetchClientInfo(cliCode)
+      .then((c) => setClientInfo({
+        name: c.cliCompName || "",
+        managerPhone: c.cliManagerTel || "",
+      }))
+      .catch(() => setClientInfo({ name: "", managerPhone: "" }));
+  }, [cliCode]);
 
   const [fabricOptions, setFabricOptions] = useState([]);
   const [fabricsLoading, setFabricsLoading] = useState(true);

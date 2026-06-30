@@ -9,6 +9,7 @@ import java.util.List;
 public interface ClientMapper {
     List<ClientDto> findAll();
     ClientDto findByCliNum(Long cliNum);
+    com.dream_comp.auto_system.dto.ClientPublicDto findPublicByCliCode(String cliCode);
     int countByCliCode(String cliCode);
     String findPasswordByCliCode(String cliCode);
     int updatePasswordByCliCode(@org.apache.ibatis.annotations.Param("cliCode") String cliCode,

@@ -14,6 +14,7 @@ public interface OrderMapper {
     void insertOrderItem(OrderItemVo itemVo);
     List<OrderVo> findByCliCode(String cliCode);
     List<AdminOrderRowDto> findAllAdmin();
+    List<AdminOrderRowDto> findRetryCandidates();
     AdminOrderRowDto findAdminItemByNum(Long itemNum);
     int updateStatus(@Param("orderNum") Long orderNum, @Param("status") String status);
     int updateWorkflowStatus(@Param("orderNum") Long orderNum,

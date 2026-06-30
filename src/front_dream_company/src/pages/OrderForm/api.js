@@ -4,6 +4,11 @@ import axios from "axios";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
+export async function fetchClientInfo(cliCode) {
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/info`);
+  return res.data; // { cliCode, cliCompName, cliManagerTel, cliUseType }
+}
+
 export async function loginClient(cliCode, password) {
   const res = await axios.post(`${BASE_URL}/api/clients/${cliCode}/login`, { password });
   return res.data; // {ok, mustChangePassword}

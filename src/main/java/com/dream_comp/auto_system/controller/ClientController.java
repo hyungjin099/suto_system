@@ -32,6 +32,16 @@ public class ClientController {
         return ResponseEntity.ok(clientService.update(cliNum, req));
     }
 
+    /** 주문 페이지용 공개 거래처 정보 (이름, 담당자 전화) — 인증 불필요 */
+    @GetMapping("/{cliCode}/info")
+    public ResponseEntity<com.dream_comp.auto_system.dto.ClientPublicDto> publicInfo(
+            @PathVariable String cliCode) {
+        com.dream_comp.auto_system.dto.ClientPublicDto info =
+                clientService.findPublicByCliCode(cliCode);
+        if (info == null) return ResponseEntity.notFound().build();
+        return ResponseEntity.ok(info);
+    }
+
     /** 주문 페이지 로그인 — 거래처코드 + 비밀번호 검증 */
     @PostMapping("/{cliCode}/login")
     public ResponseEntity<java.util.Map<String, Object>> login(

@@ -22,6 +22,10 @@ public class ClientService {
         return clientMapper.findAll();
     }
 
+    public com.dream_comp.auto_system.dto.ClientPublicDto findPublicByCliCode(String cliCode) {
+        return clientMapper.findPublicByCliCode(cliCode);
+    }
+
     public ClientDto create(ClientRequestDto req) {
         if (clientMapper.countByCliCode(req.getCliCode()) > 0) {
             throw new IllegalArgumentException("이미 사용 중인 거래처코드입니다");

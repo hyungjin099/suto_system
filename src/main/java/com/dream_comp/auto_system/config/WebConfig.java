@@ -36,6 +36,7 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/admin/auth/**",
                         // 고객 주문 폼
                         "/api/orders",
+                        "/api/clients/*/info",
                         "/api/clients/*/login",
                         "/api/clients/*/password",
                         "/api/clients/*/fabrics",

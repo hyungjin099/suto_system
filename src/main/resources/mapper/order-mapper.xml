@@ -112,6 +112,22 @@
         UPDATE ORDER_INFO SET WORKFLOW_STATUS = #{workflowStatus} WHERE ORDER_NUM = #{orderNum}
     </update>
 
+    <!-- 시트 푸시 재시도 대상: STATUS != 'OK' 이고 최근 24시간 이내 -->
+    <select id="findRetryCandidates" resultMap="adminRowMap">
+        SELECT
+            oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE,
+            oi.STATUS, oi.WORKFLOW_STATUS,
+            oi.CLI_CODE, ci.CLI_COMP_NAME,
+            it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
+        FROM ORDER_INFO oi
+        LEFT JOIN ORDER_ITEM it ON it.ORDER_NUM = oi.ORDER_NUM
+        LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
+        WHERE oi.STATUS IN ('PENDING','FAILED')
+          AND oi.ORDER_DATE > (NOW() - INTERVAL 24 HOUR)
+        ORDER BY oi.ORDER_NUM, it.ITEM_NUM
+    </select>
+
     <delete id="deleteItem">
         DELETE FROM ORDER_ITEM WHERE ITEM_NUM = #{itemNum}
     </delete>

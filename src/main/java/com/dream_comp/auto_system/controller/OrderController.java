@@ -17,7 +17,7 @@ public class OrderController {
     private final OrderService orderService;
 
     @PostMapping("/api/orders")
-    public ResponseEntity<OrderResponseDto> submit(@RequestBody OrderRequestDto dto) {
+    public ResponseEntity<OrderResponseDto> submit(@jakarta.validation.Valid @RequestBody OrderRequestDto dto) {
         return ResponseEntity.ok(orderService.submitOrder(dto));
     }
 
