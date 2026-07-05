@@ -17,7 +17,11 @@ export default function AdminLogin() {
     e.preventDefault();
     setError(""); setSubmitting(true);
     try {
-      await adminLogin(username, password);
+      const res = await adminLogin(username, password);
+      if (res?.mustChangePassword) {
+        navigate("/admin/change-password", { replace: true });
+        return;
+      }
       const redirectTo = location.state?.from?.pathname || "/admin";
       navigate(redirectTo, { replace: true });
     } catch (err) {
@@ -59,10 +63,6 @@ export default function AdminLogin() {
         >
           {submitting ? "확인 중…" : "로그인"}
         </button>
-
-        <p className={styles.hint}>
-          초기 계정: admin / admin1234 (첫 로그인 후 비밀번호 변경 권장)
-        </p>
       </form>
     </div>
   );

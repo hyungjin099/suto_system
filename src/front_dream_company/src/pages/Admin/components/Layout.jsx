@@ -57,6 +57,8 @@ function resolveActive(pathname) {
     return { key: "orders", category: "주문 내역", page: "전체 주문" };
   if (pathname.startsWith("/admin/fabric-alias"))
     return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
+  if (pathname.startsWith("/admin/users"))
+    return { key: "users", category: "시스템", page: "관리자 계정" };
   // 기본값(제품 관리)
   return { key: "products", category: "제품 관리", page: "원단 카탈로그" };
 }
@@ -64,19 +66,33 @@ function resolveActive(pathname) {
 export function AdminShell({ children }) {
   const { pathname } = useLocation();
   const active = resolveActive(pathname);
+  const [me, setMe] = useState({ isSuperAdmin: false });
+
+  useEffect(() => {
+    adminMe().then((r) => {
+      if (r.authenticated) setMe(r);
+    });
+  }, []);
 
   return (
     <div className={styles.shell}>
-      <Sidebar activeKey={active.key} />
+      <Sidebar activeKey={active.key} isSuperAdmin={!!me.isSuperAdmin} />
       <div className={styles.content}>
-        <Topbar category={active.category} page={active.page} />
+        <Topbar category={active.category} page={active.page} me={me} setMe={setMe} />
         <main className={styles.main}>{children}</main>
       </div>
     </div>
   );
 }
 
-function Sidebar({ activeKey }) {
+function Sidebar({ activeKey, isSuperAdmin }) {
+  const menu = isSuperAdmin
+    ? [...MENU_ITEMS, { key: "users", label: "관리자 계정", path: "/admin/users", Icon: IconUsers }]
+    : MENU_ITEMS;
+  return _SidebarRender({ activeKey, menu });
+}
+
+function _SidebarRender({ activeKey, menu }) {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
@@ -91,7 +107,7 @@ function Sidebar({ activeKey }) {
 
       <div className={styles.menuLabel}>MENU</div>
 
-      {MENU_ITEMS.map((it) => {
+      {menu.map((it) => {
         const Icon = it.Icon;
         const isActive = it.key === activeKey;
         const disabled = !it.path;
@@ -131,15 +147,8 @@ function Sidebar({ activeKey }) {
   );
 }
 
-function Topbar({ category, page }) {
+function Topbar({ category, page, me }) {
   const navigate = useNavigate();
-  const [me, setMe] = useState({ username: "", displayName: "" });
-
-  useEffect(() => {
-    adminMe().then((r) => {
-      if (r.authenticated) setMe({ username: r.username, displayName: r.displayName });
-    });
-  }, []);
 
   const onLogout = async () => {
     await adminLogout();

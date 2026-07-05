@@ -8,4 +8,6 @@ public class AdminUserDto {
     private String username;
     private String password; // BCrypt 해시 — 응답에는 절대 노출 금지
     private String displayName;
+    private String passwordResetRequired; // 'Y'/'N'
+    private String useYn;                 // 'Y'/'N'
 }

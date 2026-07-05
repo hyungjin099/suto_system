@@ -7,6 +7,8 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS ORDER_AUDIT;
+DROP TABLE IF EXISTS ADMIN_USER;
 DROP TABLE IF EXISTS CLIENT_FABRIC_ALIAS;
 DROP TABLE IF EXISTS ORDER_ITEM;
 DROP TABLE IF EXISTS ORDER_INFO;
@@ -121,14 +123,21 @@ CREATE TABLE ORDER_ITEM (
 -- 7. 관리자 계정
 -- ==========================================================================
 CREATE TABLE ADMIN_USER (
-    ADMIN_NUM    INT AUTO_INCREMENT,
-    USERNAME     VARCHAR(50)  NOT NULL UNIQUE,
-    PASSWORD     VARCHAR(100) NOT NULL,                  -- BCrypt 해시
-    DISPLAY_NAME VARCHAR(50),
-    REG_DATE     DATETIME DEFAULT SYSDATE(),
+    ADMIN_NUM               INT AUTO_INCREMENT,
+    USERNAME                VARCHAR(50)  NOT NULL UNIQUE,
+    PASSWORD                VARCHAR(100) NOT NULL,                  -- BCrypt 해시
+    DISPLAY_NAME            VARCHAR(50),
+    PASSWORD_RESET_REQUIRED CHAR(1)   NOT NULL DEFAULT 'Y',         -- Y: 최초 로그인 시 비번 변경 강제
+    USE_YN                  CHAR(1)   NOT NULL DEFAULT 'Y',         -- N: 비활성(로그인 차단). 세션 만료 후 재로그인 시점부터 차단
+    REG_DATE                DATETIME  DEFAULT SYSDATE(),
     CONSTRAINT PK_ADMIN_USER PRIMARY KEY (ADMIN_NUM)
 );
 -- 기본 관리자(admin / admin1234)는 백엔드 시작 시 AdminUserService.ensureDefaultAdmin()에서 자동 생성됨.
+-- USERNAME='admin' 계정은 최고 관리자로, 다른 관리자 계정을 추가/비활성화할 수 있으며 본인은 비활성화되지 않는다.
+-- 기존 운영 DB 마이그레이션:
+--   ALTER TABLE ADMIN_USER
+--     ADD COLUMN PASSWORD_RESET_REQUIRED CHAR(1) NOT NULL DEFAULT 'Y' AFTER DISPLAY_NAME,
+--     ADD COLUMN USE_YN                  CHAR(1) NOT NULL DEFAULT 'Y' AFTER PASSWORD_RESET_REQUIRED;
 
 
 -- ==========================================================================

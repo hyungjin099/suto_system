@@ -5,27 +5,58 @@
 <mapper namespace="com.dream_comp.auto_system.mapper.AdminUserMapper">
 
     <resultMap id="adminUserMap" type="com.dream_comp.auto_system.dto.AdminUserDto">
-        <id     property="adminNum"    column="ADMIN_NUM"/>
-        <result property="username"    column="USERNAME"/>
-        <result property="password"    column="PASSWORD"/>
-        <result property="displayName" column="DISPLAY_NAME"/>
+        <id     property="adminNum"                column="ADMIN_NUM"/>
+        <result property="username"                column="USERNAME"/>
+        <result property="password"                column="PASSWORD"/>
+        <result property="displayName"             column="DISPLAY_NAME"/>
+        <result property="passwordResetRequired"   column="PASSWORD_RESET_REQUIRED"/>
+        <result property="useYn"                   column="USE_YN"/>
     </resultMap>
 
+    <sql id="cols">
+        ADMIN_NUM, USERNAME, PASSWORD, DISPLAY_NAME,
+        PASSWORD_RESET_REQUIRED, USE_YN
+    </sql>
+
     <select id="findByUsername" parameterType="string" resultMap="adminUserMap">
-        SELECT ADMIN_NUM, USERNAME, PASSWORD, DISPLAY_NAME
+        SELECT <include refid="cols"/>
         FROM ADMIN_USER WHERE USERNAME = #{username}
+    </select>
+
+    <select id="findByAdminNum" resultMap="adminUserMap">
+        SELECT <include refid="cols"/>
+        FROM ADMIN_USER WHERE ADMIN_NUM = #{adminNum}
     </select>
 
     <select id="count" resultType="int">
         SELECT COUNT(*) FROM ADMIN_USER
     </select>
 
+    <select id="findAll" resultMap="adminUserMap">
+        SELECT <include refid="cols"/>
+        FROM ADMIN_USER
+        ORDER BY (USERNAME = 'admin') DESC, USERNAME
+    </select>
+
     <insert id="insert" useGeneratedKeys="true" keyProperty="adminNum" keyColumn="ADMIN_NUM">
-        INSERT INTO ADMIN_USER (USERNAME, PASSWORD, DISPLAY_NAME)
-        VALUES (#{username}, #{password}, #{displayName})
+        INSERT INTO ADMIN_USER
+            (USERNAME, PASSWORD, DISPLAY_NAME, PASSWORD_RESET_REQUIRED, USE_YN)
+        VALUES
+            (#{username}, #{password}, #{displayName},
+             COALESCE(#{passwordResetRequired}, 'Y'),
+             COALESCE(#{useYn}, 'Y'))
     </insert>
 
     <update id="updatePassword">
-        UPDATE ADMIN_USER SET PASSWORD = #{password} WHERE ADMIN_NUM = #{adminNum}
+        UPDATE ADMIN_USER
+        SET PASSWORD = #{password},
+            PASSWORD_RESET_REQUIRED = #{resetRequired}
+        WHERE ADMIN_NUM = #{adminNum}
+    </update>
+
+    <update id="updateUseYn">
+        UPDATE ADMIN_USER
+        SET USE_YN = #{useYn}
+        WHERE ADMIN_NUM = #{adminNum}
     </update>
 </mapper>

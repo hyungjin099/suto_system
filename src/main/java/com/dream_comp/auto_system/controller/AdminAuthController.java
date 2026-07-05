@@ -31,18 +31,13 @@ public class AdminAuthController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("message", "아이디 또는 비밀번호가 올바르지 않습니다"));
         }
-        // 세션 고정 공격 방지: 기존 세션 무효화 후 새로 생성
         HttpSession old = req.getSession(false);
         if (old != null) old.invalidate();
         HttpSession session = req.getSession(true);
         session.setAttribute(SESSION_ADMIN, user);
         session.setMaxInactiveInterval(60 * 60 * 2); // 2시간
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("ok", true);
-        body.put("username", user.getUsername());
-        body.put("displayName", user.getDisplayName());
-        return ResponseEntity.ok(body);
+        return ResponseEntity.ok(sessionPayload(user, true));
     }
 
     @PostMapping("/logout")
@@ -60,10 +55,37 @@ public class AdminAuthController {
         if (user == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("authenticated", false));
         }
+        return ResponseEntity.ok(sessionPayload(user, false));
+    }
+
+    /** 본인 비밀번호 변경 (로그인 상태에서 호출). 성공 시 세션의 상태도 갱신 */
+    @PostMapping("/change-password")
+    public ResponseEntity<Map<String, Object>> changePassword(@RequestBody Map<String, String> body,
+                                                              HttpServletRequest req) {
+        HttpSession session = req.getSession(false);
+        AdminUserDto user = session == null ? null : (AdminUserDto) session.getAttribute(SESSION_ADMIN);
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "관리자 로그인이 필요합니다"));
+        }
+        try {
+            AdminUserDto updated = adminUserService.changeOwnPassword(
+                    user.getAdminNum(), body.get("currentPassword"), body.get("newPassword"));
+            session.setAttribute(SESSION_ADMIN, updated);
+            return ResponseEntity.ok(sessionPayload(updated, false));
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    private Map<String, Object> sessionPayload(AdminUserDto user, boolean ok) {
         Map<String, Object> body = new HashMap<>();
+        if (ok) body.put("ok", true);
         body.put("authenticated", true);
         body.put("username", user.getUsername());
         body.put("displayName", user.getDisplayName());
-        return ResponseEntity.ok(body);
+        body.put("mustChangePassword", "Y".equalsIgnoreCase(user.getPasswordResetRequired()));
+        body.put("isSuperAdmin", AdminUserService.isSuperAdmin(user));
+        return body;
     }
 }
