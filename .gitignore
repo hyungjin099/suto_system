@@ -40,6 +40,8 @@ out/
 src/main/resources/application-local.properties
 src/front_dream_company/.env.local
 src/front_dream_company/.env.*.local
+src/front_dream_company/.env.production
+DEPLOYMENT.md
 
 ### react ignore ###
 # Logs
