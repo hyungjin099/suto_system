@@ -13,10 +13,12 @@ export default function ProductCard({
   item,
   products,
   fabricsLoading,
+  destinations = [],
   onChange,
   onRemove,
   errors,
 }) {
+  const listId = `dest-list-${item.id}`;
   const set = (k, v) => onChange({ ...item, [k]: v });
   const removable = total > 1;
 
@@ -123,7 +125,13 @@ export default function ProductCard({
           value={item.destination}
           onChange={(v) => set("destination", v)}
           placeholder="납품받으실 곳 (상호명·주소 등)"
+          list={listId}
         />
+        <datalist id={listId}>
+          {destinations.map((d) => (
+            <option key={d} value={d} />
+          ))}
+        </datalist>
       </div>
     </div>
   );

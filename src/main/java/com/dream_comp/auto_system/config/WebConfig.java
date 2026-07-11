@@ -40,7 +40,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/clients/*/login",
                         "/api/clients/*/password",
                         "/api/clients/*/fabrics",
-                        "/api/clients/*/orders"
+                        "/api/clients/*/orders",
+                        "/api/clients/*/destinations"
                 );
     }
 }

@@ -10,7 +10,6 @@
         <result property="cliCode"        column="CLI_CODE"/>
         <result property="orderId"        column="ORDER_ID"/>
         <result property="status"         column="STATUS"/>
-        <result property="workflowStatus" column="WORKFLOW_STATUS"/>
         <result property="orderDate"      column="ORDER_DATE"/>
         <collection property="items" ofType="com.dream_comp.auto_system.vo.OrderItemVo">
             <id     property="itemNum"      column="ITEM_NUM"/>
@@ -44,7 +43,6 @@
         <result property="orderId"        column="ORDER_ID"/>
         <result property="orderDate"      column="ORDER_DATE"/>
         <result property="status"         column="STATUS"/>
-        <result property="workflowStatus" column="WORKFLOW_STATUS"/>
         <result property="cliCode"        column="CLI_CODE"/>
         <result property="cliCompName"    column="CLI_COMP_NAME"/>
         <result property="product"        column="PRODUCT"/>
@@ -62,7 +60,7 @@
     <select id="findAllAdmin" resultMap="adminRowMap">
         SELECT
             oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE,
-            oi.STATUS, oi.WORKFLOW_STATUS,
+            oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
             it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
@@ -83,7 +81,7 @@
     <select id="findAdminItemByNum" parameterType="long" resultMap="adminRowMap">
         SELECT
             oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE,
-            oi.STATUS, oi.WORKFLOW_STATUS,
+            oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
             it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
@@ -108,15 +106,11 @@
         WHERE ITEM_NUM = #{itemNum}
     </update>
 
-    <update id="updateWorkflowStatus">
-        UPDATE ORDER_INFO SET WORKFLOW_STATUS = #{workflowStatus} WHERE ORDER_NUM = #{orderNum}
-    </update>
-
     <!-- 시트 푸시 재시도 대상: STATUS != 'OK' 이고 최근 24시간 이내 -->
     <select id="findRetryCandidates" resultMap="adminRowMap">
         SELECT
             oi.ORDER_NUM, it.ITEM_NUM, oi.ORDER_ID, oi.ORDER_DATE,
-            oi.STATUS, oi.WORKFLOW_STATUS,
+            oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
             it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
@@ -143,7 +137,7 @@
     <!-- 거래처별 주문 내역 조회 (최신순) -->
     <select id="findByCliCode" parameterType="string" resultMap="orderResultMap">
         SELECT
-            oi.ORDER_NUM, oi.CLI_CODE, oi.ORDER_ID, oi.STATUS, oi.WORKFLOW_STATUS, oi.ORDER_DATE,
+            oi.ORDER_NUM, oi.CLI_CODE, oi.ORDER_ID, oi.STATUS, oi.ORDER_DATE,
             it.ITEM_NUM, it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH,
             it.ROLLS, it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
         FROM ORDER_INFO oi
@@ -162,5 +156,18 @@
         VALUES
             (#{orderNum}, #{product}, #{productLabel}, #{width}, #{length}, #{rolls}, #{destination}, #{note}, #{unitPrice}, #{aliasName})
     </insert>
+
+    <!-- 거래처의 과거 사용 납품처 목록 (자동완성용, distinct + 사용횟수 순) -->
+    <select id="findDestinationsByCliCode" parameterType="string" resultType="string">
+        SELECT it.DESTINATION
+        FROM ORDER_ITEM it
+        JOIN ORDER_INFO oi ON oi.ORDER_NUM = it.ORDER_NUM
+        WHERE oi.CLI_CODE = #{cliCode}
+          AND it.DESTINATION IS NOT NULL
+          AND it.DESTINATION &lt;&gt; ''
+        GROUP BY it.DESTINATION
+        ORDER BY COUNT(*) DESC, it.DESTINATION
+        LIMIT 100
+    </select>
 
 </mapper>

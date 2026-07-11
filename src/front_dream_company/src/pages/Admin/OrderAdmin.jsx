@@ -12,19 +12,10 @@ import {
   updateAdminOrderItem,
   deleteAdminOrderItem,
   fetchClients,
-  updateOrderWorkflowStatus,
 } from "./api";
 import OrderEditModal from "./components/OrderEditModal";
 import OrderCreateModal from "./components/OrderCreateModal";
-
-// 워크플로 상태 → 한글 + 색 (UI에서 공용)
-export const WORKFLOW_LABELS = {
-  RECEIVED:    { label: "접수",   color: "#0e7490" },
-  IN_PROGRESS: { label: "작업중", color: "#b45309" },
-  SHIPPED:     { label: "출고",   color: "#1d4ed8" },
-  DONE:        { label: "완료",   color: "#15803d" },
-  CANCELLED:   { label: "취소",   color: "#b91c1c" },
-};
+import ConfirmDialog from "./components/ConfirmDialog";
 import styles from "./OrderAdmin.module.css";
 
 const PAGE_SIZE = 20;
@@ -67,25 +58,12 @@ function StatusChip({ status }) {
   return <span className={`${styles.chip} ${v.cls}`}>{v.label}</span>;
 }
 
-function WorkflowChip({ value }) {
-  const v = WORKFLOW_LABELS[value] || { label: value || "-", color: "#666" };
-  return (
-    <span
-      className={styles.chip}
-      style={{ background: v.color + "22", color: v.color, borderColor: v.color + "44" }}
-    >
-      {v.label}
-    </span>
-  );
-}
-
 export default function OrderAdmin() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [workflowFilter, setWorkflowFilter] = useState("");
   const [dateFrom, setDateFrom] = useState(""); // 'YYYY-MM-DD'
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -95,6 +73,7 @@ export default function OrderAdmin() {
   const [creating, setCreating] = useState(false);
   const [createSaving, setCreateSaving] = useState(false);
   const [clients, setClients] = useState([]);
+  const [deleteTarget, setDeleteTarget] = useState(null); // 삭제 확인 모달용
 
   // 새 주문 추가 모달용 거래처 목록 로드 (사용구분 YES만)
   useEffect(() => {
@@ -103,7 +82,7 @@ export default function OrderAdmin() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { setPage(1); }, [q, statusFilter, workflowFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [q, statusFilter, dateFrom, dateTo]);
 
   const onSaveEdit = async (body) => {
     if (!editingRow) return;
@@ -135,16 +114,22 @@ export default function OrderAdmin() {
     }
   };
 
-  const onDeleteEdit = async (target) => {
+  const onDeleteEdit = (target) => {
     if (!target) return;
-    if (!window.confirm(`주문번호 ${target.orderId} 의 이 품목을 삭제합니다.\n스프레드시트의 해당 행도 비워집니다.\n계속하시겠어요?`)) return;
+    setDeleteTarget(target); // 확인 모달 오픈
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteAdminOrderItem(target.itemNum);
-      setRows((arr) => arr.filter((r) => r.itemNum !== target.itemNum));
+      await deleteAdminOrderItem(deleteTarget.itemNum);
+      setRows((arr) => arr.filter((r) => r.itemNum !== deleteTarget.itemNum));
       setEditingRow(null);
+      setDeleteTarget(null);
     } catch (err) {
       alert(err?.response?.data?.message || "삭제 중 오류가 발생했습니다.");
+      setDeleteTarget(null);
     } finally {
       setDeleting(false);
     }
@@ -164,7 +149,6 @@ export default function OrderAdmin() {
     const toTs = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
     return rows.filter((r) => {
       if (statusFilter && r.status !== statusFilter) return false;
-      if (workflowFilter && r.workflowStatus !== workflowFilter) return false;
       if (fromTs != null) {
         if (!r.orderDate || r.orderDate.getTime() < fromTs) return false;
       }
@@ -180,7 +164,7 @@ export default function OrderAdmin() {
         (r.destination || "").toLowerCase().includes(kw)
       );
     });
-  }, [rows, q, statusFilter, workflowFilter, dateFrom, dateTo]);
+  }, [rows, q, statusFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -254,16 +238,6 @@ export default function OrderAdmin() {
         </div>
         <select
           className={styles.select}
-          value={workflowFilter}
-          onChange={(e) => setWorkflowFilter(e.target.value)}
-        >
-          <option value="">전체 진행상태</option>
-          {Object.entries(WORKFLOW_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v.label}</option>
-          ))}
-        </select>
-        <select
-          className={styles.select}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -293,7 +267,6 @@ export default function OrderAdmin() {
             <col width="160px" />
             <col width="120px" />
             <col width="80px" />
-            <col width="80px" />
             <col width="100px" />
           </colgroup>
           <thead>
@@ -311,15 +284,14 @@ export default function OrderAdmin() {
               <th>비고</th>
               <th>납품예정일</th>
               <th>단가</th>
-              <th>진행상태</th>
               <th>시트상태</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={15} className={styles.stateCell}>불러오는 중…</td></tr>
+              <tr><td colSpan={14} className={styles.stateCell}>불러오는 중…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={15} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
+              <tr><td colSpan={14} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
             ) : (
               pageItems.map((r, i) => (
                 <tr
@@ -344,7 +316,6 @@ export default function OrderAdmin() {
                   <td className={styles.cellNum}>
                     {r.unitPrice != null ? r.unitPrice.toLocaleString("ko-KR") : "-"}
                   </td>
-                  <td className={styles.cellNum}><WorkflowChip value={r.workflowStatus} /></td>
                   <td className={styles.cellNum}><StatusChip status={r.status} /></td>
                 </tr>
               ))
@@ -368,15 +339,6 @@ export default function OrderAdmin() {
           onClose={() => setEditingRow(null)}
           onSave={onSaveEdit}
           onDelete={onDeleteEdit}
-          onWorkflowChange={(orderNum, next) => {
-            // 같은 주문번호의 모든 행(품목)에 동일하게 적용
-            setRows((arr) =>
-              arr.map((r) => (r.orderNum === orderNum ? { ...r, workflowStatus: next } : r))
-            );
-            setEditingRow((cur) =>
-              cur && cur.orderNum === orderNum ? { ...cur, workflowStatus: next } : cur
-            );
-          }}
         />
       )}
 
@@ -394,6 +356,33 @@ export default function OrderAdmin() {
               setRows(fresh);
             } catch {}
           }}
+        />
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="주문 품목을 삭제하시겠어요?"
+          body={
+            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                주문번호 {deleteTarget.orderId}
+              </div>
+              <div style={{ color: "var(--ink-2)" }}>
+                {deleteTarget.productLabel || deleteTarget.product}
+                {deleteTarget.width ? ` · ${deleteTarget.width}mm` : ""}
+                {deleteTarget.length ? ` × ${deleteTarget.length}m` : ""}
+                {deleteTarget.rolls ? ` · ${deleteTarget.rolls}롤` : ""}
+              </div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)" }}>
+                스프레드시트의 해당 행도 함께 비워집니다. 되돌릴 수 없습니다.
+              </div>
+            </div>
+          }
+          confirmLabel={deleting ? "삭제 중…" : "삭제"}
+          danger
+          disabled={deleting}
+          onCancel={() => !deleting && setDeleteTarget(null)}
+          onConfirm={confirmDeleteOrder}
         />
       )}
     </AdminShell>

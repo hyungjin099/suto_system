@@ -49,7 +49,9 @@ export default function SummaryModal({
           {items.map((it) => {
             const label =
               fabricOptions.find((f) => f.value === it.product)?.label ||
+              it.aliasName ||
               it.prodName ||
+              it.prodCode ||
               it.product;
             const dest = it.destination?.trim() || clientName;
             return (

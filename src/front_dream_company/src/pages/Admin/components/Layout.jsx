@@ -1,6 +1,5 @@
 /* 관리자 페이지 레이아웃: AdminShell + Sidebar + Topbar
  * - 사이드바: react-router-dom Link 사용. 활성 상태는 useLocation 으로 자동 판별.
- * - 일부 메뉴(주문 관리/매출 리포트)는 페이지 미구현으로 disabled 처리.
  */
 
 import { useEffect, useState } from "react";
@@ -11,7 +10,6 @@ import {
   IconBox,
   IconCart,
   IconUsers,
-  IconChart,
   IconLink,
   IconTruck,
 } from "./Icons";
@@ -44,7 +42,6 @@ const MENU_ITEMS = [
     path: "/admin/fabric-alias",
     Icon: IconLink,
   },
-  { key: "reports", label: "매출 리포트", path: null, Icon: IconChart },
 ];
 
 // 현재 경로 → (현재 메뉴 key, 페이지 이름)

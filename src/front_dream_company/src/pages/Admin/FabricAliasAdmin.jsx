@@ -1,10 +1,12 @@
 /* 관리자 - 거래처 별칭 관리
  * 좌: 거래처 목록(검색) / 우: 공식원단 ↔ 거래처별 별칭 + 단가 2패널
+ * 하나의 원단에 별칭 여러 개 등록 가능 (2026-07 정책)
  */
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { AdminShell } from "./components/Layout";
 import PageHeader from "./components/PageHeader";
+import ConfirmDialog from "./components/ConfirmDialog";
 import { IconX, IconEdit, IconSearch } from "./components/Icons";
 import { cx } from "./utils";
 import {
@@ -27,8 +29,8 @@ export default function FabricAliasAdmin() {
   const [allFabrics, setAllFabrics] = useState([]);
   const [fabricsLoading, setFabricsLoading] = useState(true);
 
-  // aliases: { [prodNum]: { aliasNum, aliasName, price } }
-  const [aliasMap, setAliasMap] = useState({});
+  // aliasesByProdNum: { [prodNum]: [{ aliasNum, aliasName, price }, ...] }
+  const [aliasesByProdNum, setAliasesByProdNum] = useState({});
   const [aliasLoading, setAliasLoading] = useState(false);
   // 거래처별 별칭 갯수: { [cliNum]: count }
   const [aliasCounts, setAliasCounts] = useState({});
@@ -39,18 +41,23 @@ export default function FabricAliasAdmin() {
   const [leftSearch, setLeftSearch] = useState("");
   const [rightSearch, setRightSearch] = useState("");
 
-  const [pendingDrop, setPendingDrop] = useState(null); // {prodNum, prodCode, prodName}
-  const [pendingAlias, setPendingAlias] = useState("");
-  const [pendingPrice, setPendingPrice] = useState("");
-  const [pendingError, setPendingError] = useState("");
+  // 별칭 추가 진행 상태 (드래그 or "+ 별칭 추가" 버튼)
+  // { prodNum, prodName, aliasName, price, error }
+  const [pending, setPending] = useState(null);
 
   const [dragOver, setDragOver] = useState(false);
   const [draggingId, setDraggingId] = useState(null);
 
-  const [editingProdNum, setEditingProdNum] = useState(null);
+  // 특정 별칭 하나를 수정 중
+  const [editingAliasNum, setEditingAliasNum] = useState(null);
   const [editingAlias, setEditingAlias] = useState("");
   const [editingPrice, setEditingPrice] = useState("");
   const [editingError, setEditingError] = useState("");
+
+  // 별칭 삭제 확인 모달
+  // { aliasNum, prodNum, aliasName, prodName }
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const pendingInputRef = useRef(null);
   const editingInputRef = useRef(null);
@@ -89,17 +96,23 @@ export default function FabricAliasAdmin() {
   // ── 거래처 선택 시 별칭 로드 ────────────────────────────
   useEffect(() => {
     if (!selectedClientId) {
-      setAliasMap({});
+      setAliasesByProdNum({});
       return;
     }
     setAliasLoading(true);
     fetchAliases(selectedClientId)
       .then((list) => {
-        const m = {};
+        // prodNum 기준으로 그룹화
+        const grouped = {};
         list.forEach((a) => {
-          m[a.prodNum] = { aliasNum: a.aliasNum, aliasName: a.aliasName, price: a.price };
+          if (!grouped[a.prodNum]) grouped[a.prodNum] = [];
+          grouped[a.prodNum].push({
+            aliasNum: a.aliasNum,
+            aliasName: a.aliasName,
+            price: a.price,
+          });
         });
-        setAliasMap(m);
+        setAliasesByProdNum(grouped);
       })
       .catch(() => setApiError("별칭 목록을 불러오지 못했습니다."))
       .finally(() => setAliasLoading(false));
@@ -114,15 +127,17 @@ export default function FabricAliasAdmin() {
     return clients.filter((c) => c.name.toLowerCase().includes(q));
   }, [clients, clientSearch]);
 
+  // 별칭 0개 = 미매칭(좌), 1개 이상 = 매칭됨(우)
   const { mappedFabrics, unmappedFabrics } = useMemo(() => {
     const mapped = [];
     const unmapped = [];
     allFabrics.forEach((f) => {
-      if (aliasMap[f.prodNum]) mapped.push(f);
+      const list = aliasesByProdNum[f.prodNum] || [];
+      if (list.length > 0) mapped.push(f);
       else unmapped.push(f);
     });
     return { mappedFabrics: mapped, unmappedFabrics: unmapped };
-  }, [allFabrics, aliasMap]);
+  }, [allFabrics, aliasesByProdNum]);
 
   const filteredLeft = useMemo(() => {
     const q = leftSearch.trim().toLowerCase();
@@ -136,18 +151,23 @@ export default function FabricAliasAdmin() {
     const q = rightSearch.trim().toLowerCase();
     return mappedFabrics.filter((f) => {
       if (!q) return true;
-      const alias = aliasMap[f.prodNum]?.aliasName || "";
-      return f.name.toLowerCase().includes(q) || alias.toLowerCase().includes(q);
+      const aliases = aliasesByProdNum[f.prodNum] || [];
+      return (
+        f.name.toLowerCase().includes(q) ||
+        aliases.some((a) => (a.aliasName || "").toLowerCase().includes(q))
+      );
     });
-  }, [mappedFabrics, rightSearch, aliasMap]);
+  }, [mappedFabrics, rightSearch, aliasesByProdNum]);
 
-  useEffect(() => { if (pendingDrop) pendingInputRef.current?.focus(); }, [pendingDrop]);
-  useEffect(() => { if (editingProdNum) editingInputRef.current?.focus(); }, [editingProdNum]);
+  // 최초 pending 진입/prodNum 변경 시에만 별칭 input에 포커스
+  // (pending 전체를 deps로 두면 매 키 입력마다 재포커스되어 커서가 튐)
+  useEffect(() => { if (pending?.prodNum) pendingInputRef.current?.focus(); }, [pending?.prodNum]);
+  useEffect(() => { if (editingAliasNum) editingInputRef.current?.focus(); }, [editingAliasNum]);
 
   const resetUiState = () => {
     setLeftSearch(""); setRightSearch("");
-    setPendingDrop(null); setPendingAlias(""); setPendingPrice(""); setPendingError("");
-    setEditingProdNum(null); setEditingError("");
+    setPending(null);
+    setEditingAliasNum(null); setEditingError("");
     setApiError("");
   };
   const handleSelectClient = (cliNum) => {
@@ -192,52 +212,74 @@ export default function FabricAliasAdmin() {
     if (!selectedClient) return;
     const fabricId = e.dataTransfer.getData("fabricId");
     const fabric = allFabrics.find((f) => f.id === fabricId);
-    if (!fabric || aliasMap[fabric.prodNum] || fabric.status === "미사용") return;
-    setPendingDrop(fabric);
-    setPendingAlias(fabric.name || "");
-    setPendingPrice(fabric.price != null ? String(fabric.price) : "");
-    setPendingError("");
+    if (!fabric || fabric.status === "미사용") return;
+    setPending({
+      prodNum: fabric.prodNum,
+      prodName: fabric.name,
+      aliasName: fabric.name || "",
+      price: fabric.price != null ? String(fabric.price) : "",
+      error: "",
+    });
   };
 
-  // ── 별칭 등록 ──────────────────────────────────────────
+  // ── 별칭 추가 (드래그 or + 버튼 공용) ──────────────────
+  const startAddAlias = (fabric) => {
+    setPending({
+      prodNum: fabric.prodNum,
+      prodName: fabric.name,
+      aliasName: "",
+      price: "",
+      error: "",
+    });
+  };
+  const cancelPending = () => setPending(null);
+
   const confirmPending = async () => {
-    const alias = pendingAlias.trim();
-    if (!alias) { setPendingError("별칭을 입력해 주세요."); return; }
-    const priceN = pendingPrice === "" ? null : parseInt(pendingPrice, 10);
+    const alias = (pending.aliasName || "").trim();
+    if (!alias) { setPending((p) => ({ ...p, error: "별칭을 입력해 주세요." })); return; }
+    const priceN = pending.price === "" ? null : parseInt(pending.price, 10);
     if (priceN !== null && (!Number.isFinite(priceN) || priceN < 0)) {
-      setPendingError("단가는 0 이상 숫자여야 합니다."); return;
+      setPending((p) => ({ ...p, error: "단가는 0 이상 숫자여야 합니다." })); return;
     }
     try {
       const created = await createAlias({
         cliNum: selectedClientId,
-        prodNum: pendingDrop.prodNum,
+        prodNum: pending.prodNum,
         aliasName: alias,
         price: priceN,
       });
-      setAliasMap((m) => ({
-        ...m,
-        [created.prodNum]: { aliasNum: created.aliasNum, aliasName: created.aliasName, price: created.price },
-      }));
+      setAliasesByProdNum((m) => {
+        const list = m[created.prodNum] || [];
+        return {
+          ...m,
+          [created.prodNum]: [
+            ...list,
+            { aliasNum: created.aliasNum, aliasName: created.aliasName, price: created.price },
+          ],
+        };
+      });
       setAliasCounts((c) => ({ ...c, [selectedClientId]: (c[selectedClientId] || 0) + 1 }));
-      setPendingDrop(null); setPendingAlias(""); setPendingPrice(""); setPendingError("");
+      setPending(null);
     } catch (err) {
-      setPendingError(handleApiError(err, "등록 중 오류가 발생했습니다."));
+      setPending((p) => ({ ...p, error: handleApiError(err, "등록 중 오류가 발생했습니다.") }));
     }
   };
-  const cancelPending = () => {
-    setPendingDrop(null); setPendingAlias(""); setPendingPrice(""); setPendingError("");
-  };
 
-  // ── 별칭 수정/삭제 ─────────────────────────────────────
-  const startEdit = (prodNum) => {
-    const a = aliasMap[prodNum];
-    setEditingProdNum(prodNum);
-    setEditingAlias(a?.aliasName || "");
-    setEditingPrice(a?.price != null ? String(a.price) : "");
-    setEditingError("");
+  // ── 별칭 수정 (aliasNum 기준) ──────────────────────────
+  const startEdit = (aliasNum) => {
+    for (const prodNumKey of Object.keys(aliasesByProdNum)) {
+      const found = aliasesByProdNum[prodNumKey].find((a) => a.aliasNum === aliasNum);
+      if (found) {
+        setEditingAliasNum(aliasNum);
+        setEditingAlias(found.aliasName || "");
+        setEditingPrice(found.price != null ? String(found.price) : "");
+        setEditingError("");
+        return;
+      }
+    }
   };
   const cancelEdit = () => {
-    setEditingProdNum(null); setEditingAlias(""); setEditingPrice(""); setEditingError("");
+    setEditingAliasNum(null); setEditingAlias(""); setEditingPrice(""); setEditingError("");
   };
   const confirmEdit = async () => {
     const alias = editingAlias.trim();
@@ -246,42 +288,67 @@ export default function FabricAliasAdmin() {
     if (priceN !== null && (!Number.isFinite(priceN) || priceN < 0)) {
       setEditingError("단가는 0 이상 숫자여야 합니다."); return;
     }
-    const target = aliasMap[editingProdNum];
-    if (!target) return;
     try {
-      const updated = await updateAlias(target.aliasNum, { aliasName: alias, price: priceN });
-      setAliasMap((m) => ({
-        ...m,
-        [editingProdNum]: { aliasNum: updated.aliasNum, aliasName: updated.aliasName, price: updated.price },
-      }));
+      const updated = await updateAlias(editingAliasNum, { aliasName: alias, price: priceN });
+      setAliasesByProdNum((m) => {
+        const next = { ...m };
+        for (const p of Object.keys(next)) {
+          next[p] = next[p].map((a) =>
+            a.aliasNum === editingAliasNum
+              ? { aliasNum: updated.aliasNum, aliasName: updated.aliasName, price: updated.price }
+              : a
+          );
+        }
+        return next;
+      });
       cancelEdit();
     } catch (err) {
       setEditingError(handleApiError(err, "수정 중 오류가 발생했습니다."));
     }
   };
 
-  const removeAlias = async (prodNum) => {
-    const target = aliasMap[prodNum];
-    if (!target) return;
+  // ── 별칭 삭제 확인 모달 열기 ──────────────────────────
+  const askRemoveAlias = (aliasNum, prodNum, aliasName, prodName) => {
+    setDeleteConfirm({ aliasNum, prodNum, aliasName, prodName });
+  };
+
+  // ── 별칭 실제 삭제 ────────────────────────────────────
+  const confirmRemoveAlias = async () => {
+    if (!deleteConfirm) return;
+    const { aliasNum, prodNum } = deleteConfirm;
+    setDeleting(true);
     try {
-      await deleteAlias(target.aliasNum);
-      setAliasMap((m) => {
-        const copy = { ...m }; delete copy[prodNum]; return copy;
+      await deleteAlias(aliasNum);
+      setAliasesByProdNum((m) => {
+        const list = m[prodNum] || [];
+        const newList = list.filter((a) => a.aliasNum !== aliasNum);
+        if (newList.length === 0) {
+          const copy = { ...m }; delete copy[prodNum]; return copy;
+        }
+        return { ...m, [prodNum]: newList };
       });
       setAliasCounts((c) => ({ ...c, [selectedClientId]: Math.max(0, (c[selectedClientId] || 0) - 1) }));
-      if (editingProdNum === prodNum) cancelEdit();
+      if (editingAliasNum === aliasNum) cancelEdit();
+      setDeleteConfirm(null);
     } catch (err) {
       setApiError(handleApiError(err, "삭제 중 오류가 발생했습니다."));
+      setDeleteConfirm(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
   const mappedCount = mappedFabrics.length;
+  const totalAliases = useMemo(
+    () => Object.values(aliasesByProdNum).reduce((sum, arr) => sum + arr.length, 0),
+    [aliasesByProdNum]
+  );
 
   return (
     <AdminShell>
       <PageHeader
         title="원단 별칭 관리"
-        subtitle="거래처마다 다르게 부르는 원단 이름과 단가를 연결합니다. 왼쪽 원단 카드를 오른쪽으로 드래그해 별칭을 등록하세요."
+        subtitle="거래처마다 다르게 부르는 원단 이름과 단가를 연결합니다. 왼쪽 원단을 오른쪽으로 드래그해 별칭을 등록하고, 같은 원단에 별칭이 여러 개면 카드 하단의 '+ 별칭 추가' 버튼으로 추가하세요."
       />
 
       {apiError && <p className={styles.apiError}>{apiError}</p>}
@@ -318,9 +385,7 @@ export default function FabricAliasAdmin() {
             ) : (
               filteredClients.map((c) => {
                 const isActive = c.cliNum === selectedClientId;
-                const cnt = isActive
-                  ? Object.keys(aliasMap).length
-                  : (aliasCounts[c.cliNum] || 0);
+                const cnt = isActive ? totalAliases : (aliasCounts[c.cliNum] || 0);
                 return (
                   <button
                     key={c.cliNum}
@@ -425,7 +490,7 @@ export default function FabricAliasAdmin() {
             >
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>{selectedClient?.name || "거래처"} 별칭</span>
-                <span className={styles.panelCount}>{mappedCount}</span>
+                <span className={styles.panelCount}>{totalAliases}</span>
               </div>
               <div className={styles.filterRow}>
                 <label className={styles.searchBox} style={{ flex: 1 }}>
@@ -446,16 +511,17 @@ export default function FabricAliasAdmin() {
               <div className={styles.panelScroll}>
                 {aliasLoading && <div className={styles.emptyLeft}>별칭 불러오는 중…</div>}
 
-                {pendingDrop && (
+                {/* pending이 걸린 원단이 아직 매칭 안 된 신규 카드일 때 (드래그 신규) */}
+                {pending && !aliasesByProdNum[pending.prodNum]?.length && (
                   <div className={styles.aliasCardPending}>
-                    <div className={styles.aliasFabricName}>{pendingDrop.name}</div>
+                    <div className={styles.aliasFabricName}>{pending.prodName}</div>
                     <div className={styles.aliasInputRow}>
                       <span className={styles.arrow}>→</span>
                       <input
                         ref={pendingInputRef}
-                        className={cx(styles.aliasInput, pendingError && styles.aliasInputError)}
-                        value={pendingAlias}
-                        onChange={(e) => { setPendingAlias(e.target.value); setPendingError(""); }}
+                        className={cx(styles.aliasInput, pending.error && styles.aliasInputError)}
+                        value={pending.aliasName}
+                        onChange={(e) => setPending((p) => ({ ...p, aliasName: e.target.value, error: "" }))}
                         placeholder="거래처 별칭"
                         onKeyDown={(e) => {
                           if (e.key === "Enter") confirmPending();
@@ -463,21 +529,21 @@ export default function FabricAliasAdmin() {
                         }}
                       />
                       <input
-                        className={cx(styles.aliasInput, pendingError && styles.aliasInputError)}
+                        className={cx(styles.aliasInput, pending.error && styles.aliasInputError)}
                         style={{ width: 90 }}
-                        value={pendingPrice}
-                        onChange={(e) => { setPendingPrice(e.target.value.replace(/[^\d]/g,"")); setPendingError(""); }}
+                        value={pending.price}
+                        onChange={(e) => setPending((p) => ({ ...p, price: e.target.value.replace(/[^\d]/g, ""), error: "" }))}
                         placeholder="단가"
                         inputMode="numeric"
                       />
-                      <button type="button" className={styles.okBtn} onClick={confirmPending} disabled={!pendingAlias.trim()}>✓</button>
+                      <button type="button" className={styles.okBtn} onClick={confirmPending} disabled={!pending.aliasName.trim()}>✓</button>
                       <button type="button" className={styles.cancelAliasBtn} onClick={cancelPending}><IconX size={14} /></button>
                     </div>
-                    {pendingError && <div className={styles.aliasError}>{pendingError}</div>}
+                    {pending.error && <div className={styles.aliasError}>{pending.error}</div>}
                   </div>
                 )}
 
-                {!aliasLoading && filteredRight.length === 0 && !pendingDrop && (
+                {!aliasLoading && filteredRight.length === 0 && !pending && (
                   mappedFabrics.length === 0 ? (
                     <div className={cx(styles.emptyRight, dragOver && styles.emptyRightActive)}>
                       <div className={styles.emptyRightIcon}>↙</div>
@@ -490,57 +556,120 @@ export default function FabricAliasAdmin() {
                 )}
 
                 {filteredRight.map((fabric) => {
-                  const a = aliasMap[fabric.prodNum];
-                  const isEditing = editingProdNum === fabric.prodNum;
+                  const aliases = aliasesByProdNum[fabric.prodNum] || [];
+                  const isAddingHere = pending && pending.prodNum === fabric.prodNum;
                   return (
                     <div key={fabric.id} className={styles.aliasCard}>
-                      <div className={styles.aliasFabricName}>{fabric.name}</div>
-                      {isEditing ? (
+                      {/* 상단 헤더: 원단명(좌) + 별칭 추가 버튼(우) 같은 높이 */}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
+                        <div className={styles.aliasFabricName}>{fabric.name}</div>
+                        {!isAddingHere && (
+                          <button
+                            type="button"
+                            onClick={() => startAddAlias(fabric)}
+                            style={{
+                              padding: "4px 10px",
+                              background: "transparent",
+                              border: "1px dashed var(--line)",
+                              borderRadius: 6,
+                              color: "var(--ink-2)",
+                              fontSize: 12,
+                              fontWeight: 600,
+                              cursor: "pointer",
+                              whiteSpace: "nowrap",
+                              flexShrink: 0,
+                            }}
+                          >
+                            + 별칭 추가
+                          </button>
+                        )}
+                      </div>
+
+                      {aliases.map((a) => {
+                        const isEditing = editingAliasNum === a.aliasNum;
+                        return (
+                          <div key={a.aliasNum}>
+                            {isEditing ? (
+                              <>
+                                <div className={styles.aliasInputRow}>
+                                  <span className={styles.arrow}>→</span>
+                                  <input
+                                    ref={editingInputRef}
+                                    className={cx(styles.aliasInput, editingError && styles.aliasInputError)}
+                                    value={editingAlias}
+                                    onChange={(e) => { setEditingAlias(e.target.value); setEditingError(""); }}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") confirmEdit();
+                                      if (e.key === "Escape") cancelEdit();
+                                    }}
+                                  />
+                                  <input
+                                    className={cx(styles.aliasInput, editingError && styles.aliasInputError)}
+                                    style={{ width: 90 }}
+                                    value={editingPrice}
+                                    onChange={(e) => { setEditingPrice(e.target.value.replace(/[^\d]/g, "")); setEditingError(""); }}
+                                    placeholder="단가"
+                                    inputMode="numeric"
+                                  />
+                                  <button type="button" className={styles.okBtn} onClick={confirmEdit} disabled={!editingAlias.trim()}>✓</button>
+                                  <button type="button" className={styles.cancelAliasBtn} onClick={cancelEdit}><IconX size={14} /></button>
+                                </div>
+                                {editingError && <div className={styles.aliasError}>{editingError}</div>}
+                              </>
+                            ) : (
+                              <div className={styles.aliasViewRow}>
+                                <span className={styles.arrow}>→</span>
+                                <span className={styles.aliasValue}>{a.aliasName}</span>
+                                {a.price != null && (
+                                  <span className={styles.aliasPrice}>
+                                    {a.price.toLocaleString("ko-KR")}원
+                                  </span>
+                                )}
+                                <div className={styles.aliasActions}>
+                                  <button type="button" className={styles.editAliasBtn} onClick={() => startEdit(a.aliasNum)} title="별칭 수정">
+                                    <IconEdit size={13} />
+                                  </button>
+                                  <button type="button" className={styles.removeAliasBtn} onClick={() => askRemoveAlias(a.aliasNum, fabric.prodNum, a.aliasName, fabric.name)} title="별칭 삭제">
+                                    <IconX size={14} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* + 별칭 추가 인라인 입력 폼 */}
+                      {isAddingHere && (
                         <>
                           <div className={styles.aliasInputRow}>
-                            <span className={styles.arrow}>→</span>
+                            <span className={styles.arrow}>+</span>
                             <input
-                              ref={editingInputRef}
-                              className={cx(styles.aliasInput, editingError && styles.aliasInputError)}
-                              value={editingAlias}
-                              onChange={(e) => { setEditingAlias(e.target.value); setEditingError(""); }}
+                              ref={pendingInputRef}
+                              className={cx(styles.aliasInput, pending.error && styles.aliasInputError)}
+                              value={pending.aliasName}
+                              onChange={(e) => setPending((p) => ({ ...p, aliasName: e.target.value, error: "" }))}
+                              placeholder="새 별칭"
                               onKeyDown={(e) => {
-                                if (e.key === "Enter") confirmEdit();
-                                if (e.key === "Escape") cancelEdit();
+                                if (e.key === "Enter") confirmPending();
+                                if (e.key === "Escape") cancelPending();
                               }}
                             />
                             <input
-                              className={cx(styles.aliasInput, editingError && styles.aliasInputError)}
+                              className={cx(styles.aliasInput, pending.error && styles.aliasInputError)}
                               style={{ width: 90 }}
-                              value={editingPrice}
-                              onChange={(e) => { setEditingPrice(e.target.value.replace(/[^\d]/g,"")); setEditingError(""); }}
+                              value={pending.price}
+                              onChange={(e) => setPending((p) => ({ ...p, price: e.target.value.replace(/[^\d]/g, ""), error: "" }))}
                               placeholder="단가"
                               inputMode="numeric"
                             />
-                            <button type="button" className={styles.okBtn} onClick={confirmEdit} disabled={!editingAlias.trim()}>✓</button>
-                            <button type="button" className={styles.cancelAliasBtn} onClick={cancelEdit}><IconX size={14} /></button>
+                            <button type="button" className={styles.okBtn} onClick={confirmPending} disabled={!pending.aliasName.trim()}>✓</button>
+                            <button type="button" className={styles.cancelAliasBtn} onClick={cancelPending}><IconX size={14} /></button>
                           </div>
-                          {editingError && <div className={styles.aliasError}>{editingError}</div>}
+                          {pending.error && <div className={styles.aliasError}>{pending.error}</div>}
                         </>
-                      ) : (
-                        <div className={styles.aliasViewRow}>
-                          <span className={styles.arrow}>→</span>
-                          <span className={styles.aliasValue}>{a?.aliasName}</span>
-                          {a?.price != null && (
-                            <span className={styles.aliasPrice}>
-                              {a.price.toLocaleString("ko-KR")}원
-                            </span>
-                          )}
-                          <div className={styles.aliasActions}>
-                            <button type="button" className={styles.editAliasBtn} onClick={() => startEdit(fabric.prodNum)} title="별칭 수정">
-                              <IconEdit size={13} />
-                            </button>
-                            <button type="button" className={styles.removeAliasBtn} onClick={() => removeAlias(fabric.prodNum)} title="매칭 해제">
-                              <IconX size={14} />
-                            </button>
-                          </div>
-                        </div>
                       )}
+
                     </div>
                   );
                 })}
@@ -550,6 +679,31 @@ export default function FabricAliasAdmin() {
           </div>
         </div>
       </div>
+
+      {/* 별칭 삭제 확인 모달 (공용 ConfirmDialog) */}
+      {deleteConfirm && (
+        <ConfirmDialog
+          title="별칭을 삭제하시겠어요?"
+          body={
+            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                {deleteConfirm.prodName}
+              </div>
+              <div style={{ color: "var(--ink-2)" }}>
+                별칭 "<b>{deleteConfirm.aliasName}</b>"
+              </div>
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)" }}>
+                이 별칭에 저장된 단가 정보도 함께 사라지며 되돌릴 수 없습니다.
+              </div>
+            </div>
+          }
+          confirmLabel={deleting ? "삭제 중…" : "삭제"}
+          danger
+          disabled={deleting}
+          onCancel={() => !deleting && setDeleteConfirm(null)}
+          onConfirm={confirmRemoveAlias}
+        />
+      )}
     </AdminShell>
   );
 }

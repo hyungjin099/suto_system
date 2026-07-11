@@ -23,5 +23,4 @@ public class AdminOrderRowDto {
     private String deliveryDate;    // 납품예정일 (override, null이면 시트에서 자동계산)
     private Integer unitPrice;      // 단가 스냅샷
     private String aliasName;       // 별칭 스냅샷
-    private String workflowStatus;  // 비즈니스 상태
 }

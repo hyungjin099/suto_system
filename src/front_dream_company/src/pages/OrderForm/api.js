@@ -41,12 +41,22 @@ export async function fetchClientOrders(cliCode) {
   }));
 }
 
+export async function fetchClientDestinations(cliCode) {
+  if (!cliCode) return [];
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/destinations`);
+  return res.data;
+}
+
 export async function fetchClientFabrics(cliCode) {
   const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/fabrics`);
+  // 같은 prodCode에 별칭이 여러 개일 수 있으므로 aliasNum 기반 유니크 키 사용
   return res.data.map((f) => ({
-    value: f.prodCode,
-    label: f.aliasName,
+    value: String(f.aliasNum),   // select의 유니크 키
+    aliasNum: f.aliasNum,
+    aliasName: f.aliasName,
+    prodCode: f.prodCode,
     prodName: f.prodName,
+    label: f.aliasName,
     price: f.clientFabPrice,
   }));
 }
@@ -57,8 +67,10 @@ export async function submitOrder({ cliCode, clientName, managerPhone, items }) 
     clientName: clientName || "",
     managerPhone: managerPhone || "",
     items: items.map((it) => ({
-      product: it.product,
-      productLabel: it.prodName || it.product,
+      // it.product는 이제 aliasNum(문자열). 백엔드엔 실제 prodCode를 보냄
+      product: it.prodCode || "",
+      // productLabel = 별칭(고객사가 부르는 이름). 백엔드가 가격 스냅샷 시 이걸로 별칭 매칭
+      productLabel: it.aliasName || it.prodName || "",
       width: parseInt(it.width, 10) || 0,
       length: parseInt(it.length, 10) || 0,
       rolls: parseInt(it.rolls, 10) || 1,

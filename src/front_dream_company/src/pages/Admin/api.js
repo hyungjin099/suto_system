@@ -206,7 +206,6 @@ export async function fetchAdminOrders() {
     deliveryDate: r.deliveryDate || "",
     unitPrice: r.unitPrice,
     aliasName: r.aliasName || "",
-    workflowStatus: r.workflowStatus || "RECEIVED",
   }));
 }
 
@@ -219,11 +218,9 @@ export async function deleteAdminOrderItem(itemNum) {
   await axios.delete(`${BASE_URL}/api/admin/orders/items/${itemNum}`);
 }
 
-export async function updateOrderWorkflowStatus(orderNum, workflowStatus) {
-  const res = await axios.patch(
-    `${BASE_URL}/api/admin/orders/${orderNum}/workflow-status`,
-    { workflowStatus }
-  );
+export async function fetchClientDestinations(cliCode) {
+  if (!cliCode) return [];
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/destinations`);
   return res.data;
 }
 

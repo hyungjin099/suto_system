@@ -60,16 +60,15 @@ public class OrderService {
         orderVo.setCliCode(dto.getCliCode());
         orderVo.setOrderId(orderId);
         orderVo.setStatus("PENDING");
-        orderVo.setWorkflowStatus("RECEIVED");
         orderVo.setOrderDate(LocalDateTime.now());
         orderMapper.insertOrder(orderVo);
 
         List<Long> itemNums = new ArrayList<>();
         List<Map<String, Object>> auditItems = new ArrayList<>();
         for (OrderItemDto item : dto.getItems()) {
-            // 가격 스냅샷 — CLIENT_FABRIC_ALIAS에서 현재 별칭/단가 조회
-            ClientFabricDto snap = clientFabricMapper.findOneByCliCodeAndProdCode(
-                    dto.getCliCode(), item.getProduct());
+            // 가격 스냅샷 — 같은 원단에 별칭이 여러 개일 수 있으므로 별칭명까지 매칭
+            ClientFabricDto snap = clientFabricMapper.findOneByCliCodeProdCodeAndAlias(
+                    dto.getCliCode(), item.getProduct(), item.getProductLabel());
 
             OrderItemVo itemVo = new OrderItemVo();
             itemVo.setOrderNum(orderVo.getOrderNum());
@@ -131,33 +130,8 @@ public class OrderService {
         orderMapper.updateStatus(orderNum, status);
     }
 
-    @Transactional
-    public AdminOrderRowDto updateWorkflowStatus(Long orderNum, String workflowStatus) {
-        if (workflowStatus == null) throw new IllegalArgumentException("워크플로 상태가 필요합니다");
-        switch (workflowStatus) {
-            case "RECEIVED": case "IN_PROGRESS": case "SHIPPED": case "DONE": case "CANCELLED":
-                break;
-            default: throw new IllegalArgumentException("알 수 없는 워크플로 상태: " + workflowStatus);
-        }
-        // 변경 전 상태 한 건 조회 (감사용)
-        List<AdminOrderRowDto> rows = orderMapper.findAllAdmin();
-        String before = null;
-        for (AdminOrderRowDto r : rows) {
-            if (orderNum.equals(r.getOrderNum())) { before = r.getWorkflowStatus(); break; }
-        }
-        int updated = orderMapper.updateWorkflowStatus(orderNum, workflowStatus);
-        if (updated == 0) throw new IllegalArgumentException("존재하지 않는 주문입니다");
-
-        Map<String, Object> b = new HashMap<>(); b.put("workflowStatus", before);
-        Map<String, Object> a = new HashMap<>(); a.put("workflowStatus", workflowStatus);
-        orderAuditService.log("WORKFLOW_CHANGE", orderNum, null, b, a,
-                "상태 변경: " + before + " → " + workflowStatus);
-
-        // 헤더 1행을 다시 조회해서 반환 (워크플로만 다른 동일 객체 형태)
-        for (AdminOrderRowDto r : orderMapper.findAllAdmin()) {
-            if (orderNum.equals(r.getOrderNum())) return r;
-        }
-        return null;
+    public List<String> findDestinationsByCliCode(String cliCode) {
+        return orderMapper.findDestinationsByCliCode(cliCode);
     }
 
     @Transactional

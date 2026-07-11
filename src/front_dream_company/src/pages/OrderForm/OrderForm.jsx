@@ -11,7 +11,7 @@ import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
 import { IconPlus, IconChevron } from "./components/Icons";
 import { emptyItem, validateItem } from "./constants";
-import { fetchClientFabrics, submitOrder, fetchClientInfo } from "./api";
+import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations } from "./api";
 import styles from "./OrderForm.module.css";
 
 const cx = (...args) => args.filter(Boolean).join(" ");
@@ -36,7 +36,22 @@ export default function OrderForm() {
 
   const [fabricOptions, setFabricOptions] = useState([]);
   const [fabricsLoading, setFabricsLoading] = useState(true);
+  const [destinations, setDestinations] = useState([]);
   const [items, setItems] = useState([emptyItem(clientName)]);
+
+  // clientName이 뒤늦게 도착하면 비어있는 납품처를 채운다 (최초 아이템 공란 해결)
+  useEffect(() => {
+    if (!clientName) return;
+    setItems((arr) =>
+      arr.map((it) => (it.destination ? it : { ...it, destination: clientName }))
+    );
+  }, [clientName]);
+
+  // 자동완성용: 이 거래처의 과거 사용 납품처 목록
+  useEffect(() => {
+    if (!cliCode) { setDestinations([]); return; }
+    fetchClientDestinations(cliCode).then(setDestinations).catch(() => setDestinations([]));
+  }, [cliCode]);
   const [errors, setErrors] = useState({ items: {} });
   const [showSummary, setShowSummary] = useState(false);
   const [submitted, setSubmitted] = useState(null);
@@ -64,8 +79,14 @@ export default function OrderForm() {
       arr.map((it) => {
         if (it.id !== id) return it;
         if (next.product !== it.product) {
+          // next.product는 aliasNum(문자열). 실제 prodCode/aliasName은 옵션에서 꺼내 저장
           const fab = fabricOptions.find((f) => f.value === next.product);
-          return { ...next, prodName: fab?.prodName || "" };
+          return {
+            ...next,
+            prodName: fab?.prodName || "",
+            prodCode: fab?.prodCode || "",
+            aliasName: fab?.aliasName || "",
+          };
         }
         return next;
       })
@@ -135,7 +156,7 @@ export default function OrderForm() {
         items: items.map((it) => ({
           ...it,
           productLabel:
-            fabricOptions.find((f) => f.value === it.product)?.label || it.prodName || it.product,
+            fabricOptions.find((f) => f.value === it.product)?.label || it.aliasName || it.prodName || it.prodCode,
           destination: it.destination.trim() || clientName,
         })),
         totalRolls,
@@ -219,6 +240,7 @@ export default function OrderForm() {
                   item={it}
                   products={fabricOptions}
                   fabricsLoading={fabricsLoading}
+                  destinations={destinations}
                   errors={errors.items[it.id]}
                   onChange={(next) => updateItem(it.id, next)}
                   onRemove={() => removeItem(it.id)}

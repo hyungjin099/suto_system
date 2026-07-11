@@ -17,10 +17,9 @@ public interface OrderMapper {
     List<AdminOrderRowDto> findRetryCandidates();
     AdminOrderRowDto findAdminItemByNum(Long itemNum);
     int updateStatus(@Param("orderNum") Long orderNum, @Param("status") String status);
-    int updateWorkflowStatus(@Param("orderNum") Long orderNum,
-                              @Param("workflowStatus") String workflowStatus);
     int updateOrderDate(@Param("orderNum") Long orderNum,
                         @Param("orderDate") java.time.LocalDateTime orderDate);
+    List<String> findDestinationsByCliCode(@Param("cliCode") String cliCode);
     int updateItem(OrderItemUpdateVo vo);
     int deleteItem(Long itemNum);
     int countItemsByOrderNum(Long orderNum);

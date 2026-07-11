@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import ModalShell from "./ModalShell";
 import { IconX } from "./Icons";
+import { fetchClientDestinations } from "../api";
 import styles from "./OrderCreateModal.module.css";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
@@ -29,12 +30,18 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
   const [items, setItems] = useState([newItem()]);
   const [fabricOptions, setFabricOptions] = useState([]);
   const [fabricsLoading, setFabricsLoading] = useState(false);
+  const [destinations, setDestinations] = useState([]);
   const [error, setError] = useState("");
 
   const selectedClient = useMemo(
     () => clients.find((c) => c.cliCode === cliCode),
     [clients, cliCode]
   );
+
+  useEffect(() => {
+    if (!cliCode) { setDestinations([]); return; }
+    fetchClientDestinations(cliCode).then(setDestinations).catch(() => setDestinations([]));
+  }, [cliCode]);
 
   useEffect(() => {
     if (!cliCode) { setFabricOptions([]); return; }
@@ -243,6 +250,7 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
                       className={styles.input}
                       value={it.destination}
                       onChange={(e) => setItem(it._id, { destination: e.target.value })}
+                      list="admin-create-destinations"
                     />
                   </div>
 
@@ -261,6 +269,10 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
 
           {error && <div className={styles.errorBox}>{error}</div>}
         </div>
+
+        <datalist id="admin-create-destinations">
+          {destinations.map((d) => <option key={d} value={d} />)}
+        </datalist>
 
         {/* 푸터 */}
         <div className={styles.footer}>

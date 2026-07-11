@@ -48,12 +48,10 @@ public class OrderController {
         return ResponseEntity.noContent().build();
     }
 
-    /** 관리자: 비즈니스 워크플로 상태 변경 */
-    @PatchMapping("/api/admin/orders/{orderNum}/workflow-status")
-    public ResponseEntity<com.dream_comp.auto_system.dto.AdminOrderRowDto> updateWorkflowStatus(
-            @PathVariable Long orderNum,
-            @RequestBody java.util.Map<String, String> body) {
-        return ResponseEntity.ok(orderService.updateWorkflowStatus(orderNum, body.get("workflowStatus")));
+    /** 거래처의 과거 사용 납품처 목록 (주문 폼 자동완성용) */
+    @GetMapping("/api/clients/{cliCode}/destinations")
+    public ResponseEntity<List<String>> findDestinations(@PathVariable String cliCode) {
+        return ResponseEntity.ok(orderService.findDestinationsByCliCode(cliCode));
     }
 
     /** 관리자: 주문 1건의 감사 로그 조회 */

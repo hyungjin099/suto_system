@@ -34,9 +34,8 @@ public class ClientFabricService {
     }
 
     public ClientAliasAdminDto create(ClientAliasRequestDto req) {
-        if (clientFabricMapper.countByCliAndProd(req.getCliNum(), req.getProdNum()) > 0) {
-            throw new IllegalArgumentException("이미 해당 원단에 별칭이 등록되어 있습니다");
-        }
+        // 같은 원단에 여러 별칭 등록 허용 (2026-07 정책 변경)
+        // 단, 별칭명 자체는 거래처 내에서 유일해야 함
         if (clientFabricMapper.countByCliAndName(req.getCliNum(), req.getClientFabName()) > 0) {
             throw new IllegalArgumentException("같은 거래처 내에서 이미 사용 중인 별칭입니다");
         }

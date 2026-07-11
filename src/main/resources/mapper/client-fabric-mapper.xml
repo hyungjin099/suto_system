@@ -6,6 +6,7 @@
 
     <!-- 주문 폼용 ResultMap -->
     <resultMap id="clientFabricResultMap" type="com.dream_comp.auto_system.dto.ClientFabricDto">
+        <result property="aliasNum"        column="ALIAS_NUM"/>
         <result property="aliasName"       column="ALIAS_NAME"/>
         <result property="prodCode"        column="PROD_CODE"/>
         <result property="prodName"        column="PROD_NAME"/>
@@ -23,21 +24,10 @@
         <result property="clientFabPrice" column="CLIENT_FAB_PRICE"/>
     </resultMap>
 
-    <select id="findOneByCliCodeAndProdCode" resultMap="clientFabricResultMap">
-        SELECT
-            cfa.CLIENT_FAB_NAME  AS ALIAS_NAME,
-            pi.PROD_CODE         AS PROD_CODE,
-            pi.PROD_NAME         AS PROD_NAME,
-            cfa.CLIENT_FAB_PRICE AS CLIENT_FAB_PRICE
-        FROM CLIENT_FABRIC_ALIAS cfa
-        JOIN PRODUCT_INFO pi ON pi.PROD_NUM = cfa.PROD_NUM
-        JOIN CLIENT_INFO  ci ON ci.CLI_NUM  = cfa.CLI_NUM
-        WHERE ci.CLI_CODE = #{cliCode} AND pi.PROD_CODE = #{prodCode}
-        LIMIT 1
-    </select>
-
+    <!-- 주문 폼 select: 같은 원단에 별칭이 여러 개면 모두 반환 (별칭명 순) -->
     <select id="findByCliCode" parameterType="string" resultMap="clientFabricResultMap">
         SELECT
+            cfa.ALIAS_NUM        AS ALIAS_NUM,
             cfa.CLIENT_FAB_NAME  AS ALIAS_NAME,
             pi.PROD_CODE         AS PROD_CODE,
             pi.PROD_NAME         AS PROD_NAME,
@@ -47,7 +37,24 @@
         JOIN CLIENT_INFO  ci ON ci.CLI_NUM  = cfa.CLI_NUM
         WHERE ci.CLI_CODE = #{cliCode}
           AND (pi.PROD_STATUS IS NULL OR pi.PROD_STATUS = '사용')
-        ORDER BY pi.PROD_NAME
+        ORDER BY pi.PROD_NAME, cfa.CLIENT_FAB_NAME
+    </select>
+
+    <!-- 주문 접수 시 가격 스냅샷: 별칭명까지 매칭 -->
+    <select id="findOneByCliCodeProdCodeAndAlias" resultMap="clientFabricResultMap">
+        SELECT
+            cfa.ALIAS_NUM        AS ALIAS_NUM,
+            cfa.CLIENT_FAB_NAME  AS ALIAS_NAME,
+            pi.PROD_CODE         AS PROD_CODE,
+            pi.PROD_NAME         AS PROD_NAME,
+            cfa.CLIENT_FAB_PRICE AS CLIENT_FAB_PRICE
+        FROM CLIENT_FABRIC_ALIAS cfa
+        JOIN PRODUCT_INFO pi ON pi.PROD_NUM = cfa.PROD_NUM
+        JOIN CLIENT_INFO  ci ON ci.CLI_NUM  = cfa.CLI_NUM
+        WHERE ci.CLI_CODE = #{cliCode}
+          AND pi.PROD_CODE = #{prodCode}
+          AND cfa.CLIENT_FAB_NAME = #{aliasName}
+        LIMIT 1
     </select>
 
     <select id="countAllByCli" resultType="map">
@@ -68,7 +75,7 @@
         FROM CLIENT_FABRIC_ALIAS cfa
         JOIN PRODUCT_INFO pi ON pi.PROD_NUM = cfa.PROD_NUM
         WHERE cfa.CLI_NUM = #{cliNum}
-        ORDER BY pi.PROD_NAME
+        ORDER BY pi.PROD_NAME, cfa.CLIENT_FAB_NAME
     </select>
 
     <select id="findAdminByAliasNum" parameterType="long" resultMap="aliasAdminResultMap">
@@ -79,11 +86,6 @@
         FROM CLIENT_FABRIC_ALIAS cfa
         JOIN PRODUCT_INFO pi ON pi.PROD_NUM = cfa.PROD_NUM
         WHERE cfa.ALIAS_NUM = #{aliasNum}
-    </select>
-
-    <select id="countByCliAndProd" resultType="int">
-        SELECT COUNT(*) FROM CLIENT_FABRIC_ALIAS
-        WHERE CLI_NUM = #{cliNum} AND PROD_NUM = #{prodNum}
     </select>
 
     <select id="countByCliAndName" resultType="int">

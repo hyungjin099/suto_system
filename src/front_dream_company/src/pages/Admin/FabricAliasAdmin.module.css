@@ -398,13 +398,13 @@
 
 /* ── 오른쪽 별칭 카드 ───────────────────────────────────── */
 
-/* 별칭 카드: 원단명 → 별칭 가로 배치 (보기 모드는 한 줄) */
+/* 별칭 카드: 원단명(위) → 별칭 목록(아래) 세로 배치 */
 .aliasCard {
   display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 10px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 12px 12px;
   border: 1px solid var(--line);
   border-radius: 9px;
   background: var(--surface);
@@ -412,9 +412,9 @@
 }
 .aliasCard:hover { border-color: var(--line-2); }
 
-/* 입력(드롭/수정) 모드일 때는 한 줄로 폼이 길어지므로 wrap 허용 */
-.aliasCard:has(.aliasInputRow) {
-  flex-wrap: wrap;
+/* 헤더(원단명 + 별칭추가 버튼)와 별칭 목록 사이 추가 여백 */
+.aliasCard > *:nth-child(2) {
+  margin-top: 4px;
 }
 
 .aliasCardPending {
@@ -435,15 +435,15 @@
   to   { transform: scale(1);    opacity: 1;   }
 }
 
-/* 원단명: 좌측 강조 라벨 */
+/* 원단명: 카드 상단 라벨 (세로 배치의 헤더 역할)
+   좌측 패널의 원단코드(.fabricCode)와 동일한 초록 계열 톤으로 통일 */
 .aliasFabricName {
-  flex: 0 0 auto;
-  max-width: 50%;
+  align-self: flex-start;
   font-size: 12.5px;
-  color: var(--ink);
-  font-weight: 600;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  color: var(--brand-ink);
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-line);
+  font-weight: 700;
   border-radius: 6px;
   padding: 3px 8px;
   white-space: nowrap;
@@ -468,7 +468,7 @@
 .aliasInput {
   flex: 1;
   min-width: 0;
-  padding: 4px 8px;
+  padding: 8px 10px;
   border: 1px solid var(--line-2);
   border-radius: 6px;
   font-size: 12.5px;
@@ -517,11 +517,20 @@
 .cancelAliasBtn:hover { color: var(--danger); border-color: var(--danger); }
 
 .aliasViewRow {
-  flex: 1;
+  /* 세로 배치 카드 안에서 별칭 한 줄 (→ 별칭명 단가 [수정/삭제])
+     별칭 하나가 살짝 강조된 컨테이너로 감싸져 시각적으로 구분됨 */
   min-width: 0;
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 6px 10px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.aliasViewRow:hover {
+  background: var(--surface);
+  border-color: var(--line-2);
 }
 .aliasValue {
   flex: 1;

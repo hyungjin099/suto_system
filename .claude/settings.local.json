@@ -18,7 +18,10 @@
       "Bash(grep -nA 15 \"CREATE TABLE ORDER_INFO\\\\|CREATE TABLE ORDER_ITEM\" auto_system.sql)",
       "Bash(python _build_clean_sql.py)",
       "Bash(grep -nA 3 \"insertOrderItem\" src/main/resources/mapper/order-mapper.xml)",
-      "Bash(grep -nA2 \"orderResultMap\" src/main/resources/mapper/order-mapper.xml)"
+      "Bash(grep -nA2 \"orderResultMap\" src/main/resources/mapper/order-mapper.xml)",
+      "Read(//c/Users/admin/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/e3b88cab-4ce8-4cf3-8d56-0e2ac6fab0a0/0558799b-f493-4f70-8191-a594ab43db26/skills/xlsx/**)",
+      "Bash(python -c \"import pandas as pd; xl = pd.ExcelFile\\(r'C:\\\\Users\\\\admin\\\\Desktop\\\\미애쌤\\\\라벨출력용.xlsx'\\); print\\('Sheets:', xl.sheet_names\\)\")",
+      "Bash(python)"
     ]
   }
 }
