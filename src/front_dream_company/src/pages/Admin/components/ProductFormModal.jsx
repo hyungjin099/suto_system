@@ -89,13 +89,11 @@ export default function ProductFormModal({
       <div className={styles.header}>
         <div>
           <h2 className={styles.title}>
-            {mode === "create" ? "새 원단 등록" : "원단 정보 수정"}
+            {mode === "create" ? "제품 등록" : "원단 정보 수정"}
           </h2>
-          <p className={styles.subtitle}>
-            {mode === "create"
-              ? "본사에서 입고된 원단 정보를 등록합니다."
-              : "변경할 내용을 입력하세요."}
-          </p>
+          {mode !== "create" && (
+            <p className={styles.subtitle}>변경할 내용을 입력하세요.</p>
+          )}
         </div>
         <button
           type="button"

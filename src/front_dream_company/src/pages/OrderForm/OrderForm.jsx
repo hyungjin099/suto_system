@@ -152,6 +152,7 @@ export default function OrderForm() {
       const res = await submitOrder({ cliCode, clientName, managerPhone, items });
       setSubmitted({
         orderId: res.orderId,
+        deliveryDate: res.deliveryDate,
         at: new Date(),
         items: items.map((it) => ({
           ...it,
@@ -174,9 +175,23 @@ export default function OrderForm() {
     setItems([emptyItem(clientName)]);
     setErrors({ items: {} });
     setSubmitted(null);
+    setTab("order");
   };
 
-  if (submitted) return <SuccessScreen data={submitted} onReset={resetAll} />;
+  const goHistory = () => {
+    setItems([emptyItem(clientName)]);
+    setErrors({ items: {} });
+    setSubmitted(null);
+    setTab("history");
+  };
+
+  if (submitted) return (
+    <SuccessScreen
+      data={submitted}
+      onReset={resetAll}
+      onGoHistory={goHistory}
+    />
+  );
 
   return (
     <PasswordGate cliCode={cliCode}>
@@ -209,6 +224,16 @@ export default function OrderForm() {
       <main className={styles.main}>
         {/* Intro */}
         <section className={styles.intro}>
+          {clientName && (
+            <p style={{
+              margin: "0 0 12px",
+              fontSize: 15,
+              color: "var(--ink, #222)",
+              lineHeight: 1.5,
+            }}>
+              <b style={{ fontWeight: 800 }}>{clientName}</b>님, 오늘도 방문해 주셔서 감사합니다.
+            </p>
+          )}
           <h1 className={styles.title}>주문 내역을 입력해 주세요</h1>
           <p className={styles.subtitle}>
             제품 정보를 입력하고, 여러 제품을 주문하실 경우 아래
@@ -280,7 +305,7 @@ export default function OrderForm() {
             onClick={tryReview}
             className={styles.reviewBtn}
           >
-            검토하기 <IconChevron size={14} />
+            발주하기 <IconChevron size={14} />
           </button>
         </div>
       </div>

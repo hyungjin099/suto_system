@@ -57,10 +57,20 @@ public class SheetsWebhookService {
         }
     }
 
-    public boolean push(String orderId, OrderRequestDto dto, List<Long> itemNums) {
+    /** 웹훅 호출 결과. success + Apps Script가 계산한 정확한 deliveryDate(있으면) */
+    public static class PushResult {
+        public final boolean success;
+        public final String deliveryDate;
+        public PushResult(boolean success, String deliveryDate) {
+            this.success = success;
+            this.deliveryDate = deliveryDate;
+        }
+    }
+
+    public PushResult push(String orderId, OrderRequestDto dto, List<Long> itemNums) {
         if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
             log.warn("Sheets webhook URL 미설정 → 시트 전송 건너뜀 (orderId={})", orderId);
-            return false;
+            return new PushResult(false, null);
         }
 
         try {
@@ -75,18 +85,27 @@ public class SheetsWebhookService {
 
             HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
             boolean ok = response.statusCode() >= 200 && response.statusCode() < 300;
+            String deliveryDate = null;
             if (ok) {
                 log.info("Sheets push 완료 (orderId={}, status={}, body={})",
                         orderId, response.statusCode(), response.body());
+                // Apps Script 응답에서 정확한 납기예정일 파싱 (공휴일 반영된 값)
+                try {
+                    Map<?,?> body = objectMapper.readValue(response.body(), Map.class);
+                    Object dd = body.get("deliveryDate");
+                    if (dd instanceof String s && !s.isBlank()) deliveryDate = s;
+                } catch (Exception ignored) {
+                    // 응답 파싱 실패해도 push 자체는 성공 처리
+                }
             } else {
                 log.warn("Sheets push 응답 오류 (orderId={}, status={}, body={})",
                         orderId, response.statusCode(), response.body());
             }
-            return ok;
+            return new PushResult(ok, deliveryDate);
 
         } catch (Exception e) {
             log.warn("Sheets push 실패 (orderId={}) → DB 저장은 유지됨: {}", orderId, e.getMessage());
-            return false;
+            return new PushResult(false, null);
         }
     }
 

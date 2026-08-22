@@ -175,6 +175,13 @@ export async function deleteAlias(aliasNum) {
   await axios.delete(`${BASE_URL}/api/aliases/${aliasNum}`);
 }
 
+// 여러 원단을 한 거래처에 일괄 별칭 등록 (별칭명·단가는 원단의 공식값 사용)
+// 응답: { created: [ClientAliasAdminDto...], skipped: [{prodNum, prodName, reason}...] }
+export async function createAliasesBulk(cliNum, prodNums) {
+  const res = await axios.post(`${BASE_URL}/api/aliases/bulk`, { cliNum, prodNums });
+  return res.data;
+}
+
 export async function fetchAliasCounts() {
   const res = await axios.get(`${BASE_URL}/api/aliases/counts`);
   return res.data; // { cliNum: count }

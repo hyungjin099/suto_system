@@ -40,6 +40,21 @@ public class ClientFabricController {
         return ResponseEntity.ok(clientFabricService.create(req));
     }
 
+    /** 관리자: 여러 원단을 한 거래처에 일괄 별칭 등록 (별칭명·단가는 원단의 공식값 사용) */
+    @PostMapping("/api/aliases/bulk")
+    public ResponseEntity<ClientFabricService.BulkCreateResult> createBulk(
+            @RequestBody java.util.Map<String, Object> body) {
+        Number cliNumRaw = (Number) body.get("cliNum");
+        @SuppressWarnings("unchecked")
+        List<Number> prodNumRaw = (List<Number>) body.get("prodNums");
+        if (cliNumRaw == null || prodNumRaw == null || prodNumRaw.isEmpty()) {
+            throw new IllegalArgumentException("cliNum과 prodNums(비어있지 않음)가 필요합니다");
+        }
+        Long cliNum = cliNumRaw.longValue();
+        List<Long> prodNums = prodNumRaw.stream().map(Number::longValue).toList();
+        return ResponseEntity.ok(clientFabricService.createBulk(cliNum, prodNums));
+    }
+
     /** 관리자: 별칭 수정 (이름/단가) */
     @PutMapping("/api/aliases/{aliasNum}")
     public ResponseEntity<ClientAliasAdminDto> update(@PathVariable Long aliasNum,

@@ -16,6 +16,7 @@ import {
 import OrderEditModal from "./components/OrderEditModal";
 import OrderCreateModal from "./components/OrderCreateModal";
 import ConfirmDialog from "./components/ConfirmDialog";
+import { downloadXlsx, todayYmd } from "./excelExport";
 import styles from "./OrderAdmin.module.css";
 
 const PAGE_SIZE = 20;
@@ -173,6 +174,30 @@ export default function OrderAdmin() {
   const failCount = rows.filter((r) => r.status === "FAILED").length;
   const pendingCount = rows.filter((r) => r.status === "PENDING").length;
 
+  // 엑셀 다운로드 — 화면에 보이는 필터·검색 결과(filtered)를 화면 컬럼 순서 그대로
+  const onDownloadExcel = () => {
+    if (filtered.length === 0) {
+      alert("다운로드할 주문이 없습니다.");
+      return;
+    }
+    const excelRows = filtered.map((r, i) => ({
+      "번호":       filtered.length - i,
+      "주문번호":   r.orderId || "",
+      "발주일":     r.orderDate ? fmtDateTime(r.orderDate) : "",
+      "제품코드":   r.product || "",
+      "제품명":     r.productLabel || "",
+      "폭":         r.width ?? "",
+      "길이":       r.length ?? "",
+      "롤수":       r.rolls ?? "",
+      "발주처":     r.cliCompName || r.cliCode || "",
+      "납품처":     r.destination || "",
+      "비고":       r.note || "",
+      "납품예정일": r.deliveryDate || calcDelivery(r.orderDate),
+      "단가":       r.unitPrice ?? "",
+    }));
+    downloadXlsx(excelRows, `주문내역_${todayYmd()}`, "주문내역");
+  };
+
   return (
     <AdminShell>
       <PageHeader
@@ -185,16 +210,30 @@ export default function OrderAdmin() {
           </>
         }
         actions={
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            style={{
-              height: 36, padding: "0 16px", borderRadius: 8, border: "none",
-              background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
-            }}
-          >
-            + 새 주문 추가
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={onDownloadExcel}
+              style={{
+                height: 36, padding: "0 14px", borderRadius: 8,
+                border: "1px solid var(--line)", background: "var(--surface, #fff)",
+                color: "var(--ink, #222)", fontSize: 13, fontWeight: 600, cursor: "pointer",
+              }}
+              title="화면에 표시된 주문(검색·필터 결과)을 엑셀로 다운로드"
+            >
+              📥 엑셀 다운로드
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              style={{
+                height: 36, padding: "0 16px", borderRadius: 8, border: "none",
+                background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
+              }}
+            >
+              + 새 주문 추가
+            </button>
+          </div>
         }
       />
 

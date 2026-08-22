@@ -18,8 +18,8 @@ export const emptyItem = (destination = "") => ({
       : String(Math.random()),
   product: "",   // 공식 원단 코드 (DB 저장)
   prodName: "",  // 공식 원단명 (DB·시트 저장)
-  width: "",
-  length: "",
+  width: "1530",   // 폭 기본값
+  length: "1000",  // 길이 기본값
   rolls: "1",
   destination,
   note: "",

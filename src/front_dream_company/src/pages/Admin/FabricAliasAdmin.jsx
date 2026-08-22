@@ -1,6 +1,7 @@
 /* 관리자 - 거래처 별칭 관리
- * 좌: 거래처 목록(검색) / 우: 공식원단 ↔ 거래처별 별칭 + 단가 2패널
+ * 좌: 거래처 목록(검색) / 우: 공식원단 트리(체크박스로 일괄등록) + 매칭된 원단 카드
  * 하나의 원단에 별칭 여러 개 등록 가능 (2026-07 정책)
+ * 좌측 패널: 드래그앤드롭 → 체크박스 트리 방식으로 변경 (2026-08)
  */
 
 import { useState, useMemo, useRef, useEffect } from "react";
@@ -17,8 +18,11 @@ import {
   createAlias,
   updateAlias,
   deleteAlias,
+  createAliasesBulk,
 } from "./api";
 import styles from "./FabricAliasAdmin.module.css";
+
+const UNGROUPED_LABEL = "매입처 미지정";
 
 export default function FabricAliasAdmin() {
   // ── 데이터 ───────────────────────────────────────────────
@@ -32,7 +36,6 @@ export default function FabricAliasAdmin() {
   // aliasesByProdNum: { [prodNum]: [{ aliasNum, aliasName, price }, ...] }
   const [aliasesByProdNum, setAliasesByProdNum] = useState({});
   const [aliasLoading, setAliasLoading] = useState(false);
-  // 거래처별 별칭 갯수: { [cliNum]: count }
   const [aliasCounts, setAliasCounts] = useState({});
   const [apiError, setApiError] = useState("");
 
@@ -41,21 +44,23 @@ export default function FabricAliasAdmin() {
   const [leftSearch, setLeftSearch] = useState("");
   const [rightSearch, setRightSearch] = useState("");
 
-  // 별칭 추가 진행 상태 (드래그 or "+ 별칭 추가" 버튼)
-  // { prodNum, prodName, aliasName, price, error }
+  // 좌측 체크박스로 선택된 원단 prodNum 집합
+  const [selectedProdNums, setSelectedProdNums] = useState(new Set());
+  // 매입처 그룹 접기/펴기 상태 (default: 모두 펼침)
+  const [collapsedGroups, setCollapsedGroups] = useState(new Set());
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null); // { created, skipped }
+
+  // 개별 별칭 추가 (우측 카드의 "+ 별칭 추가" 버튼용)
   const [pending, setPending] = useState(null);
 
-  const [dragOver, setDragOver] = useState(false);
-  const [draggingId, setDraggingId] = useState(null);
-
-  // 특정 별칭 하나를 수정 중
+  // 별칭 수정
   const [editingAliasNum, setEditingAliasNum] = useState(null);
   const [editingAlias, setEditingAlias] = useState("");
   const [editingPrice, setEditingPrice] = useState("");
   const [editingError, setEditingError] = useState("");
 
-  // 별칭 삭제 확인 모달
-  // { aliasNum, prodNum, aliasName, prodName }
+  // 별칭 삭제 확인
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -102,7 +107,6 @@ export default function FabricAliasAdmin() {
     setAliasLoading(true);
     fetchAliases(selectedClientId)
       .then((list) => {
-        // prodNum 기준으로 그룹화
         const grouped = {};
         list.forEach((a) => {
           if (!grouped[a.prodNum]) grouped[a.prodNum] = [];
@@ -118,7 +122,6 @@ export default function FabricAliasAdmin() {
       .finally(() => setAliasLoading(false));
   }, [selectedClientId]);
 
-  // ── 선택 거래처 / 패널 분할 ─────────────────────────────
   const selectedClient = clients.find((c) => c.cliNum === selectedClientId);
 
   const filteredClients = useMemo(() => {
@@ -139,17 +142,45 @@ export default function FabricAliasAdmin() {
     return { mappedFabrics: mapped, unmappedFabrics: unmapped };
   }, [allFabrics, aliasesByProdNum]);
 
-  const filteredLeft = useMemo(() => {
+  // 좌측 트리: 매입처별 그룹핑 + 검색 필터
+  const groupedTree = useMemo(() => {
     const q = leftSearch.trim().toLowerCase();
-    return unmappedFabrics.filter((f) => {
-      if (!q) return true;
-      return f.name.toLowerCase().includes(q) || f.code.toLowerCase().includes(q);
+    const groups = new Map(); // manufacturer -> fabric[]
+    unmappedFabrics.forEach((f) => {
+      if (f.status === "미사용") return; // 미사용 원단은 표시 안 함
+      if (q) {
+        const hit = (f.code || "").toLowerCase().includes(q) || (f.name || "").toLowerCase().includes(q);
+        if (!hit) return;
+      }
+      const key = f.manufacturer || UNGROUPED_LABEL;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(f);
     });
+    // 매입처 이름 정렬 (미지정은 맨 뒤)
+    const sortedKeys = Array.from(groups.keys()).sort((a, b) => {
+      if (a === UNGROUPED_LABEL) return 1;
+      if (b === UNGROUPED_LABEL) return -1;
+      return a.localeCompare(b, "ko");
+    });
+    return sortedKeys.map((key) => ({
+      manufacturer: key,
+      fabrics: groups.get(key).sort((a, b) => (a.code || "").localeCompare(b.code || "", "ko")),
+    }));
   }, [unmappedFabrics, leftSearch]);
+
+  // 전체 선택 가능한 prodNums (검색 필터 반영)
+  const visibleProdNums = useMemo(
+    () => groupedTree.flatMap((g) => g.fabrics.map((f) => f.prodNum)),
+    [groupedTree]
+  );
+
+  const allChecked = visibleProdNums.length > 0
+    && visibleProdNums.every((n) => selectedProdNums.has(n));
+  const anyChecked = selectedProdNums.size > 0;
 
   const filteredRight = useMemo(() => {
     const q = rightSearch.trim().toLowerCase();
-    return mappedFabrics.filter((f) => {
+    const filtered = mappedFabrics.filter((f) => {
       if (!q) return true;
       const aliases = aliasesByProdNum[f.prodNum] || [];
       return (
@@ -157,15 +188,25 @@ export default function FabricAliasAdmin() {
         aliases.some((a) => (a.aliasName || "").toLowerCase().includes(q))
       );
     });
+    // 제조사 → 원단명 순 정렬 (매입처 미지정은 뒤로)
+    return filtered.sort((a, b) => {
+      const ma = a.manufacturer || "";
+      const mb = b.manufacturer || "";
+      if (ma && !mb) return -1;
+      if (!ma && mb) return 1;
+      const mCmp = ma.localeCompare(mb, "ko");
+      if (mCmp !== 0) return mCmp;
+      return (a.name || "").localeCompare(b.name || "", "ko");
+    });
   }, [mappedFabrics, rightSearch, aliasesByProdNum]);
 
-  // 최초 pending 진입/prodNum 변경 시에만 별칭 input에 포커스
-  // (pending 전체를 deps로 두면 매 키 입력마다 재포커스되어 커서가 튐)
   useEffect(() => { if (pending?.prodNum) pendingInputRef.current?.focus(); }, [pending?.prodNum]);
   useEffect(() => { if (editingAliasNum) editingInputRef.current?.focus(); }, [editingAliasNum]);
 
   const resetUiState = () => {
     setLeftSearch(""); setRightSearch("");
+    setSelectedProdNums(new Set());
+    setBulkResult(null);
     setPending(null);
     setEditingAliasNum(null); setEditingError("");
     setApiError("");
@@ -186,43 +227,69 @@ export default function FabricAliasAdmin() {
     return fallback;
   };
 
-  // ── 드래그 ─────────────────────────────────────────────
-  const handleDragStart = (e, fabric) => {
-    if (fabric.status === "미사용") {
-      e.preventDefault();
-      return;
-    }
-    e.dataTransfer.setData("fabricId", fabric.id);
-    e.dataTransfer.effectAllowed = "move";
-    setDraggingId(fabric.id);
+  // ── 체크박스 토글 ──────────────────────────────────────
+  const toggleFabric = (prodNum) => {
+    setSelectedProdNums((prev) => {
+      const next = new Set(prev);
+      if (next.has(prodNum)) next.delete(prodNum);
+      else next.add(prodNum);
+      return next;
+    });
   };
-  const handleDragEnd = () => setDraggingId(null);
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-    setDragOver(true);
+  const toggleGroup = (manufacturer, fabrics) => {
+    const nums = fabrics.map((f) => f.prodNum);
+    const allSelected = nums.every((n) => selectedProdNums.has(n));
+    setSelectedProdNums((prev) => {
+      const next = new Set(prev);
+      if (allSelected) nums.forEach((n) => next.delete(n));
+      else nums.forEach((n) => next.add(n));
+      return next;
+    });
   };
-  const handleDragLeave = (e) => {
-    if (e.relatedTarget && e.currentTarget.contains(e.relatedTarget)) return;
-    setDragOver(false);
+  const toggleAll = () => {
+    if (allChecked) setSelectedProdNums(new Set());
+    else setSelectedProdNums(new Set(visibleProdNums));
   };
-  const handleDrop = (e) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (!selectedClient) return;
-    const fabricId = e.dataTransfer.getData("fabricId");
-    const fabric = allFabrics.find((f) => f.id === fabricId);
-    if (!fabric || fabric.status === "미사용") return;
-    setPending({
-      prodNum: fabric.prodNum,
-      prodName: fabric.name,
-      aliasName: fabric.name || "",
-      price: fabric.price != null ? String(fabric.price) : "",
-      error: "",
+  const toggleGroupCollapse = (manufacturer) => {
+    setCollapsedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(manufacturer)) next.delete(manufacturer);
+      else next.add(manufacturer);
+      return next;
     });
   };
 
-  // ── 별칭 추가 (드래그 or + 버튼 공용) ──────────────────
+  // ── 일괄 등록 ──────────────────────────────────────────
+  const doBulkRegister = async () => {
+    if (!selectedClientId || selectedProdNums.size === 0) return;
+    setBulkSaving(true);
+    setBulkResult(null);
+    try {
+      const res = await createAliasesBulk(selectedClientId, Array.from(selectedProdNums));
+      // 성공 항목을 aliasesByProdNum에 반영
+      setAliasesByProdNum((m) => {
+        const next = { ...m };
+        (res.created || []).forEach((a) => {
+          const list = next[a.prodNum] || [];
+          next[a.prodNum] = [...list, { aliasNum: a.aliasNum, aliasName: a.clientFabName, price: a.clientFabPrice }];
+        });
+        return next;
+      });
+      const addedCount = (res.created || []).length;
+      setAliasCounts((c) => ({
+        ...c,
+        [selectedClientId]: (c[selectedClientId] || 0) + addedCount,
+      }));
+      setSelectedProdNums(new Set());
+      setBulkResult(res);
+    } catch (err) {
+      setApiError(handleApiError(err, "일괄 등록 중 오류가 발생했습니다."));
+    } finally {
+      setBulkSaving(false);
+    }
+  };
+
+  // ── 개별 별칭 추가 (우측 카드의 "+ 별칭 추가") ─────────
   const startAddAlias = (fabric) => {
     setPending({
       prodNum: fabric.prodNum,
@@ -233,7 +300,6 @@ export default function FabricAliasAdmin() {
     });
   };
   const cancelPending = () => setPending(null);
-
   const confirmPending = async () => {
     const alias = (pending.aliasName || "").trim();
     if (!alias) { setPending((p) => ({ ...p, error: "별칭을 입력해 주세요." })); return; }
@@ -265,7 +331,7 @@ export default function FabricAliasAdmin() {
     }
   };
 
-  // ── 별칭 수정 (aliasNum 기준) ──────────────────────────
+  // ── 별칭 수정 ──────────────────────────────────────────
   const startEdit = (aliasNum) => {
     for (const prodNumKey of Object.keys(aliasesByProdNum)) {
       const found = aliasesByProdNum[prodNumKey].find((a) => a.aliasNum === aliasNum);
@@ -307,12 +373,10 @@ export default function FabricAliasAdmin() {
     }
   };
 
-  // ── 별칭 삭제 확인 모달 열기 ──────────────────────────
+  // ── 별칭 삭제 ──────────────────────────────────────────
   const askRemoveAlias = (aliasNum, prodNum, aliasName, prodName) => {
     setDeleteConfirm({ aliasNum, prodNum, aliasName, prodName });
   };
-
-  // ── 별칭 실제 삭제 ────────────────────────────────────
   const confirmRemoveAlias = async () => {
     if (!deleteConfirm) return;
     const { aliasNum, prodNum } = deleteConfirm;
@@ -338,7 +402,6 @@ export default function FabricAliasAdmin() {
     }
   };
 
-  const mappedCount = mappedFabrics.length;
   const totalAliases = useMemo(
     () => Object.values(aliasesByProdNum).reduce((sum, arr) => sum + arr.length, 0),
     [aliasesByProdNum]
@@ -348,7 +411,7 @@ export default function FabricAliasAdmin() {
     <AdminShell>
       <PageHeader
         title="원단 별칭 관리"
-        subtitle="거래처마다 다르게 부르는 원단 이름과 단가를 연결합니다. 왼쪽 원단을 오른쪽으로 드래그해 별칭을 등록하고, 같은 원단에 별칭이 여러 개면 카드 하단의 '+ 별칭 추가' 버튼으로 추가하세요."
+        subtitle="공식 원단 목록에서 매입처별로 원단을 선택하고 '등록'을 클릭하면 거래처에 일괄로 별칭이 등록됩니다. 별칭명과 단가는 원단의 공식값으로 저장되며, 필요 시 우측에서 수정하거나 별칭을 추가할 수 있습니다."
       />
 
       {apiError && <p className={styles.apiError}>{apiError}</p>}
@@ -411,12 +474,14 @@ export default function FabricAliasAdmin() {
 
           <div className={styles.panels}>
 
-            {/* 왼쪽: 미매칭 원단 목록 */}
+            {/* 왼쪽: 공식 원단 목록 (매입처별 트리 + 체크박스) */}
             <div className={styles.panel}>
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>공식 원단 목록</span>
-                <span className={styles.panelCount}>{filteredLeft.length}</span>
+                <span className={styles.panelCount}>{visibleProdNums.length}</span>
               </div>
+
+              {/* 검색창 */}
               <div className={styles.filterRow}>
                 <label className={styles.searchBox} style={{ flex: 1 }}>
                   <IconSearch size={14} />
@@ -433,43 +498,140 @@ export default function FabricAliasAdmin() {
                   )}
                 </label>
               </div>
+
+              {/* 모두 선택 + 등록 (검색창 아래) */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "8px 4px", borderBottom: "1px solid var(--line)",
+              }}>
+                <label style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 13, cursor: "pointer" }}>
+                  <input
+                    type="checkbox"
+                    checked={allChecked}
+                    ref={(el) => { if (el) el.indeterminate = !allChecked && anyChecked; }}
+                    onChange={toggleAll}
+                    disabled={visibleProdNums.length === 0 || bulkSaving}
+                  />
+                  <span>모두 선택 {anyChecked && <span style={{ color: "var(--ink-2)" }}>({selectedProdNums.size})</span>}</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={doBulkRegister}
+                  disabled={!anyChecked || !selectedClient || bulkSaving}
+                  style={{
+                    height: 32, padding: "0 16px", borderRadius: 8, border: "none",
+                    background: anyChecked ? "var(--brand)" : "var(--line)",
+                    color: "#fff", fontSize: 12.5, fontWeight: 700,
+                    cursor: (!anyChecked || bulkSaving) ? "not-allowed" : "pointer",
+                    opacity: bulkSaving ? 0.6 : 1,
+                  }}
+                >
+                  {bulkSaving ? "등록 중…" : "등록"}
+                </button>
+              </div>
+
+              {/* 일괄 등록 결과 요약 */}
+              {bulkResult && (
+                <div style={{
+                  margin: "8px 4px 0", padding: "8px 10px", borderRadius: 6,
+                  background: "var(--brand-soft)", color: "var(--brand-ink)", fontSize: 12,
+                }}>
+                  ✅ {(bulkResult.created || []).length}건 등록 완료
+                  {(bulkResult.skipped || []).length > 0 && (
+                    <>
+                      {" · "}
+                      <span style={{ color: "var(--danger)" }}>
+                        {(bulkResult.skipped || []).length}건 스킵
+                      </span>
+                      <div style={{ fontSize: 11.5, color: "var(--ink-2)", marginTop: 4 }}>
+                        {bulkResult.skipped.slice(0, 3).map((s, i) => (
+                          <div key={i}>
+                            · {s.prodName || `#${s.prodNum}`}: {s.reason}
+                          </div>
+                        ))}
+                        {bulkResult.skipped.length > 3 && (
+                          <div>… 외 {bulkResult.skipped.length - 3}건</div>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* 트리 */}
               <div className={styles.panelScroll}>
                 {fabricsLoading ? (
                   <div className={styles.emptyLeft}>원단 목록 불러오는 중…</div>
-                ) : filteredLeft.length === 0 ? (
+                ) : groupedTree.length === 0 ? (
                   <div className={styles.emptyLeft}>
-                    {unmappedFabrics.length === 0 ? "✓ 모든 원단이 매칭되었습니다" : "검색 결과가 없습니다"}
+                    {unmappedFabrics.length === 0
+                      ? "✓ 모든 원단이 매칭되었습니다"
+                      : "검색 결과가 없습니다"}
                   </div>
                 ) : (
-                  filteredLeft.map((fabric) => {
-                    const unused = fabric.status === "미사용";
+                  groupedTree.map((g) => {
+                    const collapsed = collapsedGroups.has(g.manufacturer);
+                    const nums = g.fabrics.map((f) => f.prodNum);
+                    const groupAllChecked = nums.every((n) => selectedProdNums.has(n));
+                    const groupAnyChecked = nums.some((n) => selectedProdNums.has(n));
                     return (
-                      <div
-                        key={fabric.id}
-                        className={cx(
-                          styles.fabricCard,
-                          draggingId === fabric.id && styles.fabricCardDragging,
-                          unused && styles.fabricCardDisabled
-                        )}
-                        draggable={!unused}
-                        onDragStart={(e) => handleDragStart(e, fabric)}
-                        onDragEnd={handleDragEnd}
-                        title={unused ? "미사용 원단은 별칭을 등록할 수 없습니다" : undefined}
-                      >
-                        <span className={styles.grip}>⣿</span>
-                        <div className={styles.fabricMeta}>
-                          <span className={styles.fabricCode}>{fabric.code}</span>
-                          <span className={styles.fabricName}>{fabric.name}</span>
-                        </div>
-                        {fabric.manufacturer && (
-                          <span className={styles.catBadge}
-                                style={{ background: "var(--brand-soft)", color: "var(--brand-ink)" }}>
-                            {fabric.manufacturer}
+                      <div key={g.manufacturer} style={{ marginBottom: 4 }}>
+                        {/* 매입처 헤더 */}
+                        <div style={{
+                          display: "flex", alignItems: "center", gap: 6,
+                          padding: "6px 8px", background: "var(--bg)",
+                          borderRadius: 6, cursor: "pointer",
+                        }}>
+                          <input
+                            type="checkbox"
+                            checked={groupAllChecked}
+                            ref={(el) => { if (el) el.indeterminate = !groupAllChecked && groupAnyChecked; }}
+                            onChange={() => toggleGroup(g.manufacturer, g.fabrics)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <span
+                            onClick={() => toggleGroupCollapse(g.manufacturer)}
+                            style={{ flex: 1, fontWeight: 700, fontSize: 12.5, color: "var(--ink)", userSelect: "none" }}
+                          >
+                            <span style={{ display: "inline-block", width: 12, transform: collapsed ? "rotate(-90deg)" : "none", transition: "transform 0.15s" }}>▾</span>
+                            {" "}{g.manufacturer}
+                            <span style={{ marginLeft: 6, fontWeight: 400, fontSize: 11.5, color: "var(--ink-2)" }}>
+                              ({g.fabrics.length})
+                            </span>
                           </span>
+                        </div>
+
+                        {/* 원단 리스트 */}
+                        {!collapsed && (
+                          <div style={{ paddingLeft: 8 }}>
+                            {g.fabrics.map((f) => {
+                              const checked = selectedProdNums.has(f.prodNum);
+                              return (
+                                <label
+                                  key={f.id}
+                                  style={{
+                                    display: "flex", alignItems: "center", gap: 6,
+                                    padding: "5px 8px", cursor: "pointer",
+                                    background: checked ? "var(--brand-soft)" : "transparent",
+                                    borderRadius: 4,
+                                  }}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleFabric(f.prodNum)}
+                                  />
+                                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--brand-ink)", background: "var(--brand-soft)", border: "1px solid var(--brand-line)", borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap" }}>
+                                    {f.code}
+                                  </span>
+                                  <span style={{ fontSize: 12.5, color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                                    {f.name}
+                                  </span>
+                                </label>
+                              );
+                            })}
+                          </div>
                         )}
-                        <span className={cx(styles.statusChip, unused ? styles.statusChipOff : styles.statusChipOn)}>
-                          {fabric.status || "사용"}
-                        </span>
                       </div>
                     );
                   })
@@ -481,13 +643,8 @@ export default function FabricAliasAdmin() {
               <span className={styles.dividerArrow}>→</span>
             </div>
 
-            {/* 오른쪽: 별칭 매칭 드롭존 */}
-            <div
-              className={cx(styles.panel, dragOver && styles.panelDragOver)}
-              onDragOver={handleDragOver}
-              onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
-            >
+            {/* 오른쪽: 매칭된 별칭 목록 */}
+            <div className={styles.panel}>
               <div className={styles.panelHead}>
                 <span className={styles.panelTitle}>{selectedClient?.name || "거래처"} 별칭</span>
                 <span className={styles.panelCount}>{totalAliases}</span>
@@ -511,44 +668,11 @@ export default function FabricAliasAdmin() {
               <div className={styles.panelScroll}>
                 {aliasLoading && <div className={styles.emptyLeft}>별칭 불러오는 중…</div>}
 
-                {/* pending이 걸린 원단이 아직 매칭 안 된 신규 카드일 때 (드래그 신규) */}
-                {pending && !aliasesByProdNum[pending.prodNum]?.length && (
-                  <div className={styles.aliasCardPending}>
-                    <div className={styles.aliasFabricName}>{pending.prodName}</div>
-                    <div className={styles.aliasInputRow}>
-                      <span className={styles.arrow}>→</span>
-                      <input
-                        ref={pendingInputRef}
-                        className={cx(styles.aliasInput, pending.error && styles.aliasInputError)}
-                        value={pending.aliasName}
-                        onChange={(e) => setPending((p) => ({ ...p, aliasName: e.target.value, error: "" }))}
-                        placeholder="거래처 별칭"
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") confirmPending();
-                          if (e.key === "Escape") cancelPending();
-                        }}
-                      />
-                      <input
-                        className={cx(styles.aliasInput, pending.error && styles.aliasInputError)}
-                        style={{ width: 90 }}
-                        value={pending.price}
-                        onChange={(e) => setPending((p) => ({ ...p, price: e.target.value.replace(/[^\d]/g, ""), error: "" }))}
-                        placeholder="단가"
-                        inputMode="numeric"
-                      />
-                      <button type="button" className={styles.okBtn} onClick={confirmPending} disabled={!pending.aliasName.trim()}>✓</button>
-                      <button type="button" className={styles.cancelAliasBtn} onClick={cancelPending}><IconX size={14} /></button>
-                    </div>
-                    {pending.error && <div className={styles.aliasError}>{pending.error}</div>}
-                  </div>
-                )}
-
-                {!aliasLoading && filteredRight.length === 0 && !pending && (
+                {!aliasLoading && filteredRight.length === 0 && (
                   mappedFabrics.length === 0 ? (
-                    <div className={cx(styles.emptyRight, dragOver && styles.emptyRightActive)}>
-                      <div className={styles.emptyRightIcon}>↙</div>
-                      <div>왼쪽 원단을 드래그해 여기에 놓으세요</div>
-                      <div className={styles.emptyRightSub}>별칭과 단가를 입력하면 저장됩니다</div>
+                    <div className={styles.emptyRight}>
+                      <div className={styles.emptyRightIcon}>←</div>
+                      <div>왼쪽 목록에서 원단을 선택해 등록해 보세요</div>
                     </div>
                   ) : (
                     <div className={styles.emptySearch}>검색 결과가 없습니다</div>
@@ -560,9 +684,17 @@ export default function FabricAliasAdmin() {
                   const isAddingHere = pending && pending.prodNum === fabric.prodNum;
                   return (
                     <div key={fabric.id} className={styles.aliasCard}>
-                      {/* 상단 헤더: 원단명(좌) + 별칭 추가 버튼(우) 같은 높이 */}
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
-                        <div className={styles.aliasFabricName}>{fabric.name}</div>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                          <span style={{
+                            fontSize: 11, fontWeight: 600, color: "var(--ink-2)",
+                            background: "var(--bg)", border: "1px solid var(--line)",
+                            borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap", flexShrink: 0,
+                          }}>
+                            {fabric.manufacturer || "매입처 미지정"}
+                          </span>
+                          <div className={styles.aliasFabricName}>{fabric.name}</div>
+                        </div>
                         {!isAddingHere && (
                           <button
                             type="button"
@@ -639,7 +771,6 @@ export default function FabricAliasAdmin() {
                         );
                       })}
 
-                      {/* + 별칭 추가 인라인 입력 폼 */}
                       {isAddingHere && (
                         <>
                           <div className={styles.aliasInputRow}>
@@ -669,7 +800,6 @@ export default function FabricAliasAdmin() {
                           {pending.error && <div className={styles.aliasError}>{pending.error}</div>}
                         </>
                       )}
-
                     </div>
                   );
                 })}
@@ -680,7 +810,7 @@ export default function FabricAliasAdmin() {
         </div>
       </div>
 
-      {/* 별칭 삭제 확인 모달 (공용 ConfirmDialog) */}
+      {/* 별칭 삭제 확인 모달 */}
       {deleteConfirm && (
         <ConfirmDialog
           title="별칭을 삭제하시겠어요?"

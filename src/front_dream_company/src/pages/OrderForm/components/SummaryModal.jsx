@@ -42,7 +42,6 @@ export default function SummaryModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.handle} />
         <h2 className={styles.heading}>주문 내용을 확인해 주세요</h2>
-        <p className={styles.lead}>제출 후에는 담당자가 확인 연락을 드립니다.</p>
 
         {/* items table */}
         <div className={styles.itemsTable}>

@@ -79,7 +79,7 @@ export default function ProductCard({
             error={errors?.length}
           />
           <div className={styles.lengthPresets}>
-            {[500, 1000].map((v) => {
+            {[1000, 500].map((v) => {
               const active = parseInt(item.length, 10) === v;
               return (
                 <button
@@ -106,20 +106,8 @@ export default function ProductCard({
         />
       </div>
 
-      {/* note */}
-      <div className={styles.field}>
-        <Label hint="선택 입력">비고</Label>
-        <textarea
-          className={styles.noteArea}
-          value={item.note}
-          onChange={(e) => set("note", e.target.value)}
-          placeholder="특이사항, 요청사항 등을 자유롭게 입력해 주세요"
-          rows={3}
-        />
-      </div>
-
       {/* destination */}
-      <div>
+      <div className={styles.field}>
         <Label hint="선택 입력">납품처</Label>
         <TextInput
           value={item.destination}
@@ -132,6 +120,18 @@ export default function ProductCard({
             <option key={d} value={d} />
           ))}
         </datalist>
+      </div>
+
+      {/* note */}
+      <div>
+        <Label hint="선택 입력">비고</Label>
+        <textarea
+          className={styles.noteArea}
+          value={item.note}
+          onChange={(e) => set("note", e.target.value)}
+          placeholder={"코팅색상, 배송처 주소, 요청사항을 입력해 주세요.\n전폭 발주 시 재단 사이즈 작성해 주세요"}
+          rows={3}
+        />
       </div>
     </div>
   );

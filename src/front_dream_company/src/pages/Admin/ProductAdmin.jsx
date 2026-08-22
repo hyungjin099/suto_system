@@ -116,10 +116,9 @@ export default function ProductAdmin() {
     <AdminShell>
       <PageHeader
         title="제품 관리"
-        subtitle="본사로부터 입고된 스티커 원단 카탈로그입니다. 인쇄소 주문 시 이 목록에서 제품을 선택합니다."
         actions={
           <PrimaryButton onClick={() => setModal({ mode: "create" })}>
-            <IconPlus /> 새 원단 등록
+            <IconPlus /> 제품 등록
           </PrimaryButton>
         }
       />

@@ -13,12 +13,15 @@ import com.dream_comp.auto_system.vo.OrderItemVo;
 import com.dream_comp.auto_system.vo.OrderVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -35,21 +38,58 @@ public class OrderService {
     private final OrderAuditService orderAuditService;
     private final TransactionTemplate transactionTemplate;
 
-    private static final SecureRandom RNG = new SecureRandom();
-    private static final String B36 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final ZoneId KST = ZoneId.of("Asia/Seoul");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
+    private static final int MAX_ORDERID_RETRY = 5;
 
     public OrderResponseDto submitOrder(OrderRequestDto dto) {
-        OrderInsertResult inserted = transactionTemplate.execute(status -> insertOrderAndItems(dto));
+        // ORDER_ID = 'YYYYMMDD_NNN' 형식. 동시 접수로 인한 UNIQUE 위반 발생 시 재시도.
+        OrderInsertResult inserted = null;
+        for (int attempt = 1; attempt <= MAX_ORDERID_RETRY; attempt++) {
+            try {
+                inserted = transactionTemplate.execute(status -> insertOrderAndItems(dto));
+                break;
+            } catch (DuplicateKeyException e) {
+                if (attempt == MAX_ORDERID_RETRY) throw e;
+                log.warn("주문번호 충돌 (재시도 {}/{})", attempt, MAX_ORDERID_RETRY);
+            }
+        }
 
-        boolean pushed = false;
+        SheetsWebhookService.PushResult push = new SheetsWebhookService.PushResult(false, null);
         try {
-            pushed = sheetsWebhookService.push(inserted.orderId, dto, inserted.itemNums);
+            push = sheetsWebhookService.push(inserted.orderId, dto, inserted.itemNums);
         } catch (Exception e) {
             log.warn("Sheets push 예외 (orderId={}): {}", inserted.orderId, e.getMessage());
         }
-        markSheetStatus(inserted.orderNum, pushed ? "OK" : "FAILED");
+        markSheetStatus(inserted.orderNum, push.success ? "OK" : "FAILED");
 
-        return new OrderResponseDto(inserted.orderId, "OK", "주문이 접수되었습니다.");
+        // 납기예정일: Apps Script가 계산한 값(공휴일 반영) 우선, 없으면 Java 근사값 폴백
+        String deliveryDate = push.deliveryDate != null
+                ? push.deliveryDate
+                : computeDeliveryDate(LocalDateTime.now(KST));
+
+        return new OrderResponseDto(
+                inserted.orderId,
+                "OK",
+                "주문이 접수되었습니다.",
+                deliveryDate
+        );
+    }
+
+    /**
+     * 납기예정일(근사): 발주시각이 13시 이전이면 +1영업일, 이후면 +2영업일. 주말은 건너뜀.
+     * 공휴일까지 정확히 반영하려면 Apps Script의 값을 참조해야 함 (여기선 UX용 근사값).
+     */
+    private String computeDeliveryDate(LocalDateTime orderDateTime) {
+        int steps = orderDateTime.getHour() < 13 ? 1 : 2;
+        java.time.LocalDate d = orderDateTime.toLocalDate();
+        while (steps > 0) {
+            d = d.plusDays(1);
+            java.time.DayOfWeek dow = d.getDayOfWeek();
+            if (dow == java.time.DayOfWeek.SATURDAY || dow == java.time.DayOfWeek.SUNDAY) continue;
+            steps--;
+        }
+        return d.format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd"));
     }
 
     /** 짧은 트랜잭션 안에서 실행. 가격 스냅샷도 함께 캡처. */
@@ -215,13 +255,27 @@ public class OrderService {
         return m;
     }
 
-    /** 시간 + 4자 랜덤. 동시 ms 충돌 가능성 거의 0. */
+    /**
+     * 주문번호: 'YYYYMMDD-NNN' 형식. 오늘 날짜 접두어 기준 최대 시퀀스+1 부여.
+     * 하루 999건 넘으면 IllegalStateException (현실적으로 발생 안 함, 고객사 확인 완료).
+     */
     private String generateOrderId() {
-        long ms = System.currentTimeMillis();
-        StringBuilder sb = new StringBuilder("ORD-");
-        String t = Long.toString(ms, 36).toUpperCase();
-        sb.append(t.substring(t.length() - 4));
-        for (int i = 0; i < 4; i++) sb.append(B36.charAt(RNG.nextInt(B36.length())));
-        return sb.toString();
+        String prefix = LocalDate.now(KST).format(DATE_FMT) + "-";
+        String maxId = orderMapper.findMaxOrderIdWithPrefix(prefix);
+        int nextSeq = 1;
+        if (maxId != null) {
+            int hyphen = maxId.lastIndexOf('-');
+            if (hyphen >= 0) {
+                try {
+                    nextSeq = Integer.parseInt(maxId.substring(hyphen + 1)) + 1;
+                } catch (NumberFormatException ignored) {
+                    // 예상 밖 포맷이면 1로 시작 (극단적 케이스)
+                }
+            }
+        }
+        if (nextSeq > 999) {
+            throw new IllegalStateException("하루 주문 상한(999건)을 초과했습니다");
+        }
+        return String.format("%s%03d", prefix, nextSeq);
     }
 }

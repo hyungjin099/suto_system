@@ -1,9 +1,15 @@
-/* 주문 접수 완료 화면 */
+/* 주문 접수 완료 화면
+ * - 접수 요약 + 3버튼 (새 주문 / 발주 내역 확인 / 주문 종료)
+ * - 주문 종료: 실제 브라우저 종료는 불가하므로 "이용 감사" 안내 화면 전환
+ */
 
+import { useState } from "react";
 import { formatNumber } from "../utils";
 import styles from "./SuccessScreen.module.css";
 
-export default function SuccessScreen({ data, onReset }) {
+export default function SuccessScreen({ data, onReset, onGoHistory }) {
+  const [ended, setEnded] = useState(false);
+
   const dt = new Intl.DateTimeFormat("ko-KR", {
     year: "numeric",
     month: "2-digit",
@@ -12,6 +18,31 @@ export default function SuccessScreen({ data, onReset }) {
     minute: "2-digit",
     hour12: false,
   }).format(data.at);
+
+  const deliveryLabel = data.deliveryDate || "-";
+
+  // === 주문 종료 화면 ===
+  if (ended) {
+    return (
+      <div className={styles.page}>
+        <main className={styles.main}>
+          <div className={styles.heroBox}>
+            <h1 className={styles.heading}>이용해 주셔서 감사합니다</h1>
+            <p className={styles.lead}>
+              발주 접수가 완료되었습니다.
+              <br />
+              브라우저 탭을 닫거나, 아래 버튼으로 새 주문을 시작하실 수 있습니다.
+            </p>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center", marginTop: 24 }}>
+            <button type="button" onClick={onReset} className={styles.resetBtn} style={{ maxWidth: 280 }}>
+              새 주문 시작
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.page}>
@@ -33,7 +64,7 @@ export default function SuccessScreen({ data, onReset }) {
           </div>
           <h1 className={styles.heading}>주문이 접수되었습니다</h1>
           <p className={styles.lead}>
-            담당자가 확인 후 빠르게 연락드리겠습니다.
+            납기 예정일은 <b>{deliveryLabel}</b> 입니다. 변경 발생 시 연락드리겠습니다.
           </p>
         </div>
 
@@ -77,9 +108,38 @@ export default function SuccessScreen({ data, onReset }) {
           </div>
         </div>
 
-        <button type="button" onClick={onReset} className={styles.resetBtn}>
-          새 주문 작성하기
-        </button>
+        {/* 3버튼 가로 배치 */}
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          <button type="button" onClick={onReset} className={styles.resetBtn} style={{ flex: 1 }}>
+            새 주문 작성
+          </button>
+          <button
+            type="button"
+            onClick={onGoHistory}
+            className={styles.resetBtn}
+            style={{
+              flex: 1,
+              background: "var(--surface, #fff)",
+              color: "var(--brand, #4a7c59)",
+              border: "1px solid var(--brand, #4a7c59)",
+            }}
+          >
+            발주 내역 확인
+          </button>
+          <button
+            type="button"
+            onClick={() => setEnded(true)}
+            className={styles.resetBtn}
+            style={{
+              flex: 1,
+              background: "var(--surface, #fff)",
+              color: "var(--ink-2, #444)",
+              border: "1px solid var(--line, #ddd)",
+            }}
+          >
+            주문 종료
+          </button>
+        </div>
       </main>
     </div>
   );

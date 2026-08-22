@@ -255,6 +255,7 @@ function CompanyInfoModal({ item, onClose }) {
         { label: "대표자명", value: item.ceoName },
         { label: "거래처 연락처", value: item.tel },
         { label: "Fax", value: item.fax },
+        { label: "주소", value: item.address },
       ]}
       onClose={onClose}
     />

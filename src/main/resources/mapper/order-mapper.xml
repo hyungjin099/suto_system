@@ -157,6 +157,13 @@
             (#{orderNum}, #{product}, #{productLabel}, #{width}, #{length}, #{rolls}, #{destination}, #{note}, #{unitPrice}, #{aliasName})
     </insert>
 
+    <!-- 특정 일자 접두어(예: '20260822_')로 시작하는 ORDER_ID 중 최대값 (다음 시퀀스 계산용) -->
+    <select id="findMaxOrderIdWithPrefix" parameterType="string" resultType="string">
+        SELECT MAX(ORDER_ID)
+        FROM ORDER_INFO
+        WHERE ORDER_ID LIKE CONCAT(#{prefix}, '%')
+    </select>
+
     <!-- 거래처의 과거 사용 납품처 목록 (자동완성용, distinct + 사용횟수 순) -->
     <select id="findDestinationsByCliCode" parameterType="string" resultType="string">
         SELECT it.DESTINATION

@@ -119,9 +119,6 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
           <div className={styles.headerText}>
             <span className={styles.eyebrow}>NEW ORDER</span>
             <h3 className={styles.title}>새 주문 추가</h3>
-            <p className={styles.subtitle}>
-              발주일은 등록 시각으로 자동 부여되고, 저장과 동시에 스프레드시트에도 반영됩니다.
-            </p>
           </div>
           <button type="button" onClick={onClose} className={styles.closeBtn} aria-label="닫기">
             <IconX />

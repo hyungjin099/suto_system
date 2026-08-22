@@ -75,7 +75,7 @@ public class SheetsRetryJob {
 
             boolean pushed = false;
             try {
-                pushed = sheetsWebhookService.push(head.getOrderId(), dto, itemNums);
+                pushed = sheetsWebhookService.push(head.getOrderId(), dto, itemNums).success;
             } catch (Exception ex) {
                 log.warn("재시도 push 예외 (orderId={}): {}", head.getOrderId(), ex.getMessage());
             }

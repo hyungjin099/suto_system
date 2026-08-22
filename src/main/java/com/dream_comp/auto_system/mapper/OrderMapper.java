@@ -20,6 +20,8 @@ public interface OrderMapper {
     int updateOrderDate(@Param("orderNum") Long orderNum,
                         @Param("orderDate") java.time.LocalDateTime orderDate);
     List<String> findDestinationsByCliCode(@Param("cliCode") String cliCode);
+    /** ORDER_ID가 특정 접두어(예: '20260822_')로 시작하는 것 중 최대값. 해당 일자의 마지막 시퀀스 파악용 */
+    String findMaxOrderIdWithPrefix(@Param("prefix") String prefix);
     int updateItem(OrderItemUpdateVo vo);
     int deleteItem(Long itemNum);
     int countItemsByOrderNum(Long orderNum);

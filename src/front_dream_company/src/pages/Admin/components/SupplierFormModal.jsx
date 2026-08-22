@@ -43,9 +43,9 @@ export default function SupplierFormModal({ mode, initial, saving, onClose, onSa
           <h2 className={styles.title}>
             {mode === "create" ? "매입처 등록" : "매입처 수정"}
           </h2>
-          <p className={styles.subtitle}>
-            {mode === "create" ? "새 매입처를 등록합니다." : "매입처명을 변경합니다."}
-          </p>
+          {mode !== "create" && (
+            <p className={styles.subtitle}>매입처명을 변경합니다.</p>
+          )}
         </div>
         <button type="button" onClick={onClose} className={styles.closeBtn} aria-label="닫기">
           <IconX />

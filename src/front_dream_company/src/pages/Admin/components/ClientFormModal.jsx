@@ -116,11 +116,9 @@ export default function ClientFormModal({ mode, initial, onClose, onSave }) {
           <h2 className={styles.title}>
             {isEdit ? "거래처 정보 수정" : "새 거래처 등록"}
           </h2>
-          <p className={styles.subtitle}>
-            {isEdit
-              ? "변경할 내용을 입력하세요."
-              : "거래처 정보를 입력해 주세요. 거래처코드는 주문 페이지 URL 식별자로 사용됩니다."}
-          </p>
+          {isEdit && (
+            <p className={styles.subtitle}>변경할 내용을 입력하세요.</p>
+          )}
         </div>
         <button
           type="button"

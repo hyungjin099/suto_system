@@ -3,17 +3,27 @@ package com.dream_comp.auto_system.service;
 import com.dream_comp.auto_system.dto.ClientAliasAdminDto;
 import com.dream_comp.auto_system.dto.ClientAliasRequestDto;
 import com.dream_comp.auto_system.dto.ClientFabricDto;
+import com.dream_comp.auto_system.dto.ProductDto;
 import com.dream_comp.auto_system.mapper.ClientFabricMapper;
+import com.dream_comp.auto_system.mapper.ProductMapper;
 import com.dream_comp.auto_system.vo.ClientAliasVo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClientFabricService {
 
     private final ClientFabricMapper clientFabricMapper;
+    private final ProductMapper productMapper;
 
     public List<ClientFabricDto> findByCliCode(String cliCode) {
         return clientFabricMapper.findByCliCode(cliCode);
@@ -67,5 +77,59 @@ public class ClientFabricService {
 
     public void delete(Long aliasNum) {
         clientFabricMapper.delete(aliasNum);
+    }
+
+    /**
+     * 여러 원단을 한 거래처에 일괄 별칭 등록.
+     * 각 별칭은 원단의 공식명(PROD_NAME) + 공식단가(PROD_PRICE)로 등록됨.
+     * 이미 (거래처, 별칭명) 중복 등 오류가 생기는 원단은 스킵하고 결과에 기록.
+     */
+    @Transactional
+    public BulkCreateResult createBulk(Long cliNum, List<Long> prodNums) {
+        List<ClientAliasAdminDto> created = new ArrayList<>();
+        List<Map<String, Object>> skipped = new ArrayList<>();
+
+        for (Long prodNum : prodNums) {
+            ProductDto p = productMapper.findByProdNum(prodNum);
+            if (p == null) {
+                Map<String, Object> s = new HashMap<>();
+                s.put("prodNum", prodNum);
+                s.put("reason", "원단을 찾을 수 없음");
+                skipped.add(s);
+                continue;
+            }
+
+            String aliasName = p.getProdName();
+            Integer price = p.getProdPrice();
+
+            // (거래처, 별칭명) 중복 방지
+            if (clientFabricMapper.countByCliAndName(cliNum, aliasName) > 0) {
+                Map<String, Object> s = new HashMap<>();
+                s.put("prodNum", prodNum);
+                s.put("prodName", p.getProdName());
+                s.put("reason", "동일 별칭명 이미 사용 중");
+                skipped.add(s);
+                continue;
+            }
+
+            ClientAliasVo vo = new ClientAliasVo();
+            vo.setCliNum(cliNum);
+            vo.setProdNum(prodNum);
+            vo.setClientFabName(aliasName);
+            vo.setClientFabPrice(price);
+            clientFabricMapper.insert(vo);
+            created.add(clientFabricMapper.findAdminByAliasNum(vo.getAliasNum()));
+        }
+
+        BulkCreateResult r = new BulkCreateResult();
+        r.created = created;
+        r.skipped = skipped;
+        return r;
+    }
+
+    /** 일괄 등록 결과 DTO (created 성공 목록, skipped 실패/스킵 목록) */
+    public static class BulkCreateResult {
+        public List<ClientAliasAdminDto> created;
+        public List<Map<String, Object>> skipped;
     }
 }

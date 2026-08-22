@@ -94,7 +94,7 @@ function _SidebarRender({ activeKey, menu }) {
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
         <div className={styles.logo}>
-          <IconLeaf size={20} />
+          <img src="/logo.png" alt="드림컴퍼니" style={{ width: 24, height: 24, objectFit: "contain" }} />
         </div>
         <div>
           <div className={styles.brandName}>드림컴퍼니</div>
@@ -160,11 +160,7 @@ function Topbar({ category, page, me }) {
         <span className={styles.crumbCurrent}>{page}</span>
       </div>
       <div className={styles.userArea}>
-        <div className={styles.avatar}>{(me.displayName || "관")[0]}</div>
-        <div style={{ display: "flex", flexDirection: "column" }}>
-          <div className={styles.userName}>{me.displayName || "관리자"}</div>
-          <div className={styles.userEmail}>{me.username || "—"}</div>
-        </div>
+        <div className={styles.userName}>{me.username || "—"}</div>
         <button
           type="button"
           onClick={onLogout}
