@@ -1,6 +1,7 @@
-/* 거래처 목록 테이블 + URL 복사 셀 + 거래처/담당자 정보 모달 + EmptyState */
+/* 거래처 목록 테이블 + URL 복사 셀 + 거래처/담당자 정보 모달 + QR 모달 + EmptyState */
 
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import {
   IconEdit,
   IconSearch,
@@ -20,11 +21,13 @@ const COLS = [
   { key: "ceo", label: "대표자", align: "center" },
   { key: "manager", label: "담당자정보", align: "center" },
   { key: "url", label: "주문 페이지 URL", align: "center" },
+  { key: "qr", label: "QR", align: "center" },
   { key: "actions", label: "", align: "center" },
 ];
 
 export default function ClientTable({ items, empty, onEdit, onResetPassword }) {
   const [infoModal, setInfoModal] = useState(null); // { type: 'company'|'manager', item }
+  const [qrItem, setQrItem] = useState(null);
 
   return (
     <div className={styles.wrap}>
@@ -37,6 +40,7 @@ export default function ClientTable({ items, empty, onEdit, onResetPassword }) {
           <col width="100px" />  {/* 대표자 */}
           <col width="140px" />  {/* 담당자정보 */}
           <col width="360px" />  {/* 주문 페이지 URL */}
+          <col width="80px" />   {/* QR */}
           <col width="200px" />  {/* actions */}
         </colgroup>
         <thead>
@@ -98,6 +102,23 @@ export default function ClientTable({ items, empty, onEdit, onResetPassword }) {
                 <td className={styles.cellUrl}>
                   <CopyableUrl cliCode={c.cliCode} />
                 </td>
+                <td className={styles.cell}>
+                  <button
+                    type="button"
+                    onClick={() => setQrItem(c)}
+                    disabled={!c.cliCode}
+                    style={{
+                      height: 28, padding: "0 10px", borderRadius: 6,
+                      border: "1px solid var(--line)", background: "var(--surface, #fff)",
+                      color: c.cliCode ? "var(--ink, #222)" : "var(--muted, #999)",
+                      fontSize: 12, fontWeight: 600,
+                      cursor: c.cliCode ? "pointer" : "not-allowed",
+                    }}
+                    title={c.cliCode ? "QR 코드 보기·다운로드" : "거래처코드 없음"}
+                  >
+                    QR 코드
+                  </button>
+                </td>
                 <td className={styles.cellActions}>
                   <div className={styles.actions}>
                     <button
@@ -140,7 +161,89 @@ export default function ClientTable({ items, empty, onEdit, onResetPassword }) {
           onClose={() => setInfoModal(null)}
         />
       )}
+
+      {qrItem && (
+        <QrCodeModal item={qrItem} onClose={() => setQrItem(null)} />
+      )}
     </div>
+  );
+}
+
+function QrCodeModal({ item, onClose }) {
+  // 현재 브라우저 origin 기반 URL — 로컬은 localhost:5173, 운영은 실 도메인
+  const url = `${window.location.origin}/${item.cliCode}`;
+  const canvasRef = useRef(null);
+
+  const onDownload = () => {
+    const canvas = canvasRef.current?.querySelector("canvas");
+    if (!canvas) return;
+    const dataUrl = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `QR_${item.name || item.cliCode}_${item.cliCode}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
+
+  return (
+    <ModalShell onClose={onClose} maxWidth={360}>
+      <div style={{ padding: "20px 24px", textAlign: "center" }}>
+        <h3 style={{ margin: "0 0 4px", fontSize: 16, fontWeight: 700, color: "var(--ink)" }}>
+          주문 페이지 QR 코드
+        </h3>
+        <div style={{ margin: "0 0 16px", fontSize: 13, color: "var(--ink-2)" }}>
+          <b>{item.name}</b>
+        </div>
+
+        {/* 화면 표시용 SVG */}
+        <div style={{
+          display: "inline-block", padding: 12,
+          background: "#fff", border: "1px solid var(--line)", borderRadius: 8,
+        }}>
+          <QRCodeSVG value={url} size={220} level="M" includeMargin={false} />
+        </div>
+
+        {/* 다운로드용 Canvas (숨김) — PNG 저장에 사용 */}
+        <div ref={canvasRef} style={{ position: "absolute", left: -9999, top: -9999 }}>
+          <QRCodeCanvas value={url} size={512} level="M" includeMargin={false} />
+        </div>
+
+        <div style={{
+          margin: "12px 0 16px", padding: "8px 10px",
+          background: "var(--bg)", borderRadius: 6,
+          fontSize: 12, color: "var(--ink-2)",
+          wordBreak: "break-all", textAlign: "left",
+        }}>
+          {url}
+        </div>
+
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="button"
+            onClick={onClose}
+            style={{
+              flex: 1, height: 36, borderRadius: 8,
+              border: "1px solid var(--line)", background: "var(--surface, #fff)",
+              color: "var(--ink)", fontSize: 13, fontWeight: 600, cursor: "pointer",
+            }}
+          >
+            닫기
+          </button>
+          <button
+            type="button"
+            onClick={onDownload}
+            style={{
+              flex: 1, height: 36, borderRadius: 8, border: "none",
+              background: "var(--brand)", color: "#fff",
+              fontSize: 13, fontWeight: 700, cursor: "pointer",
+            }}
+          >
+            PNG 다운로드
+          </button>
+        </div>
+      </div>
+    </ModalShell>
   );
 }
 
