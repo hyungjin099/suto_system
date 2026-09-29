@@ -5,7 +5,6 @@ import com.dream_comp.auto_system.dto.OrderRequestDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -24,20 +23,28 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SheetsWebhookService {
 
-    @Value("${sheets.webhook.url}")
-    private String webhookUrl;
-
     private final ObjectMapper objectMapper;
+    private final SystemSettingService settingService;
 
     // Apps Script Web App은 POST 시 302 리다이렉트를 반환하므로 ALWAYS 설정
     private final HttpClient httpClient = HttpClient.newBuilder()
             .followRedirects(HttpClient.Redirect.ALWAYS)
             .build();
 
+    /** 현재 반기(1~6월=H1, 7~12월=H2)에 해당하는 웹훅 URL을 DB(SYSTEM_SETTING)에서 읽음 */
+    private String currentWebhookUrl() {
+        return settingService.get(SystemSettingService.currentWebhookKey());
+    }
+
+    private boolean isUnset(String url) {
+        return url == null || url.isBlank() || url.contains("YOUR_DEPLOYMENT_ID");
+    }
+
     /** 브라우저 진단용: webhook 호출 결과를 문자열로 반환 */
     public String pingTest() {
-        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
-            return "SKIP: sheets.webhook.url 미설정 (현재값=" + webhookUrl + ")";
+        String webhookUrl = currentWebhookUrl();
+        if (isUnset(webhookUrl)) {
+            return "SKIP: SHEETS_WEBHOOK_URL 미설정 (현재값=" + webhookUrl + ")";
         }
         try {
             String json = "{\"orderId\":\"TEST\",\"clientName\":\"테스트\",\"managerPhone\":\"010-0000-0000\","
@@ -68,7 +75,8 @@ public class SheetsWebhookService {
     }
 
     public PushResult push(String orderId, OrderRequestDto dto, List<Long> itemNums) {
-        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
+        String webhookUrl = currentWebhookUrl();
+        if (isUnset(webhookUrl)) {
             log.warn("Sheets webhook URL 미설정 → 시트 전송 건너뜀 (orderId={})", orderId);
             return new PushResult(false, null);
         }
@@ -111,7 +119,8 @@ public class SheetsWebhookService {
 
     /** 시트의 행 삭제(비우기) 신호 */
     public boolean pushItemDelete(Long itemNum) {
-        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
+        String webhookUrl = currentWebhookUrl();
+        if (isUnset(webhookUrl)) {
             log.warn("Sheets webhook URL 미설정 → 삭제 동기화 건너뜀 (itemNum={})", itemNum);
             return false;
         }
@@ -138,7 +147,8 @@ public class SheetsWebhookService {
 
     /** 시트의 기존 행을 itemNum 기준으로 찾아 갱신하라는 신호 */
     public boolean pushItemUpdate(com.dream_comp.auto_system.dto.AdminOrderRowDto row) {
-        if (webhookUrl == null || webhookUrl.isBlank() || webhookUrl.contains("YOUR_DEPLOYMENT_ID")) {
+        String webhookUrl = currentWebhookUrl();
+        if (isUnset(webhookUrl)) {
             log.warn("Sheets webhook URL 미설정 → 수정 동기화 건너뜀 (itemNum={})", row.getItemNum());
             return false;
         }

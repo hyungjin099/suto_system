@@ -12,6 +12,7 @@ import {
   IconUsers,
   IconLink,
   IconTruck,
+  IconGear,
 } from "./Icons";
 import { cx } from "../utils";
 import styles from "./Layout.module.css";
@@ -56,6 +57,8 @@ function resolveActive(pathname) {
     return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
   if (pathname.startsWith("/admin/users"))
     return { key: "users", category: "시스템", page: "관리자 계정" };
+  if (pathname.startsWith("/admin/settings"))
+    return { key: "settings", category: "시스템", page: "시스템 설정" };
   // 기본값(제품 관리)
   return { key: "products", category: "제품 관리", page: "원단 카탈로그" };
 }
@@ -84,7 +87,11 @@ export function AdminShell({ children }) {
 
 function Sidebar({ activeKey, isSuperAdmin }) {
   const menu = isSuperAdmin
-    ? [...MENU_ITEMS, { key: "users", label: "관리자 계정", path: "/admin/users", Icon: IconUsers }]
+    ? [
+        ...MENU_ITEMS,
+        { key: "users",    label: "관리자 계정", path: "/admin/users",    Icon: IconUsers },
+        { key: "settings", label: "시스템 설정", path: "/admin/settings", Icon: IconGear  },
+      ]
     : MENU_ITEMS;
   return _SidebarRender({ activeKey, menu });
 }

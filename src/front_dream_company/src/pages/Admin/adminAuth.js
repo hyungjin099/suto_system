@@ -66,3 +66,15 @@ export async function setAdminUserActive(adminNum, active) {
   const res = await axios.patch(`${BASE_URL}/api/admin/users/${adminNum}/active`, { active });
   return res.data;
 }
+
+// ===== 시스템 설정 (superadmin 전용) =====
+
+export async function fetchSystemSettings() {
+  const res = await axios.get(`${BASE_URL}/api/admin/settings`);
+  return res.data; // [{key, value, updatedAt, updatedBy}, ...]
+}
+
+export async function updateSystemSetting(key, value) {
+  const res = await axios.put(`${BASE_URL}/api/admin/settings/${encodeURIComponent(key)}`, { value });
+  return res.data;
+}

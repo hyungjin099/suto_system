@@ -7,6 +7,7 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS SYSTEM_SETTING;
 DROP TABLE IF EXISTS ORDER_AUDIT;
 DROP TABLE IF EXISTS ADMIN_USER;
 DROP TABLE IF EXISTS CLIENT_FABRIC_ALIAS;
@@ -159,6 +160,20 @@ CREATE TABLE ORDER_AUDIT (
     CONSTRAINT PK_ORDER_AUDIT PRIMARY KEY (AUDIT_NUM)
 );
 CREATE INDEX IX_ORDER_AUDIT_ORDER ON ORDER_AUDIT(ORDER_NUM);
+
+
+-- ==========================================================================
+-- 9. 시스템 설정 (관리자 페이지에서 편집 가능한 KV 저장소)
+-- ==========================================================================
+CREATE TABLE SYSTEM_SETTING (
+    SETTING_KEY   VARCHAR(50)  NOT NULL,
+    SETTING_VALUE TEXT,
+    UPDATED_AT    DATETIME     DEFAULT SYSDATE(),
+    UPDATED_BY    VARCHAR(50),
+    CONSTRAINT PK_SYSTEM_SETTING PRIMARY KEY (SETTING_KEY)
+);
+-- 초기 설정 키:
+--   SHEETS_WEBHOOK_URL: Google Apps Script 웹앱 URL. 최고관리자 페이지에서 편집.
 
 
 -- ==========================================================================

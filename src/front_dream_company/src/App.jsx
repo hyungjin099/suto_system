@@ -9,6 +9,7 @@ import AdminLogin from "./pages/Admin/AdminLogin";
 import AdminGuard from "./pages/Admin/AdminGuard";
 import AdminChangePassword from "./pages/Admin/AdminChangePassword";
 import AdminUsers from "./pages/Admin/AdminUsers";
+import SystemSettingsAdmin from "./pages/Admin/SystemSettingsAdmin";
 
 function App() {
   return (
@@ -33,6 +34,9 @@ function App() {
 
       {/* 관리자 계정 관리 — admin 계정만 접근 가능 */}
       <Route path="/admin/users" element={<AdminGuard superAdminOnly><AdminUsers /></AdminGuard>} />
+
+      {/* 시스템 설정 — admin 계정만 접근 가능 */}
+      <Route path="/admin/settings" element={<AdminGuard superAdminOnly><SystemSettingsAdmin /></AdminGuard>} />
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
