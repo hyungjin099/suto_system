@@ -40,7 +40,12 @@ export default function ProductCard({
 
       {/* product name */}
       <div className={styles.field}>
-        <Label required>제품명</Label>
+        <div className={styles.productLabelRow}>
+          <Label required>제품명</Label>
+          <span className={styles.productWarnNotice}>
+            ⚠ 제품명에 보이지 않는 제품을 구매하시려면 담당자에게 연락 바랍니다.
+          </span>
+        </div>
         <SelectInput
           value={item.product}
           onChange={(v) => set("product", v)}

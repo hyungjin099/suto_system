@@ -23,7 +23,10 @@
       "Bash(python -c \"import pandas as pd; xl = pd.ExcelFile\\(r'C:\\\\Users\\\\admin\\\\Desktop\\\\미애쌤\\\\라벨출력용.xlsx'\\); print\\('Sheets:', xl.sheet_names\\)\")",
       "Bash(python)",
       "Bash(npm install *)",
-      "WebFetch(domain:www.ncloud.com)"
+      "WebFetch(domain:www.ncloud.com)",
+      "Bash(python -c \"import reportlab; print\\(reportlab.Version\\)\")",
+      "Bash(ls C:/Windows/Fonts/malgun* 2>&1)",
+      "Bash(python \"C:/Users/admin/AppData/Local/Temp/claude/C--dev-suto-system/5a77329c-091a-4c7f-a250-dad0576fb1de/scratchpad/make_guide_pdf.py\")"
     ]
   }
 }

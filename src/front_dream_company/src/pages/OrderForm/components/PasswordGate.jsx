@@ -9,11 +9,13 @@
 
 import { useState, useEffect } from "react";
 import { loginClient, changeClientPassword } from "../api";
+import Header from "./Header";
 import styles from "./PasswordGate.module.css";
 
 const STORAGE_KEY = (cliCode) => `orderAuth:${cliCode}`;
+const CONTACT_PHONE = "055-910-4415";
 
-export default function PasswordGate({ cliCode, children }) {
+export default function PasswordGate({ cliCode, clientName, children }) {
   const [stage, setStage] = useState("loading"); // loading | login | change | authed
   const [password, setPassword] = useState("");
   const [newPwd, setNewPwd] = useState("");
@@ -68,6 +70,16 @@ export default function PasswordGate({ cliCode, children }) {
 
   return (
     <div className={styles.wrap}>
+      <Header clientCompany={clientName || "고객사"} />
+      {stage === "login" && (
+        <div className={styles.greetingBlock}>
+          <p className={styles.greetingText}>
+            <b className={styles.greetingName}>{clientName || "고객사"}</b> 담당자님, 오늘도 방문해 주셔서 감사합니다.
+            <br />
+            비밀번호를 입력해주세요.
+          </p>
+        </div>
+      )}
       <div className={styles.card}>
         {stage === "login" ? (
           <form onSubmit={onLogin}>

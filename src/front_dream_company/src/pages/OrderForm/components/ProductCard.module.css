@@ -47,6 +47,28 @@
   margin-bottom: 14px;
 }
 
+.productLabelRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.productWarnNotice {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #c0392b;
+  line-height: 1.4;
+  text-align: right;
+}
+@media (max-width: 480px) {
+  .productWarnNotice {
+    flex-basis: 100%;
+    text-align: left;
+    margin-top: -2px;
+  }
+}
+
 .dimensions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);

@@ -194,7 +194,7 @@ export default function OrderForm() {
   );
 
   return (
-    <PasswordGate cliCode={cliCode}>
+    <PasswordGate cliCode={cliCode} clientName={clientName}>
     <div className={styles.page}>
       <Header clientCompany={clientName} />
 
@@ -224,24 +224,11 @@ export default function OrderForm() {
       <main className={styles.main}>
         {/* Intro */}
         <section className={styles.intro}>
-          {clientName && (
-            <p style={{
-              margin: "0 0 12px",
-              fontSize: 15,
-              color: "var(--ink, #222)",
-              lineHeight: 1.5,
-            }}>
-              <b style={{ fontWeight: 800 }}>{clientName}</b>님, 오늘도 방문해 주셔서 감사합니다.
-            </p>
-          )}
           <h1 className={styles.title}>주문 내역을 입력해 주세요</h1>
           <p className={styles.subtitle}>
             제품 정보를 입력하고, 여러 제품을 주문하실 경우 아래
             <strong className={styles.subtitleAccent}> + 제품 추가 </strong>
             버튼으로 항목을 늘려주세요.
-          </p>
-          <p className={styles.notice}>
-            ⚠ 제품명에 보이지 않는 제품을 구매하시려면 담당자에게 연락 바랍니다.
           </p>
         </section>
 
