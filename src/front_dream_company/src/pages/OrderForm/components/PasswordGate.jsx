@@ -9,11 +9,9 @@
 
 import { useState, useEffect } from "react";
 import { loginClient, changeClientPassword } from "../api";
-import Header from "./Header";
 import styles from "./PasswordGate.module.css";
 
 const STORAGE_KEY = (cliCode) => `orderAuth:${cliCode}`;
-const CONTACT_PHONE = "055-910-4415";
 
 export default function PasswordGate({ cliCode, clientName, children }) {
   const [stage, setStage] = useState("loading"); // loading | login | change | authed
@@ -70,28 +68,24 @@ export default function PasswordGate({ cliCode, clientName, children }) {
 
   return (
     <div className={styles.wrap}>
-      <Header clientCompany={clientName || "고객사"} />
-      {stage === "login" && (
-        <div className={styles.greetingBlock}>
-          <p className={styles.greetingText}>
-            <b className={styles.greetingName}>{clientName || "고객사"}</b> 담당자님, 오늘도 방문해 주셔서 감사합니다.
-            <br />
-            비밀번호를 입력해주세요.
-          </p>
-        </div>
-      )}
       <div className={styles.card}>
         {stage === "login" ? (
           <form onSubmit={onLogin}>
-            <h1 className={styles.title}>주문 페이지 접속</h1>
-            <p className={styles.desc}>비밀번호를 입력해 주세요.</p>
+            <div className={styles.brand}>드림컴퍼니 발주시스템</div>
+            <h1 className={styles.title}>{clientName || "고객사"}님, 안녕하세요</h1>
+            <p className={styles.desc}>
+              오늘도 함께해 주셔서 감사합니다.
+              <br />
+              비밀번호를 입력해 주세요.
+            </p>
+            <label className={styles.inputLabel}>비밀번호</label>
             <input
               type="password"
               autoFocus
               className={styles.input}
               value={password}
               onChange={(e) => { setPassword(e.target.value); setError(""); }}
-              placeholder="비밀번호"
+              placeholder="비밀번호 입력"
             />
             {error && <div className={styles.error}>{error}</div>}
             <button type="submit" className={styles.submit} disabled={submitting || !password}>
