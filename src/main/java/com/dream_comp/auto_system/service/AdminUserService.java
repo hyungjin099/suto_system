@@ -111,6 +111,19 @@ public class AdminUserService {
         return dto;
     }
 
+    /** admin 본인은 리셋 불가. 그 외 계정의 비밀번호를 '1234'로 초기화 + 다음 로그인 시 변경 강제 */
+    public AdminUserDto resetPassword(Long adminNum) {
+        AdminUserDto u = adminUserMapper.findByAdminNum(adminNum);
+        if (u == null) throw new IllegalArgumentException("계정을 찾을 수 없습니다");
+        if (SUPER_ADMIN_USERNAME.equals(u.getUsername())) {
+            throw new IllegalArgumentException("최고 관리자 계정은 이 방법으로 초기화할 수 없습니다");
+        }
+        adminUserMapper.updatePassword(adminNum, passwordEncoder.encode(DEFAULT_NEW_PASSWORD), "Y");
+        u.setPassword(null);
+        u.setPasswordResetRequired("Y");
+        return u;
+    }
+
     /** admin 본인은 비활성화 불가. 그 외 계정 활성/비활성 토글 */
     public AdminUserDto setActive(Long adminNum, boolean active) {
         AdminUserDto u = adminUserMapper.findByAdminNum(adminNum);

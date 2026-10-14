@@ -43,6 +43,12 @@ const MENU_ITEMS = [
     path: "/admin/fabric-alias",
     Icon: IconLink,
   },
+  {
+    key: "fabric-sort",
+    label: "고객 제품 목록 정렬",
+    path: "/admin/fabric-sort",
+    Icon: IconLink,
+  },
 ];
 
 // 현재 경로 → (현재 메뉴 key, 페이지 이름)
@@ -55,6 +61,8 @@ function resolveActive(pathname) {
     return { key: "orders", category: "주문 내역", page: "전체 주문" };
   if (pathname.startsWith("/admin/fabric-alias"))
     return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
+  if (pathname.startsWith("/admin/fabric-sort"))
+    return { key: "fabric-sort", category: "원단 관리", page: "고객 제품 목록 정렬" };
   if (pathname.startsWith("/admin/users"))
     return { key: "users", category: "시스템", page: "관리자 계정" };
   if (pathname.startsWith("/admin/settings"))
@@ -168,11 +176,23 @@ function Topbar({ category, page, me }) {
       </div>
       <div className={styles.userArea}>
         <div className={styles.userName}>{me.username || "—"}</div>
+        <Link
+          to="/admin/change-password"
+          style={{
+            marginLeft: 12, height: 32, padding: "0 12px",
+            display: "inline-flex", alignItems: "center",
+            background: "var(--surface)", border: "1px solid var(--line)",
+            borderRadius: 8, color: "var(--ink-2)", fontSize: 12.5,
+            fontWeight: 600, textDecoration: "none",
+          }}
+        >
+          비밀번호 변경
+        </Link>
         <button
           type="button"
           onClick={onLogout}
           style={{
-            marginLeft: 12, height: 32, padding: "0 12px",
+            marginLeft: 8, height: 32, padding: "0 12px",
             background: "var(--surface)", border: "1px solid var(--line)",
             borderRadius: 8, color: "var(--ink-2)", fontSize: 12.5,
             fontWeight: 600, cursor: "pointer",

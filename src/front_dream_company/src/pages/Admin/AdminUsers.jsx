@@ -5,7 +5,7 @@
 
 import { useEffect, useState } from "react";
 import { AdminShell } from "./components/Layout";
-import { fetchAdminUsers, createAdminUser, setAdminUserActive } from "./adminAuth";
+import { fetchAdminUsers, createAdminUser, setAdminUserActive, resetAdminUserPassword } from "./adminAuth";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState([]);
@@ -57,6 +57,21 @@ export default function AdminUsers() {
       await load();
     } catch (e) {
       setErr(e?.response?.data?.message || "상태 변경에 실패했습니다.");
+    }
+  };
+
+  const onReset = async (user) => {
+    if (!window.confirm(
+      `"${user.username}" 계정의 비밀번호를 '1234'로 초기화하시겠습니까?\n` +
+      `해당 사용자는 다음 로그인 시 비밀번호 변경이 강제됩니다.`
+    )) return;
+    setErr(""); setMsg("");
+    try {
+      await resetAdminUserPassword(user.adminNum);
+      setMsg(`"${user.username}" 비밀번호를 '1234'로 초기화 완료. 다음 로그인 시 변경이 강제됩니다.`);
+      await load();
+    } catch (e) {
+      setErr(e?.response?.data?.message || "비밀번호 초기화에 실패했습니다.");
     }
   };
 
@@ -125,13 +140,23 @@ export default function AdminUsers() {
                         {isSuper ? (
                           <span style={{ color: "var(--ink-3)", fontSize: 12 }}>—</span>
                         ) : (
-                          <button
-                            type="button"
-                            onClick={() => onToggle(u)}
-                            style={active ? dangerBtn : okBtn}
-                          >
-                            {active ? "비활성화" : "활성화"}
-                          </button>
+                          <div style={{ display: "flex", gap: 6 }}>
+                            <button
+                              type="button"
+                              onClick={() => onReset(u)}
+                              style={neutralBtn}
+                              title="비밀번호를 '1234'로 초기화"
+                            >
+                              비번 초기화
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onToggle(u)}
+                              style={active ? dangerBtn : okBtn}
+                            >
+                              {active ? "비활성화" : "활성화"}
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>
@@ -155,6 +180,7 @@ const inputStyle  = { flex: 1, height: 36, padding: "0 12px", border: "1px solid
 const primaryBtn  = { height: 36, padding: "0 16px", background: "var(--brand, #4a7c59)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 600, cursor: "pointer" };
 const dangerBtn   = { height: 30, padding: "0 12px", background: "#fff", color: "#b42318", border: "1px solid #fecdca", borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
 const okBtn       = { height: 30, padding: "0 12px", background: "#fff", color: "#067647", border: "1px solid #abefc6", borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
+const neutralBtn  = { height: 30, padding: "0 12px", background: "#fff", color: "#1849a9", border: "1px solid #b2ddff", borderRadius: 6, fontSize: 12.5, fontWeight: 600, cursor: "pointer" };
 const hintStyle   = { margin: "8px 0 0", fontSize: 12.5, color: "var(--ink-2)" };
 const errStyle    = { marginTop: 12, padding: "10px 12px", background: "#fef3f2", color: "#b42318", border: "1px solid #fecdca", borderRadius: 8, fontSize: 13 };
 const msgStyle    = { marginTop: 12, padding: "10px 12px", background: "#ecfdf3", color: "#067647", border: "1px solid #abefc6", borderRadius: 8, fontSize: 13 };

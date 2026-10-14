@@ -24,7 +24,8 @@
         <result property="clientFabPrice" column="CLIENT_FAB_PRICE"/>
     </resultMap>
 
-    <!-- 주문 폼 select: 같은 원단에 별칭이 여러 개면 모두 반환 (별칭명 순) -->
+    <!-- 주문 폼 select: 같은 원단에 별칭이 여러 개면 모두 반환
+         정렬 순서: SORT_ORDER 지정된 것 먼저(오름차순) → 미지정은 제품명/별칭명 순 -->
     <select id="findByCliCode" parameterType="string" resultMap="clientFabricResultMap">
         SELECT
             cfa.ALIAS_NUM        AS ALIAS_NUM,
@@ -37,7 +38,11 @@
         JOIN CLIENT_INFO  ci ON ci.CLI_NUM  = cfa.CLI_NUM
         WHERE ci.CLI_CODE = #{cliCode}
           AND (pi.PROD_STATUS IS NULL OR pi.PROD_STATUS = '사용')
-        ORDER BY pi.PROD_NAME, cfa.CLIENT_FAB_NAME
+        ORDER BY
+            CASE WHEN cfa.SORT_ORDER IS NULL THEN 1 ELSE 0 END,
+            cfa.SORT_ORDER ASC,
+            pi.PROD_NAME ASC,
+            cfa.CLIENT_FAB_NAME ASC
     </select>
 
     <!-- 주문 접수 시 가격 스냅샷: 별칭명까지 매칭 -->
@@ -71,12 +76,29 @@
             pi.PROD_CODE,
             pi.PROD_NAME,
             cfa.CLIENT_FAB_NAME,
-            cfa.CLIENT_FAB_PRICE
+            cfa.CLIENT_FAB_PRICE,
+            cfa.SORT_ORDER
         FROM CLIENT_FABRIC_ALIAS cfa
         JOIN PRODUCT_INFO pi ON pi.PROD_NUM = cfa.PROD_NUM
         WHERE cfa.CLI_NUM = #{cliNum}
-        ORDER BY pi.PROD_NAME, cfa.CLIENT_FAB_NAME
+        ORDER BY
+            CASE WHEN cfa.SORT_ORDER IS NULL THEN 1 ELSE 0 END,
+            cfa.SORT_ORDER ASC,
+            pi.PROD_NAME ASC,
+            cfa.CLIENT_FAB_NAME ASC
     </select>
+
+    <!-- 특정 거래처의 모든 별칭에 대해 SORT_ORDER 일괄 리셋 후, 넘어온 순서대로 번호 매김
+         (한 트랜잭션에서 실행되도록 Service에서 wrap) -->
+    <update id="resetSortOrder" parameterType="long">
+        UPDATE CLIENT_FABRIC_ALIAS SET SORT_ORDER = NULL WHERE CLI_NUM = #{cliNum}
+    </update>
+
+    <update id="updateSortOrder">
+        UPDATE CLIENT_FABRIC_ALIAS
+        SET SORT_ORDER = #{sortOrder}
+        WHERE ALIAS_NUM = #{aliasNum} AND CLI_NUM = #{cliNum}
+    </update>
 
     <select id="findAdminByAliasNum" parameterType="long" resultMap="aliasAdminResultMap">
         SELECT

@@ -68,4 +68,20 @@ public class ClientFabricController {
         clientFabricService.delete(aliasNum);
         return ResponseEntity.noContent().build();
     }
+
+    /**
+     * 관리자: 거래처별 제품 목록 정렬 순서 저장
+     * body: { "aliasNums": [12, 7, 33, ...] }  — 넘어온 순서대로 1,2,3... 부여
+     */
+    @PutMapping("/api/aliases/sort-order")
+    public ResponseEntity<Void> saveSortOrder(@RequestParam Long cliNum,
+                                              @RequestBody java.util.Map<String, Object> body) {
+        @SuppressWarnings("unchecked")
+        List<Number> raw = (List<Number>) body.get("aliasNums");
+        List<Long> aliasNums = raw == null
+                ? java.util.Collections.emptyList()
+                : raw.stream().map(Number::longValue).toList();
+        clientFabricService.updateSortOrders(cliNum, aliasNums);
+        return ResponseEntity.noContent().build();
+    }
 }

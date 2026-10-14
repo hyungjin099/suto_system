@@ -76,7 +76,7 @@ export default function SummaryModal({
           <div className={styles.totalRow}>
             <span>합계</span>
             <span className={styles.totalVal}>
-              {items.length}개 제품 · {totalRolls}롤
+              총 {items.length}건 · {totalRolls}롤
             </span>
           </div>
         </div>

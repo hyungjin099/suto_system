@@ -70,9 +70,28 @@ export default function OrderForm() {
   }, [cliCode]);
 
   const totalRolls = useMemo(
-    () => items.reduce((sum, it) => sum + (parseInt(it.rolls, 10) || 0), 0),
+    () => items.reduce((sum, it) =>
+      sum + (it.specs || []).reduce((s, sp) => s + (parseInt(sp.rolls, 10) || 0), 0),
+    0),
     [items]
   );
+
+  // 모든 (제품 × 규격) 조합을 한 줄씩 평탄화 — 제출/요약/완료 화면에서 사용
+  const flatItems = useMemo(
+    () => items.flatMap((it) =>
+      (it.specs || []).map((sp) => ({
+        ...it,
+        width: sp.width,
+        length: sp.length,
+        rolls: sp.rolls,
+        _parentId: it.id,
+        _specId: sp.id,
+        id: `${it.id}_${sp.id}`,
+      }))
+    ),
+    [items]
+  );
+  const totalLines = flatItems.length;
 
   const updateItem = (id, next) => {
     setItems((arr) =>
@@ -149,16 +168,16 @@ export default function OrderForm() {
     setSubmitting(true);
     setSubmitError("");
     try {
-      const res = await submitOrder({ cliCode, clientName, managerPhone, items });
+      const res = await submitOrder({ cliCode, clientName, managerPhone, items: flatItems });
       setSubmitted({
         orderId: res.orderId,
         deliveryDate: res.deliveryDate,
         at: new Date(),
-        items: items.map((it) => ({
+        items: flatItems.map((it) => ({
           ...it,
           productLabel:
             fabricOptions.find((f) => f.value === it.product)?.label || it.aliasName || it.prodName || it.prodCode,
-          destination: it.destination.trim() || clientName,
+          destination: (it.destination || "").trim() || clientName,
         })),
         totalRolls,
       });
@@ -284,6 +303,8 @@ export default function OrderForm() {
             <div className={styles.summaryValue}>
               제품 <span className={styles.numeric}>{items.length}</span>개
               <span className={styles.sep}>·</span>
+              규격 <span className={styles.numeric}>{totalLines}</span>건
+              <span className={styles.sep}>·</span>
               <span className={styles.numeric}>{totalRolls}</span>롤
             </div>
           </div>
@@ -301,7 +322,7 @@ export default function OrderForm() {
 
       {tab === "order" && showSummary && (
         <SummaryModal
-          items={items}
+          items={flatItems}
           clientName={clientName}
           fabricOptions={fabricOptions}
           totalRolls={totalRolls}

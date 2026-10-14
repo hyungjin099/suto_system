@@ -103,7 +103,7 @@ export default function SuccessScreen({ data, onReset, onGoHistory }) {
           <div className={styles.totalRow}>
             <span className={styles.totalLabel}>합계</span>
             <span className={styles.totalValue}>
-              {data.items.length}개 제품 · {data.totalRolls}롤
+              총 {data.items.length}건 · {data.totalRolls}롤
             </span>
           </div>
         </div>

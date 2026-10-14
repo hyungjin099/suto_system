@@ -67,6 +67,11 @@ export async function setAdminUserActive(adminNum, active) {
   return res.data;
 }
 
+export async function resetAdminUserPassword(adminNum) {
+  const res = await axios.post(`${BASE_URL}/api/admin/users/${adminNum}/reset-password`);
+  return res.data;
+}
+
 // ===== 시스템 설정 (superadmin 전용) =====
 
 export async function fetchSystemSettings() {

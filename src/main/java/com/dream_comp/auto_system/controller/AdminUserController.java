@@ -54,6 +54,18 @@ public class AdminUserController {
         }
     }
 
+    /** 비밀번호 초기화 — '1234'로 리셋 + 다음 로그인 시 변경 강제 */
+    @PostMapping("/{adminNum}/reset-password")
+    public ResponseEntity<?> resetPassword(@PathVariable Long adminNum, HttpServletRequest req) {
+        ResponseEntity<?> denied = requireSuperAdmin(req);
+        if (denied != null) return denied;
+        try {
+            return ResponseEntity.ok(adminUserService.resetPassword(adminNum));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
+    }
+
     private ResponseEntity<?> requireSuperAdmin(HttpServletRequest req) {
         HttpSession session = req.getSession(false);
         AdminUserDto user = session == null

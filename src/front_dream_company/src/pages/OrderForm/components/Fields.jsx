@@ -27,6 +27,7 @@ export function TextInput({
   suffix,
   inputMode,
   onBlur,
+  clearOnFocus,
   ...rest
 }) {
   const [focus, setFocus] = useState(false);
@@ -42,7 +43,10 @@ export function TextInput({
         className={styles.input}
         value={value ?? ""}
         onChange={(e) => onChange(e.target.value)}
-        onFocus={() => setFocus(true)}
+        onFocus={() => {
+          setFocus(true);
+          if (clearOnFocus) onChange("");
+        }}
         onBlur={(e) => {
           setFocus(false);
           onBlur && onBlur(e);

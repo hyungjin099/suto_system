@@ -33,6 +33,25 @@ public class ClientFabricService {
         return clientFabricMapper.findAdminByCliNum(cliNum);
     }
 
+    /**
+     * 특정 거래처의 별칭들을 넘어온 순서대로 SORT_ORDER를 1,2,3...로 다시 매김.
+     * aliasNums에 포함되지 않은 별칭은 SORT_ORDER=NULL (기본 이름순으로 밀림).
+     */
+    @Transactional
+    public void updateSortOrders(Long cliNum, List<Long> aliasNums) {
+        if (cliNum == null) throw new IllegalArgumentException("cliNum 필요");
+        // 1) 해당 거래처의 모든 별칭 SORT_ORDER NULL 로 리셋
+        clientFabricMapper.resetSortOrder(cliNum);
+        if (aliasNums == null || aliasNums.isEmpty()) return;
+        // 2) 넘어온 순서대로 1,2,3... 부여 (다른 거래처 별칭은 CLI_NUM 조건으로 자연히 제외)
+        int order = 1;
+        for (Long aliasNum : aliasNums) {
+            if (aliasNum == null) continue;
+            clientFabricMapper.updateSortOrder(cliNum, aliasNum, order++);
+        }
+        log.info("CLIENT_FABRIC_ALIAS SORT_ORDER 갱신 (cliNum={}, 건수={})", cliNum, order - 1);
+    }
+
     public java.util.Map<Long, Integer> countAllByCli() {
         java.util.Map<Long, Integer> result = new java.util.HashMap<>();
         for (java.util.Map<String, Object> row : clientFabricMapper.countAllByCli()) {

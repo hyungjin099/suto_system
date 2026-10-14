@@ -187,6 +187,11 @@ export async function fetchAliasCounts() {
   return res.data; // { cliNum: count }
 }
 
+/** 거래처별 제품 목록 정렬 순서 저장 (aliasNums 순서대로 1,2,3...) */
+export async function saveAliasSortOrder(cliNum, aliasNums) {
+  await axios.put(`${BASE_URL}/api/aliases/sort-order`, { aliasNums }, { params: { cliNum } });
+}
+
 export async function resetClientPassword(cliNum) {
   const res = await axios.patch(`${BASE_URL}/api/clients/${cliNum}/reset-password`);
   return res.data;

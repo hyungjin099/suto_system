@@ -12,4 +12,5 @@ public class ClientAliasAdminDto {
     private String prodName;
     private String clientFabName;
     private Integer clientFabPrice;
+    private Integer sortOrder;
 }

@@ -29,4 +29,10 @@ public interface ClientFabricMapper {
     void insert(ClientAliasVo vo);
     void update(ClientAliasVo vo);
     void delete(Long aliasNum);
+
+    // 정렬 순서
+    int resetSortOrder(Long cliNum);
+    int updateSortOrder(@Param("cliNum") Long cliNum,
+                        @Param("aliasNum") Long aliasNum,
+                        @Param("sortOrder") Integer sortOrder);
 }

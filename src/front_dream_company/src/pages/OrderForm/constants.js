@@ -1,4 +1,9 @@
-/* 주문 폼 관련 상수 및 빈 아이템 생성기 */
+/* 주문 폼 관련 상수 및 빈 아이템/규격 생성기
+ *
+ * 구조:
+ *   item (제품 1개) → specs: [spec, spec, ...]  (가로/길이/롤수 조합 N개)
+ *   제출 시 각 spec을 개별 라인으로 펼쳐 전송 → 시트에 각각 한 행으로 들어감
+ */
 
 export const PRODUCT_OPTIONS = [
   { value: "stretch", label: "스트레치 필름" },
@@ -11,25 +16,41 @@ export const PRODUCT_OPTIONS = [
   { value: "eco", label: "친환경 생분해 필름" },
 ];
 
+function newId() {
+  return typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : String(Math.random());
+}
+
+export const emptySpec = () => ({
+  id: newId(),
+  width: "1530",
+  length: "1000",
+  rolls: "1",
+});
+
 export const emptyItem = (destination = "") => ({
-  id:
-    typeof crypto !== "undefined" && crypto.randomUUID
-      ? crypto.randomUUID()
-      : String(Math.random()),
+  id: newId(),
   product: "",   // 공식 원단 코드 (DB 저장)
   prodName: "",  // 공식 원단명 (DB·시트 저장)
-  width: "1530",   // 폭 기본값
-  length: "1000",  // 길이 기본값
-  rolls: "1",
+  prodCode: "",
+  aliasName: "",
   destination,
   note: "",
+  specs: [emptySpec()],
 });
 
 export function validateItem(it) {
   const e = {};
   if (!it.product) e.product = true;
-  if (!it.width || parseInt(it.width, 10) <= 0) e.width = true;
-  if (!it.length || parseInt(it.length, 10) <= 0) e.length = true;
-  if (!it.rolls || parseInt(it.rolls, 10) <= 0) e.rolls = true;
+  const specErrs = {};
+  (it.specs || []).forEach((sp) => {
+    const se = {};
+    if (!sp.width || parseInt(sp.width, 10) <= 0) se.width = true;
+    if (!sp.length || parseInt(sp.length, 10) <= 0) se.length = true;
+    if (!sp.rolls || parseInt(sp.rolls, 10) <= 0) se.rolls = true;
+    if (Object.keys(se).length) specErrs[sp.id] = se;
+  });
+  if (Object.keys(specErrs).length) e.specs = specErrs;
   return e;
 }
