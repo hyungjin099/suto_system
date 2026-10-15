@@ -75,6 +75,12 @@ public class SheetsWebhookService {
     }
 
     public PushResult push(String orderId, OrderRequestDto dto, List<Long> itemNums) {
+        return push(orderId, dto, itemNums, null);
+    }
+
+    /** orderDateOverride != null 이면 payload의 orderDate를 그 값으로 강제. (DeferredPushJob 등 지연 발송용) */
+    public PushResult push(String orderId, OrderRequestDto dto, List<Long> itemNums,
+                           LocalDateTime orderDateOverride) {
         String webhookUrl = currentWebhookUrl();
         if (isUnset(webhookUrl)) {
             log.warn("Sheets webhook URL 미설정 → 시트 전송 건너뜀 (orderId={})", orderId);
@@ -82,7 +88,12 @@ public class SheetsWebhookService {
         }
 
         try {
-            String json = objectMapper.writeValueAsString(buildPayload(orderId, dto, itemNums));
+            Map<String, Object> payload = buildPayload(orderId, dto, itemNums);
+            if (orderDateOverride != null) {
+                payload.put("orderDate",
+                        orderDateOverride.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            }
+            String json = objectMapper.writeValueAsString(payload);
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(webhookUrl))
@@ -114,6 +125,36 @@ public class SheetsWebhookService {
         } catch (Exception e) {
             log.warn("Sheets push 실패 (orderId={}) → DB 저장은 유지됨: {}", orderId, e.getMessage());
             return new PushResult(false, null);
+        }
+    }
+
+    /** 17시 이후 접수된 주문을 미확정 시트에만 즉시 추가 (일자 탭 push는 다음 영업일 새벽 배치가 담당) */
+    public boolean pushAppendUnconfirmed(String orderId, OrderRequestDto dto, java.util.List<Long> itemNums,
+                                         String targetTabName) {
+        String webhookUrl = currentWebhookUrl();
+        if (isUnset(webhookUrl)) {
+            log.warn("Sheets webhook URL 미설정 → append_unconfirmed 건너뜀 (orderId={})", orderId);
+            return false;
+        }
+        try {
+            Map<String, Object> payload = buildPayload(orderId, dto, itemNums);
+            payload.put("action", "append_unconfirmed");
+            payload.put("targetTabName", targetTabName);
+            String json = objectMapper.writeValueAsString(payload);
+            HttpRequest req = HttpRequest.newBuilder()
+                    .uri(URI.create(webhookUrl))
+                    .header("Content-Type", "application/json")
+                    .timeout(java.time.Duration.ofSeconds(15))
+                    .POST(HttpRequest.BodyPublishers.ofString(json))
+                    .build();
+            HttpResponse<String> res = httpClient.send(req, HttpResponse.BodyHandlers.ofString());
+            boolean ok = res.statusCode() >= 200 && res.statusCode() < 300;
+            log.info("Sheets append_unconfirmed push (orderId={}, http={}, body={})",
+                    orderId, res.statusCode(), res.body());
+            return ok;
+        } catch (Exception e) {
+            log.warn("Sheets append_unconfirmed 실패 (orderId={}): {}", orderId, e.getMessage());
+            return false;
         }
     }
 

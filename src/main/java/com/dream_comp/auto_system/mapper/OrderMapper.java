@@ -15,6 +15,7 @@ public interface OrderMapper {
     List<OrderVo> findByCliCode(String cliCode);
     List<AdminOrderRowDto> findAllAdmin();
     List<AdminOrderRowDto> findRetryCandidates();
+    List<AdminOrderRowDto> findDeferredCandidates();
     AdminOrderRowDto findAdminItemByNum(Long itemNum);
     int updateStatus(@Param("orderNum") Long orderNum, @Param("status") String status);
     int updateOrderDate(@Param("orderNum") Long orderNum,

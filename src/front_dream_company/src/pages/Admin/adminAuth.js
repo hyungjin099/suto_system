@@ -57,8 +57,16 @@ export async function fetchAdminUsers() {
   return res.data;
 }
 
-export async function createAdminUser(username) {
-  const res = await axios.post(`${BASE_URL}/api/admin/users`, { username });
+export async function createAdminUser(username, displayName) {
+  const res = await axios.post(`${BASE_URL}/api/admin/users`, { username, displayName });
+  return res.data;
+}
+
+export async function updateAdminDisplayName(adminNum, displayName) {
+  const res = await axios.patch(
+    `${BASE_URL}/api/admin/users/${adminNum}/display-name`,
+    { displayName }
+  );
   return res.data;
 }
 

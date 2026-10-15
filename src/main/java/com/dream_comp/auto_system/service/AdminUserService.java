@@ -84,8 +84,8 @@ public class AdminUserService {
         return list;
     }
 
-    /** username만 받아 신규 계정 생성. 비번 = "1234"(해시), 최초 로그인 시 변경 강제 */
-    public AdminUserDto createByAdmin(String username) {
+    /** username + displayName 받아 신규 계정 생성. 비번 = "1234"(해시), 최초 로그인 시 변경 강제 */
+    public AdminUserDto createByAdmin(String username, String displayName) {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("아이디를 입력하세요");
         }
@@ -100,15 +100,36 @@ public class AdminUserService {
         if (adminUserMapper.findByUsername(u) != null) {
             throw new IllegalArgumentException("이미 사용 중인 아이디입니다");
         }
+        if (displayName == null || displayName.isBlank()) {
+            throw new IllegalArgumentException("표시명을 입력하세요");
+        }
+        String dn = displayName.trim();
+        if (dn.length() > 50) throw new IllegalArgumentException("표시명은 50자 이내여야 합니다");
+
         AdminUserDto dto = new AdminUserDto();
         dto.setUsername(u);
         dto.setPassword(passwordEncoder.encode(DEFAULT_NEW_PASSWORD));
-        dto.setDisplayName(u);
+        dto.setDisplayName(dn);
         dto.setPasswordResetRequired("Y");
         dto.setUseYn("Y");
         adminUserMapper.insert(dto);
         dto.setPassword(null);
         return dto;
+    }
+
+    /** 표시명 변경 (admin 본인 포함 가능) */
+    public AdminUserDto updateDisplayName(Long adminNum, String displayName) {
+        AdminUserDto u = adminUserMapper.findByAdminNum(adminNum);
+        if (u == null) throw new IllegalArgumentException("계정을 찾을 수 없습니다");
+        if (displayName == null || displayName.isBlank()) {
+            throw new IllegalArgumentException("표시명을 입력하세요");
+        }
+        String dn = displayName.trim();
+        if (dn.length() > 50) throw new IllegalArgumentException("표시명은 50자 이내여야 합니다");
+        adminUserMapper.updateDisplayName(adminNum, dn);
+        u.setDisplayName(dn);
+        u.setPassword(null);
+        return u;
     }
 
     /** admin 본인은 리셋 불가. 그 외 계정의 비밀번호를 '1234'로 초기화 + 다음 로그인 시 변경 강제 */

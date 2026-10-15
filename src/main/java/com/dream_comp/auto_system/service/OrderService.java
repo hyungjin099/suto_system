@@ -41,9 +41,10 @@ public class OrderService {
     private static final ZoneId KST = ZoneId.of("Asia/Seoul");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final int MAX_ORDERID_RETRY = 5;
+    /** 이 시각 이후 접수된 주문은 당일 일자 탭 push를 생략하고 다음 영업일 새벽 배치로 보냄 */
+    private static final int DEFER_PUSH_HOUR = 17;
 
     public OrderResponseDto submitOrder(OrderRequestDto dto) {
-        // ORDER_ID = 'YYYYMMDD_NNN' 형식. 동시 접수로 인한 UNIQUE 위반 발생 시 재시도.
         OrderInsertResult inserted = null;
         for (int attempt = 1; attempt <= MAX_ORDERID_RETRY; attempt++) {
             try {
@@ -55,13 +56,27 @@ public class OrderService {
             }
         }
 
+        LocalDateTime nowKst = LocalDateTime.now(KST);
+        boolean defer = nowKst.getHour() >= DEFER_PUSH_HOUR;
+
         SheetsWebhookService.PushResult push = new SheetsWebhookService.PushResult(false, null);
-        try {
-            push = sheetsWebhookService.push(inserted.orderId, dto, inserted.itemNums);
-        } catch (Exception e) {
-            log.warn("Sheets push 예외 (orderId={}): {}", inserted.orderId, e.getMessage());
+        if (defer) {
+            // 일자 탭은 다음 영업일 새벽 배치. 미확정 시트에는 즉시 삽입.
+            try {
+                sheetsWebhookService.pushAppendUnconfirmed(inserted.orderId, dto, inserted.itemNums,
+                        computeNextBusinessDayTabName(nowKst));
+            } catch (Exception e) {
+                log.warn("Deferred unconfirmed push 예외 (orderId={}): {}", inserted.orderId, e.getMessage());
+            }
+            markSheetStatus(inserted.orderNum, "DEFERRED");
+        } else {
+            try {
+                push = sheetsWebhookService.push(inserted.orderId, dto, inserted.itemNums);
+            } catch (Exception e) {
+                log.warn("Sheets push 예외 (orderId={}): {}", inserted.orderId, e.getMessage());
+            }
+            markSheetStatus(inserted.orderNum, push.success ? "OK" : "FAILED");
         }
-        markSheetStatus(inserted.orderNum, push.success ? "OK" : "FAILED");
 
         // 납기예정일: Apps Script가 계산한 값(공휴일 반영) 우선, 없으면 Java 근사값 폴백
         String deliveryDate = push.deliveryDate != null
@@ -74,6 +89,19 @@ public class OrderService {
                 "주문이 접수되었습니다.",
                 deliveryDate
         );
+    }
+
+    /** 다음 영업일 탭 이름 (주말만 스킵, 공휴일은 미반영 — Option A) */
+    static String computeNextBusinessDayTabName(LocalDateTime fromKst) {
+        java.time.LocalDate d = fromKst.toLocalDate().plusDays(1);
+        while (d.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
+                || d.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
+            d = d.plusDays(1);
+        }
+        String[] dow = { "일","월","화","수","목","금","토" };
+        int idx = d.getDayOfWeek().getValue() % 7; // Mon=1..Sun=7 → Sun=0, Mon=1...
+        return d.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))
+                + "(" + dow[idx] + ")";
     }
 
     /**

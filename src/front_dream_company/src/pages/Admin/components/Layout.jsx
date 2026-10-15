@@ -175,7 +175,14 @@ function Topbar({ category, page, me }) {
         <span className={styles.crumbCurrent}>{page}</span>
       </div>
       <div className={styles.userArea}>
-        <div className={styles.userName}>{me.username || "—"}</div>
+        <div className={styles.userName}>
+          {me.username || "—"}
+          {me.displayName && me.displayName !== me.username && (
+            <span style={{ marginLeft: 4, color: "var(--ink-2)", fontWeight: 500 }}>
+              [{me.displayName}]
+            </span>
+          )}
+        </div>
         <Link
           to="/admin/change-password"
           style={{

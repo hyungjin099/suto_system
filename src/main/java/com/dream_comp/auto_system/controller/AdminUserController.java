@@ -32,8 +32,23 @@ public class AdminUserController {
         ResponseEntity<?> denied = requireSuperAdmin(req);
         if (denied != null) return denied;
         try {
-            AdminUserDto created = adminUserService.createByAdmin(body.get("username"));
+            AdminUserDto created = adminUserService.createByAdmin(
+                    body.get("username"), body.get("displayName"));
             return ResponseEntity.ok(created);
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
+    }
+
+    /** 표시명 변경 */
+    @PatchMapping("/{adminNum}/display-name")
+    public ResponseEntity<?> updateDisplayName(@PathVariable Long adminNum,
+                                               @RequestBody Map<String, String> body,
+                                               HttpServletRequest req) {
+        ResponseEntity<?> denied = requireSuperAdmin(req);
+        if (denied != null) return denied;
+        try {
+            return ResponseEntity.ok(adminUserService.updateDisplayName(adminNum, body.get("displayName")));
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
         }

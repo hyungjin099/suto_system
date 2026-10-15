@@ -59,4 +59,10 @@
         SET USE_YN = #{useYn}
         WHERE ADMIN_NUM = #{adminNum}
     </update>
+
+    <update id="updateDisplayName">
+        UPDATE ADMIN_USER
+        SET DISPLAY_NAME = #{displayName}
+        WHERE ADMIN_NUM = #{adminNum}
+    </update>
 </mapper>

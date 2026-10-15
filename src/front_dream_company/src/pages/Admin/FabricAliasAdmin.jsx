@@ -687,13 +687,25 @@ export default function FabricAliasAdmin() {
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
                           <span style={{
-                            fontSize: 11, fontWeight: 600, color: "var(--ink-2)",
-                            background: "var(--bg)", border: "1px solid var(--line)",
+                            fontSize: 11, fontWeight: 700, color: "#fff",
+                            background: "#1b3a2a", border: "1px solid #1b3a2a",
                             borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap", flexShrink: 0,
                           }}>
                             {fabric.manufacturer || "매입처 미지정"}
                           </span>
-                          <div className={styles.aliasFabricName}>{fabric.name}</div>
+                          <span style={{
+                            fontSize: 11, fontWeight: 700, color: "var(--brand-ink)",
+                            background: "var(--brand-soft)", border: "1px solid var(--brand-line)",
+                            borderRadius: 4, padding: "2px 6px", whiteSpace: "nowrap", flexShrink: 0,
+                          }}>
+                            {fabric.code || "코드없음"}
+                          </span>
+                          <span style={{
+                            fontSize: 12.5, fontWeight: 700, color: "var(--ink)",
+                            whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0,
+                          }}>
+                            {fabric.name}
+                          </span>
                         </div>
                         {!isAddingHere && (
                           <button
