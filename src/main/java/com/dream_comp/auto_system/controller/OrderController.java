@@ -1,24 +1,96 @@
 package com.dream_comp.auto_system.controller;
 
+import com.dream_comp.auto_system.dto.AdminUserDto;
+import com.dream_comp.auto_system.dto.NewOrderEventDto;
 import com.dream_comp.auto_system.dto.OrderRequestDto;
 import com.dream_comp.auto_system.dto.OrderResponseDto;
+import com.dream_comp.auto_system.mapper.OrderMapper;
+import com.dream_comp.auto_system.service.OrderAvailabilityService;
 import com.dream_comp.auto_system.service.OrderService;
+import com.dream_comp.auto_system.service.SseBroadcaster;
 import com.dream_comp.auto_system.vo.OrderVo;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @RestController
 @RequiredArgsConstructor
 public class OrderController {
 
+    private static final int UNSEEN_PREVIEW_LIMIT = 5;
+
     private final OrderService orderService;
+    private final OrderMapper orderMapper;
+    private final SseBroadcaster sseBroadcaster;
+    private final OrderAvailabilityService availabilityService;
 
     @PostMapping("/api/orders")
-    public ResponseEntity<OrderResponseDto> submit(@jakarta.validation.Valid @RequestBody OrderRequestDto dto) {
-        return ResponseEntity.ok(orderService.submitOrder(dto));
+    public ResponseEntity<?> submit(@jakarta.validation.Valid @RequestBody OrderRequestDto dto,
+                                    HttpServletRequest req) {
+        // 접수 가능 시간대 가드 — 관리자가 아닌 경우에만 (관리자는 언제든 수동 접수 가능)
+        HttpSession sessionPre = req.getSession(false);
+        boolean fromAdminPre = sessionPre != null
+                && sessionPre.getAttribute(AdminAuthController.SESSION_ADMIN) != null;
+        if (!fromAdminPre) {
+            OrderAvailabilityService.Result av = availabilityService.check();
+            if (!av.available) {
+                return ResponseEntity.status(403).body(Map.of(
+                        "message", av.message,
+                        "reason", av.reason
+                ));
+            }
+        }
+
+        OrderResponseDto res = orderService.submitOrder(dto);
+
+        // 관리자 세션이 아닐 때만(= 고객 주문만) 알림 broadcast
+        HttpSession session = req.getSession(false);
+        boolean fromAdmin = session != null
+                && session.getAttribute(AdminAuthController.SESSION_ADMIN) != null;
+        if (!fromAdmin && res != null && "OK".equals(res.getStatus())) {
+            try {
+                NewOrderEventDto event = orderMapper.findEventByOrderId(res.getOrderId());
+                if (event != null) sseBroadcaster.broadcastNewOrder(event);
+            } catch (Exception e) {
+                log.warn("SSE broadcast 실패 (orderId={}): {}", res.getOrderId(), e.getMessage());
+            }
+        }
+        return ResponseEntity.ok(res);
+    }
+
+    /** 관리자 알림 SSE 스트림 — 접속 유지, new-order 이벤트 수신 */
+    @GetMapping(value = "/api/admin/orders/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter stream(HttpServletRequest req) {
+        HttpSession session = req.getSession(false);
+        AdminUserDto user = session == null
+                ? null : (AdminUserDto) session.getAttribute(AdminAuthController.SESSION_ADMIN);
+        if (user == null) {
+            SseEmitter emitter = new SseEmitter(0L);
+            emitter.completeWithError(new IllegalStateException("관리자 로그인이 필요합니다"));
+            return emitter;
+        }
+        return sseBroadcaster.subscribe(user.getAdminNum());
+    }
+
+    /** 고객 주문 접수 가능 여부 — 페이지 접속 시 블록 UI 결정용 */
+    @GetMapping("/api/orders/availability")
+    public ResponseEntity<Map<String, Object>> availability() {
+        OrderAvailabilityService.Result av = availabilityService.check();
+        Map<String, Object> body = new HashMap<>();
+        body.put("available", av.available);
+        body.put("reason", av.reason);
+        body.put("message", av.message);
+        return ResponseEntity.ok(body);
     }
 
     /** 거래처별 주문 내역 (최신순) — 주문 페이지의 '내역 보기' 탭에서 사용 */
@@ -33,7 +105,7 @@ public class OrderController {
         return ResponseEntity.ok(orderService.findAllForAdmin());
     }
 
-    /** 관리자: 주문 품목 수정 (DB + 시트 동기화) */
+    /** 관리자: 주문 품목 수정 (DB 전용 — 시트는 작업자가 직접 처리) */
     @PatchMapping("/api/admin/orders/items/{itemNum}")
     public ResponseEntity<com.dream_comp.auto_system.dto.AdminOrderRowDto> updateItem(
             @PathVariable Long itemNum,
@@ -41,11 +113,34 @@ public class OrderController {
         return ResponseEntity.ok(orderService.updateItem(itemNum, dto));
     }
 
-    /** 관리자: 주문 품목 삭제 (DB + 시트 동기화) */
+    /** 관리자: 주문 품목 삭제 (DB 전용 — 시트는 작업자가 직접 처리) */
     @DeleteMapping("/api/admin/orders/items/{itemNum}")
     public ResponseEntity<Void> deleteItem(@PathVariable Long itemNum) {
         orderService.deleteItem(itemNum);
         return ResponseEntity.noContent().build();
+    }
+
+    /** 관리자: 내가 아직 안 본 발주 수 + 미리보기 (최신 5건) */
+    @GetMapping("/api/admin/orders/unseen")
+    public ResponseEntity<Map<String, Object>> unseen(HttpServletRequest req) {
+        HttpSession session = req.getSession(false);
+        AdminUserDto user = session == null
+                ? null : (AdminUserDto) session.getAttribute(AdminAuthController.SESSION_ADMIN);
+        if (user == null) {
+            return ResponseEntity.status(401).body(Map.of("message", "관리자 로그인이 필요합니다"));
+        }
+        Integer lastSeen = user.getLastSeenOrderNum() != null ? user.getLastSeenOrderNum() : 0;
+        int unseenCount = orderMapper.countUnseen(lastSeen);
+        List<NewOrderEventDto> preview =
+                orderMapper.findUnseenPreview(lastSeen, UNSEEN_PREVIEW_LIMIT);
+        Integer maxOrderNum = orderMapper.findMaxOrderNum();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("unseenCount", unseenCount);
+        body.put("latestOrderNum", maxOrderNum);
+        body.put("lastSeenOrderNum", lastSeen);
+        body.put("preview", preview);
+        return ResponseEntity.ok(body);
     }
 
     /** 거래처의 과거 사용 납품처 목록 (주문 폼 자동완성용) */

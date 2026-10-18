@@ -9,9 +9,10 @@ import SectionHeader from "./components/SectionHeader";
 import ProductCard from "./components/ProductCard";
 import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
+import UnavailableScreen from "./components/UnavailableScreen";
 import { IconPlus, IconChevron } from "./components/Icons";
 import { emptyItem, validateItem } from "./constants";
-import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations } from "./api";
+import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations, fetchOrderAvailability } from "./api";
 import styles from "./OrderForm.module.css";
 
 const cx = (...args) => args.filter(Boolean).join(" ");
@@ -59,7 +60,21 @@ export default function OrderForm() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [blockMsg, setBlockMsg] = useState("");
+  const [availability, setAvailability] = useState({ loading: true, available: true, reason: null, message: null });
   const addedRef = useRef(null);
+
+  // 접수 가능 여부 체크 (주말/공휴일/심야). 1분마다 재확인.
+  useEffect(() => {
+    let alive = true;
+    const check = () => {
+      fetchOrderAvailability()
+        .then((r) => alive && setAvailability({ loading: false, ...r }))
+        .catch(() => alive && setAvailability({ loading: false, available: true, reason: null, message: null }));
+    };
+    check();
+    const timer = setInterval(check, 60_000);
+    return () => { alive = false; clearInterval(timer); };
+  }, []);
 
   useEffect(() => {
     if (!cliCode) { setFabricsLoading(false); return; }
@@ -211,6 +226,11 @@ export default function OrderForm() {
       onGoHistory={goHistory}
     />
   );
+
+  // 접수 불가 시간대 → 전체 블록 UI
+  if (!availability.loading && !availability.available) {
+    return <UnavailableScreen reason={availability.reason} message={availability.message} />;
+  }
 
   return (
     <PasswordGate cliCode={cliCode} clientName={clientName}>

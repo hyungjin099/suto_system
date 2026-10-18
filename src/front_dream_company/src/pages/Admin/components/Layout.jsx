@@ -15,6 +15,8 @@ import {
   IconGear,
 } from "./Icons";
 import { cx } from "../utils";
+import { useNotification } from "../notifications/NotificationContext";
+import NotificationCenter from "../notifications/NotificationCenter";
 import styles from "./Layout.module.css";
 
 const MENU_ITEMS = [
@@ -74,7 +76,7 @@ function resolveActive(pathname) {
 export function AdminShell({ children }) {
   const { pathname } = useLocation();
   const active = resolveActive(pathname);
-  const [me, setMe] = useState({ isSuperAdmin: false });
+  const [me, setMe] = useState({ isSuperAdmin: false, authenticated: false });
 
   useEffect(() => {
     adminMe().then((r) => {
@@ -87,6 +89,7 @@ export function AdminShell({ children }) {
       <Sidebar activeKey={active.key} isSuperAdmin={!!me.isSuperAdmin} />
       <div className={styles.content}>
         <Topbar category={active.category} page={active.page} me={me} setMe={setMe} />
+        <NotificationCenter />
         <main className={styles.main}>{children}</main>
       </div>
     </div>
@@ -101,10 +104,11 @@ function Sidebar({ activeKey, isSuperAdmin }) {
         { key: "settings", label: "시스템 설정", path: "/admin/settings", Icon: IconGear  },
       ]
     : MENU_ITEMS;
-  return _SidebarRender({ activeKey, menu });
+  const { unseenCount } = useNotification();
+  return <SidebarRender activeKey={activeKey} menu={menu} unseenCount={unseenCount} />;
 }
 
-function _SidebarRender({ activeKey, menu }) {
+function SidebarRender({ activeKey, menu, unseenCount }) {
   return (
     <aside className={styles.sidebar}>
       <div className={styles.brand}>
@@ -142,6 +146,7 @@ function _SidebarRender({ activeKey, menu }) {
           );
         }
 
+        const showBadge = it.key === "orders" && unseenCount > 0;
         return (
           <Link
             key={it.key}
@@ -152,6 +157,19 @@ function _SidebarRender({ activeKey, menu }) {
               <Icon />
             </span>
             {it.label}
+            {showBadge && (
+              <span style={{
+                marginLeft: "auto",
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: 20, height: 20, padding: "0 6px",
+                borderRadius: 999, background: "#d64545", color: "#fff",
+                fontSize: 11, fontWeight: 700,
+              }}>
+                {unseenCount > 99 ? "99+" : unseenCount}
+              </span>
+            )}
           </Link>
         );
       })}

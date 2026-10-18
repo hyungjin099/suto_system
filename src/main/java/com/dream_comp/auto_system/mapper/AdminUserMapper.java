@@ -17,5 +17,7 @@ public interface AdminUserMapper {
                        @Param("resetRequired") String resetRequired);
     int updateUseYn(@Param("adminNum") Long adminNum, @Param("useYn") String useYn);
     int updateDisplayName(@Param("adminNum") Long adminNum, @Param("displayName") String displayName);
+    int updateLastSeenOrderNum(@Param("adminNum") Long adminNum, @Param("orderNum") Integer orderNum);
+    int initializeLastSeen(@Param("adminNum") Long adminNum, @Param("orderNum") Integer orderNum);
     List<AdminUserDto> findAll();
 }

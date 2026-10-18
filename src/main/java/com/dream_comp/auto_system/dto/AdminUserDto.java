@@ -10,4 +10,5 @@ public class AdminUserDto {
     private String displayName;
     private String passwordResetRequired; // 'Y'/'N'
     private String useYn;                 // 'Y'/'N'
+    private Integer lastSeenOrderNum;     // 알림: 이 관리자가 마지막으로 본 ORDER_NUM. NULL이면 첫 로그인 시 보정
 }

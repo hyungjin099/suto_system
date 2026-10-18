@@ -22,7 +22,7 @@ import java.util.Map;
  *
  * - 영업일 판정: 월~금 (공휴일 미반영 — Option A)
  * - 공휴일에 돌아도 Apps Script 쪽 createTodayTab이 "담당 기간 아님"이면 push 실패 → DEFERRED 유지 → 다음 날 재시도
- * - 트리거: 매일 01:00 KST (월~일 모두 실행, 영업일만 실제 push 수행)
+ * - 트리거: 매일 02:00 KST (01시 Apps Script 미완료 이월 이후에 돌도록)
  */
 @Slf4j
 @Component
@@ -36,7 +36,7 @@ public class DeferredPushJob {
     private final SheetsWebhookService sheetsWebhookService;
     private final OrderService orderService;
 
-    @Scheduled(cron = "0 0 1 * * *", zone = "Asia/Seoul")
+    @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
     public void run() {
         DayOfWeek dow = LocalDate.now(KST).getDayOfWeek();
         if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {

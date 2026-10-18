@@ -5,10 +5,92 @@
 
 import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import Select, { components as rsComponents } from "react-select";
 import ModalShell from "./ModalShell";
 import { IconX } from "./Icons";
 import { fetchClientDestinations } from "../api";
 import styles from "./OrderCreateModal.module.css";
+
+/* react-select 공통 스타일 — 모달 내 인풋 높이·테마와 통일 */
+const rsStyles = {
+  control: (base, state) => ({
+    ...base,
+    minHeight: 36,
+    height: 36,
+    borderColor: state.isFocused
+      ? "var(--brand, #1b3a2a)"
+      : "var(--line, #d7ddda)",
+    boxShadow: "none",
+    "&:hover": { borderColor: "var(--brand, #1b3a2a)" },
+    borderRadius: 8,
+    fontSize: 13.5,
+  }),
+  valueContainer: (base) => ({ ...base, padding: "0 10px" }),
+  input: (base) => ({ ...base, margin: 0, padding: 0 }),
+  indicatorsContainer: (base) => ({ ...base, height: 34 }),
+  option: (base, state) => ({
+    ...base,
+    backgroundColor: state.isSelected
+      ? "var(--brand, #1b3a2a)"
+      : state.isFocused
+      ? "var(--brand-soft, #f3f7f4)"
+      : "white",
+    color: state.isSelected ? "white" : "var(--ink, #1a1a1a)",
+    cursor: "pointer",
+    fontSize: 13,
+  }),
+  menu: (base) => ({ ...base, zIndex: 30 }),
+  menuPortal: (base) => ({ ...base, zIndex: 60 }),
+};
+
+const filterByFields = (fields) => (candidate, rawInput) => {
+  if (!rawInput) return true;
+  const q = rawInput.toLowerCase().trim();
+  return fields.some((k) =>
+    String(candidate.data[k] || "").toLowerCase().includes(q)
+  );
+};
+
+/* 제품 옵션 커스텀 렌더 — [원단코드] 뱃지 + 원단명 */
+const FabricOption = (p) => (
+  <rsComponents.Option {...p}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <span
+        style={{
+          fontSize: 11,
+          padding: "1px 7px",
+          borderRadius: 4,
+          background: "var(--brand-soft, #e8f0ec)",
+          color: "var(--brand-ink, #1b3a2a)",
+          fontWeight: 700,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {p.data.prodCode}
+      </span>
+      <span>{p.data.label}</span>
+    </div>
+  </rsComponents.Option>
+);
+const FabricSingleValue = (p) => (
+  <rsComponents.SingleValue {...p}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+      <span
+        style={{
+          fontSize: 10.5,
+          padding: "1px 6px",
+          borderRadius: 4,
+          background: "var(--brand-soft, #e8f0ec)",
+          color: "var(--brand-ink, #1b3a2a)",
+          fontWeight: 700,
+        }}
+      >
+        {p.data.prodCode}
+      </span>
+      <span>{p.data.label}</span>
+    </span>
+  </rsComponents.SingleValue>
+);
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 
@@ -38,6 +120,19 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
     [clients, cliCode]
   );
 
+  const clientOptions = useMemo(
+    () =>
+      clients.map((c) => ({
+        value: c.cliCode,
+        label: `${c.name} (${c.cliCode})`,
+        name: c.name,
+        cliCode: c.cliCode,
+      })),
+    [clients]
+  );
+  const selectedClientOption =
+    clientOptions.find((o) => o.value === cliCode) || null;
+
   useEffect(() => {
     if (!cliCode) { setDestinations([]); return; }
     fetchClientDestinations(cliCode).then(setDestinations).catch(() => setDestinations([]));
@@ -53,6 +148,7 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
           res.data.map((f) => ({
             value: f.prodCode,
             label: f.aliasName,
+            prodCode: f.prodCode,
             prodName: f.prodName,
             price: f.clientFabPrice,
           }))
@@ -137,18 +233,18 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
             </div>
             <div className={styles.field}>
               <label className={styles.label}>거래처</label>
-              <select
-                className={styles.select}
-                value={cliCode}
-                onChange={(e) => setCliCode(e.target.value)}
-              >
-                <option value="">선택하세요</option>
-                {clients.map((c) => (
-                  <option key={c.cliCode} value={c.cliCode}>
-                    {c.name} ({c.cliCode})
-                  </option>
-                ))}
-              </select>
+              <Select
+                value={selectedClientOption}
+                onChange={(opt) => setCliCode(opt ? opt.value : "")}
+                options={clientOptions}
+                placeholder="거래처명 또는 코드로 검색"
+                isClearable
+                isSearchable
+                filterOption={filterByFields(["name", "cliCode", "label"])}
+                styles={rsStyles}
+                menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                noOptionsMessage={() => "일치하는 거래처가 없습니다"}
+              />
             </div>
           </section>
 
@@ -182,25 +278,26 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
 
                   <div className={styles.field}>
                     <label className={styles.label}>제품</label>
-                    <select
-                      className={styles.select}
-                      value={it.product}
-                      onChange={(e) => onPickFabric(it._id, e.target.value)}
-                      disabled={!cliCode || fabricsLoading}
-                    >
-                      <option value="">
-                        {!cliCode
+                    <Select
+                      value={fabricOptions.find((f) => f.value === it.product) || null}
+                      onChange={(opt) => onPickFabric(it._id, opt ? opt.value : "")}
+                      options={fabricOptions}
+                      placeholder={
+                        !cliCode
                           ? "거래처를 먼저 선택"
                           : fabricsLoading
                           ? "불러오는 중…"
-                          : "제품 선택"}
-                      </option>
-                      {fabricOptions.map((f) => (
-                        <option key={f.value} value={f.value}>
-                          {f.label} ({f.prodName})
-                        </option>
-                      ))}
-                    </select>
+                          : "원단코드 또는 이름으로 검색"
+                      }
+                      isDisabled={!cliCode || fabricsLoading}
+                      isClearable
+                      isSearchable
+                      filterOption={filterByFields(["label", "prodCode", "prodName"])}
+                      components={{ Option: FabricOption, SingleValue: FabricSingleValue }}
+                      styles={rsStyles}
+                      menuPortalTarget={typeof document !== "undefined" ? document.body : null}
+                      noOptionsMessage={() => "일치하는 제품이 없습니다"}
+                    />
                   </div>
 
                   <div className={styles.row3}>

@@ -4,7 +4,9 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import { useLocation } from "react-router-dom";
 import { AdminShell } from "./components/Layout";
+import { useNotification } from "./notifications/NotificationContext";
 import PageHeader from "./components/PageHeader";
 import Pagination from "./components/Pagination";
 import {
@@ -60,6 +62,14 @@ function StatusChip({ status }) {
 }
 
 export default function OrderAdmin() {
+  const location = useLocation();
+  const { markAsSeen, latestOrderNum } = useNotification();
+  const highlightSince = useMemo(() => {
+    const sp = new URLSearchParams(location.search);
+    const v = parseInt(sp.get("highlightSince") || "0", 10);
+    return Number.isFinite(v) ? v : 0;
+  }, [location.search]);
+  const [highlightFading, setHighlightFading] = useState(false);
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -142,6 +152,19 @@ export default function OrderAdmin() {
       .catch(() => setError("주문 내역을 불러오지 못했습니다."))
       .finally(() => setLoading(false));
   }, []);
+
+  // 페이지 진입 시: 현재까지의 최대 ORDER_NUM을 "본 걸로" 처리
+  useEffect(() => {
+    if (latestOrderNum > 0) markAsSeen(latestOrderNum);
+  }, [latestOrderNum, markAsSeen]);
+
+  // 하이라이트 fade: 5초 후 사라짐
+  useEffect(() => {
+    if (!highlightSince) return undefined;
+    setHighlightFading(false);
+    const t = setTimeout(() => setHighlightFading(true), 5000);
+    return () => clearTimeout(t);
+  }, [highlightSince]);
 
   const filtered = useMemo(() => {
     const kw = q.trim().toLowerCase();
@@ -332,12 +355,19 @@ export default function OrderAdmin() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={14} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
             ) : (
-              pageItems.map((r, i) => (
+              pageItems.map((r, i) => {
+                const isNew = highlightSince > 0 && r.orderNum > highlightSince;
+                return (
                 <tr
                   key={`${r.orderNum}-${r.itemNum}`}
                   className={styles.row}
                   onClick={() => setEditingRow(r)}
-                  style={{ cursor: "pointer" }}
+                  style={{
+                    cursor: "pointer",
+                    backgroundColor: isNew && !highlightFading ? "#d4edda" : undefined,
+                    borderLeft: isNew && !highlightFading ? "4px solid #28a745" : undefined,
+                    transition: "background-color 1.5s ease-out, border-left-color 1.5s ease-out",
+                  }}
                   title="클릭해서 수정"
                 >
                   <td className={styles.cellNum}>{filtered.length - ((page - 1) * PAGE_SIZE + i)}</td>
@@ -357,7 +387,8 @@ export default function OrderAdmin() {
                   </td>
                   <td className={styles.cellNum}><StatusChip status={r.status} /></td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>
@@ -413,7 +444,8 @@ export default function OrderAdmin() {
                 {deleteTarget.rolls ? ` · ${deleteTarget.rolls}롤` : ""}
               </div>
               <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)" }}>
-                스프레드시트의 해당 행도 함께 비워집니다. 되돌릴 수 없습니다.
+                시스템에서만 삭제되며 스프레드시트에는 반영되지 않습니다.<br />
+                삭제 후 시트도 지워야 한다면 <b>작업자에게 공유</b>해주세요. 되돌릴 수 없습니다.
               </div>
             </div>
           }

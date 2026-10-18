@@ -3,7 +3,7 @@
  * - 주문 종료: 실제 브라우저 종료는 불가하므로 "이용 감사" 안내 화면 전환
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { formatNumber } from "../utils";
 import styles from "./SuccessScreen.module.css";
 
@@ -20,6 +20,18 @@ export default function SuccessScreen({ data, onReset, onGoHistory }) {
   }).format(data.at);
 
   const deliveryLabel = data.deliveryDate || "-";
+
+  // 상품(parent)별로 묶기 — 같은 상품의 여러 규격은 한 그룹. note/destination은 그룹 대표값.
+  const groupedItems = useMemo(() => {
+    const map = new Map();
+    const order = [];
+    (data.items || []).forEach((it) => {
+      const pid = it._parentId ?? it.id;
+      if (!map.has(pid)) { map.set(pid, []); order.push(pid); }
+      map.get(pid).push(it);
+    });
+    return order.map((pid) => ({ pid, rows: map.get(pid) }));
+  }, [data.items]);
 
   // === 주문 종료 화면 ===
   if (ended) {
@@ -80,25 +92,42 @@ export default function SuccessScreen({ data, onReset, onGoHistory }) {
             </div>
           </div>
 
-          {data.items.map((it) => (
-            <div key={it.id} className={styles.itemRow}>
-              <div>
-                <div className={styles.itemName}>{it.productLabel}</div>
-                <div className={styles.itemDims}>
-                  {formatNumber(it.width)}mm × {formatNumber(it.length)}m
-                </div>
-                {(it.destination || "").trim() && (
+          {groupedItems.map((group) => {
+            const head = group.rows[0];
+            const note = (head.note || "").trim();
+            const destination = (head.destination || "").trim();
+            return (
+              <div key={group.pid} className={styles.productGroup}>
+                {group.rows.map((it, idx) => (
+                  <div key={it.id} className={styles.itemRow}>
+                    <div>
+                      {idx === 0 && (
+                        <div className={styles.itemName}>{it.productLabel}</div>
+                      )}
+                      <div className={styles.itemDims}>
+                        {formatNumber(it.width)}mm × {formatNumber(it.length)}m
+                      </div>
+                    </div>
+                    <div className={styles.itemRolls}>
+                      {parseInt(it.rolls, 10)}롤
+                    </div>
+                  </div>
+                ))}
+                {destination && (
                   <div className={styles.itemDest}>
                     <span className={styles.itemDestLabel}>납품처</span>
-                    {it.destination.trim()}
+                    <span className={styles.itemDestText}>{destination}</span>
+                  </div>
+                )}
+                {note && (
+                  <div className={styles.itemNote}>
+                    <span className={styles.itemNoteLabel}>비고</span>
+                    <span className={styles.itemNoteText}>{note}</span>
                   </div>
                 )}
               </div>
-              <div className={styles.itemRolls}>
-                {parseInt(it.rolls, 10)}롤
-              </div>
-            </div>
-          ))}
+            );
+          })}
 
           <div className={styles.totalRow}>
             <span className={styles.totalLabel}>합계</span>
@@ -111,7 +140,7 @@ export default function SuccessScreen({ data, onReset, onGoHistory }) {
         {/* 3버튼 가로 배치 */}
         <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
           <button type="button" onClick={onReset} className={styles.resetBtn} style={{ flex: 1 }}>
-            새 주문 작성
+            새 주문<br />작성
           </button>
           <button
             type="button"
@@ -124,7 +153,7 @@ export default function SuccessScreen({ data, onReset, onGoHistory }) {
               border: "1px solid var(--brand, #4a7c59)",
             }}
           >
-            발주 내역 확인
+            발주 내역<br />확인
           </button>
           <button
             type="button"

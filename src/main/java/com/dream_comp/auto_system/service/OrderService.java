@@ -61,13 +61,7 @@ public class OrderService {
 
         SheetsWebhookService.PushResult push = new SheetsWebhookService.PushResult(false, null);
         if (defer) {
-            // 일자 탭은 다음 영업일 새벽 배치. 미확정 시트에는 즉시 삽입.
-            try {
-                sheetsWebhookService.pushAppendUnconfirmed(inserted.orderId, dto, inserted.itemNums,
-                        computeNextBusinessDayTabName(nowKst));
-            } catch (Exception e) {
-                log.warn("Deferred unconfirmed push 예외 (orderId={}): {}", inserted.orderId, e.getMessage());
-            }
+            // 17시 이후 접수: 당일 push 생략. DEFERRED 상태로 두면 다음날 02시 DeferredPushJob이 처리.
             markSheetStatus(inserted.orderNum, "DEFERRED");
         } else {
             try {
@@ -89,19 +83,6 @@ public class OrderService {
                 "주문이 접수되었습니다.",
                 deliveryDate
         );
-    }
-
-    /** 다음 영업일 탭 이름 (주말만 스킵, 공휴일은 미반영 — Option A) */
-    static String computeNextBusinessDayTabName(LocalDateTime fromKst) {
-        java.time.LocalDate d = fromKst.toLocalDate().plusDays(1);
-        while (d.getDayOfWeek() == java.time.DayOfWeek.SATURDAY
-                || d.getDayOfWeek() == java.time.DayOfWeek.SUNDAY) {
-            d = d.plusDays(1);
-        }
-        String[] dow = { "일","월","화","수","목","금","토" };
-        int idx = d.getDayOfWeek().getValue() % 7; // Mon=1..Sun=7 → Sun=0, Mon=1...
-        return d.format(java.time.format.DateTimeFormatter.ofPattern("MM-dd"))
-                + "(" + dow[idx] + ")";
     }
 
     /**
@@ -218,8 +199,7 @@ public class OrderService {
 
         orderAuditService.log("DELETE", orderNum, itemNum, snapshotOf(row), null,
                 orderRemoved ? "품목 삭제 + 마지막 품목이라 주문 헤더도 삭제됨" : "품목 삭제");
-
-        sheetsWebhookService.pushItemDelete(itemNum);
+        // 시트 반영 안 함: 작업자가 시트에서 직접 처리하는 설계 (가이드 참고)
     }
 
     @Transactional
@@ -257,8 +237,7 @@ public class OrderService {
 
         orderAuditService.log("UPDATE", current.getOrderNum(), itemNum,
                 snapshotOf(current), snapshotOf(updated), "품목 수정");
-
-        sheetsWebhookService.pushItemUpdate(updated);
+        // 시트 반영 안 함: 작업자가 시트에서 직접 처리하는 설계 (가이드 참고)
         return updated;
     }
 

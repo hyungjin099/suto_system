@@ -33,15 +33,15 @@ export default function ClientTable({ items, empty, onEdit, onResetPassword }) {
     <div className={styles.wrap}>
       <table className={styles.table}>
         <colgroup>
-          <col width="60px" />   {/* 번호 */}
-          <col width="80px" />   {/* 사용구분 */}
-          <col width="140px" />  {/* 거래처코드 */}
-          <col width="180px" />  {/* 거래처정보 */}
-          <col width="100px" />  {/* 대표자 */}
-          <col width="140px" />  {/* 담당자정보 */}
-          <col width="360px" />  {/* 주문 페이지 URL */}
-          <col width="80px" />   {/* QR */}
-          <col width="200px" />  {/* actions */}
+          <col width="60px" />
+          <col width="80px" />
+          <col width="140px" />
+          <col width="180px" />
+          <col width="100px" />
+          <col width="140px" />
+          <col width="360px" />
+          <col width="80px" />
+          <col width="200px" />
         </colgroup>
         <thead>
           <tr className={styles.headRow}>

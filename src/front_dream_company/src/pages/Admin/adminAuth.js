@@ -91,3 +91,22 @@ export async function updateSystemSetting(key, value) {
   const res = await axios.put(`${BASE_URL}/api/admin/settings/${encodeURIComponent(key)}`, { value });
   return res.data;
 }
+
+// ===== 알림 =====
+
+/** 본인 LAST_SEEN_ORDER_NUM 갱신 */
+export async function patchLastSeen(orderNum) {
+  const res = await axios.patch(`${BASE_URL}/api/admin/auth/me/last-seen`, { orderNum });
+  return res.data; // { ok, lastSeenOrderNum }
+}
+
+/** 안 본 발주 요약 (복귀 배너·사이드바 뱃지용) */
+export async function fetchUnseen() {
+  const res = await axios.get(`${BASE_URL}/api/admin/orders/unseen`);
+  return res.data; // { unseenCount, latestOrderNum, lastSeenOrderNum, preview: [NewOrderEvent] }
+}
+
+/** SSE 스트림 URL (EventSource는 fetch가 아니라 생성자에 URL 넘김) */
+export function sseStreamUrl() {
+  return `${BASE_URL}/api/admin/orders/stream`;
+}

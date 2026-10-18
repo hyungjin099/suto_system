@@ -145,6 +145,18 @@ public class AdminUserService {
         return u;
     }
 
+    /** 알림: lastSeen 갱신 (OrderAdmin 진입 시 등). 역전 방지는 Mapper에서 처리 */
+    public int updateLastSeenOrderNum(Long adminNum, Integer orderNum) {
+        if (adminNum == null || orderNum == null) return 0;
+        return adminUserMapper.updateLastSeenOrderNum(adminNum, orderNum);
+    }
+
+    /** 알림: 첫 로그인 시 NULL이면 지금의 maxOrderNum으로 보정 (멱등) */
+    public int initializeLastSeen(Long adminNum, Integer orderNum) {
+        if (adminNum == null || orderNum == null) return 0;
+        return adminUserMapper.initializeLastSeen(adminNum, orderNum);
+    }
+
     /** admin 본인은 비활성화 불가. 그 외 계정 활성/비활성 토글 */
     public AdminUserDto setActive(Long adminNum, boolean active) {
         AdminUserDto u = adminUserMapper.findByAdminNum(adminNum);

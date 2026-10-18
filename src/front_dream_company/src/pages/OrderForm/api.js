@@ -82,3 +82,9 @@ export async function submitOrder({ cliCode, clientName, managerPhone, items }) 
   const res = await axios.post(`${BASE_URL}/api/orders`, payload);
   return res.data;
 }
+
+/** 주문 접수 가능 여부 (주말/공휴일/심야 블록) */
+export async function fetchOrderAvailability() {
+  const res = await axios.get(`${BASE_URL}/api/orders/availability`);
+  return res.data; // { available: boolean, reason: string|null, message: string|null }
+}

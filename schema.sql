@@ -99,7 +99,7 @@ CREATE TABLE ORDER_INFO (
     CLI_CODE   VARCHAR(20) NOT NULL,                       -- FK CLIENT_INFO.CLI_CODE
     ORDER_ID   VARCHAR(30) NOT NULL UNIQUE,                -- 'ORD-XXXXXX'
     STATUS          VARCHAR(20) DEFAULT 'PENDING',                  -- 시트 전송 상태 ('PENDING'/'OK'/'FAILED'/'DEFERRED')
-                                                                     --   DEFERRED: 17시 이후 접수. 일자 탭 push는 다음 영업일 01시 배치가 담당.
+                                                                     --   DEFERRED: 17시 이후 접수. 일자 탭 push는 다음 영업일 02시 배치가 담당.
     ORDER_DATE      DATETIME    DEFAULT SYSDATE(),
     -- 기존 운영 DB 마이그레이션 (WORKFLOW_STATUS 컬럼이 있다면):
     --   ALTER TABLE ORDER_INFO DROP COLUMN WORKFLOW_STATUS;
@@ -139,6 +139,7 @@ CREATE TABLE ADMIN_USER (
     DISPLAY_NAME            VARCHAR(50),
     PASSWORD_RESET_REQUIRED CHAR(1)   NOT NULL DEFAULT 'Y',         -- Y: 최초 로그인 시 비번 변경 강제
     USE_YN                  CHAR(1)   NOT NULL DEFAULT 'Y',         -- N: 비활성(로그인 차단). 세션 만료 후 재로그인 시점부터 차단
+    LAST_SEEN_ORDER_NUM     INT       NULL DEFAULT NULL,             -- 신규발주 알림: 이 관리자가 마지막으로 본 주문 PK. NULL이면 첫 로그인 시 자동 보정
     REG_DATE                DATETIME  DEFAULT SYSDATE(),
     CONSTRAINT PK_ADMIN_USER PRIMARY KEY (ADMIN_NUM)
 );
@@ -148,6 +149,11 @@ CREATE TABLE ADMIN_USER (
 --   ALTER TABLE ADMIN_USER
 --     ADD COLUMN PASSWORD_RESET_REQUIRED CHAR(1) NOT NULL DEFAULT 'Y' AFTER DISPLAY_NAME,
 --     ADD COLUMN USE_YN                  CHAR(1) NOT NULL DEFAULT 'Y' AFTER PASSWORD_RESET_REQUIRED;
+--   ALTER TABLE ADMIN_USER
+--     ADD COLUMN LAST_SEEN_ORDER_NUM INT NULL DEFAULT NULL AFTER USE_YN;
+--   UPDATE ADMIN_USER
+--      SET LAST_SEEN_ORDER_NUM = (SELECT COALESCE(MAX(ORDER_NUM), 0) FROM ORDER_INFO)
+--    WHERE LAST_SEEN_ORDER_NUM IS NULL;
 
 
 -- ==========================================================================

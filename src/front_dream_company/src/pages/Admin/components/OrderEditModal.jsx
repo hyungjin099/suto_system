@@ -108,7 +108,7 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, saving,
         <p style={{ margin: "0 0 16px", fontSize: 12.5, color: "var(--muted)" }}>
           주문번호 <b style={{ fontFamily: "ui-monospace, monospace" }}>{row.orderId}</b>
           {" · "}{row.cliCompName}
-          {" · "}<span style={{ color: "var(--muted)" }}>저장하면 스프레드시트에도 자동 반영됩니다.</span>
+          {" · "}<span style={{ color: "var(--muted)" }}>저장 후 시트도 수정이 필요하면 작업자에게 공유해주세요.</span>
         </p>
 
         <div style={grid2}>

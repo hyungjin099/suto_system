@@ -4,7 +4,8 @@
  */
 
 import { IconTrash } from "./Icons";
-import { Label, TextInput, SelectInput, Stepper } from "./Fields";
+import { Label, TextInput, Stepper } from "./Fields";
+import ProductCombobox from "./ProductCombobox";
 import { formatNumber, onlyDigits } from "../utils";
 import { emptySpec } from "../constants";
 import styles from "./ProductCard.module.css";
@@ -69,10 +70,10 @@ export default function ProductCard({
             ⚠ 제품명에 보이지 않는 제품을 구매하시려면 담당자에게 연락 바랍니다.
           </span>
         </div>
-        <SelectInput
+        <ProductCombobox
           value={item.product}
           onChange={(v) => setField("product", v)}
-          placeholder={fabricsLoading ? "원단 목록 불러오는 중…" : "제품을 선택하세요"}
+          placeholder={fabricsLoading ? "원단 목록 불러오는 중…" : "제품을 선택하세요 (코드/이름으로 검색)"}
           options={products}
           disabled={fabricsLoading}
           error={errors?.product}

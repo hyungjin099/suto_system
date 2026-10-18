@@ -179,6 +179,70 @@
         WHERE ORDER_ID LIKE CONCAT(#{prefix}, '%')
     </select>
 
+    <!-- 알림: 지금까지 발급된 최대 ORDER_NUM. 없으면 NULL. -->
+    <select id="findMaxOrderNum" resultType="java.lang.Integer">
+        SELECT MAX(ORDER_NUM) FROM ORDER_INFO
+    </select>
+
+    <!-- 알림: 미확인 수 (lastSeen 초과) -->
+    <select id="countUnseen" resultType="int">
+        SELECT COUNT(*) FROM ORDER_INFO
+        WHERE ORDER_NUM &gt; COALESCE(#{lastSeen}, 0)
+    </select>
+
+    <!-- 알림: 미확인 미리보기 (최신순, limit 건) -->
+    <resultMap id="newOrderEventMap" type="com.dream_comp.auto_system.dto.NewOrderEventDto">
+        <result property="orderNum"          column="ORDER_NUM"/>
+        <result property="orderId"           column="ORDER_ID"/>
+        <result property="cliCompName"       column="CLI_COMP_NAME"/>
+        <result property="orderDate"         column="ORDER_DATE"/>
+        <result property="firstProductLabel" column="FIRST_PRODUCT_LABEL"/>
+        <result property="itemCount"         column="ITEM_COUNT"/>
+        <result property="totalRolls"        column="TOTAL_ROLLS"/>
+        <result property="status"            column="STATUS"/>
+    </resultMap>
+
+    <select id="findUnseenPreview" resultMap="newOrderEventMap">
+        SELECT
+            oi.ORDER_NUM,
+            oi.ORDER_ID,
+            ci.CLI_COMP_NAME,
+            oi.ORDER_DATE,
+            oi.STATUS,
+            (SELECT it.PRODUCT_LABEL FROM ORDER_ITEM it
+              WHERE it.ORDER_NUM = oi.ORDER_NUM
+              ORDER BY it.ITEM_NUM LIMIT 1) AS FIRST_PRODUCT_LABEL,
+            (SELECT COUNT(*) FROM ORDER_ITEM it
+              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS ITEM_COUNT,
+            (SELECT COALESCE(SUM(it.ROLLS), 0) FROM ORDER_ITEM it
+              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS TOTAL_ROLLS
+        FROM ORDER_INFO oi
+        LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
+        WHERE oi.ORDER_NUM &gt; COALESCE(#{lastSeen}, 0)
+        ORDER BY oi.ORDER_NUM DESC
+        LIMIT #{limit}
+    </select>
+
+    <!-- 알림: 단건 조회 (방금 접수한 주문용) -->
+    <select id="findEventByOrderId" resultMap="newOrderEventMap">
+        SELECT
+            oi.ORDER_NUM,
+            oi.ORDER_ID,
+            ci.CLI_COMP_NAME,
+            oi.ORDER_DATE,
+            oi.STATUS,
+            (SELECT it.PRODUCT_LABEL FROM ORDER_ITEM it
+              WHERE it.ORDER_NUM = oi.ORDER_NUM
+              ORDER BY it.ITEM_NUM LIMIT 1) AS FIRST_PRODUCT_LABEL,
+            (SELECT COUNT(*) FROM ORDER_ITEM it
+              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS ITEM_COUNT,
+            (SELECT COALESCE(SUM(it.ROLLS), 0) FROM ORDER_ITEM it
+              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS TOTAL_ROLLS
+        FROM ORDER_INFO oi
+        LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
+        WHERE oi.ORDER_ID = #{orderId}
+    </select>
+
     <!-- 거래처의 과거 사용 납품처 목록 (자동완성용, distinct + 사용횟수 순) -->
     <select id="findDestinationsByCliCode" parameterType="string" resultType="string">
         SELECT it.DESTINATION

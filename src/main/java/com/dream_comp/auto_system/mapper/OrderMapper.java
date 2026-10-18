@@ -27,4 +27,16 @@ public interface OrderMapper {
     int deleteItem(Long itemNum);
     int countItemsByOrderNum(Long orderNum);
     int deleteOrder(Long orderNum);
+
+    /** 알림: 현재 DB에 저장된 최대 ORDER_NUM (없으면 NULL) */
+    Integer findMaxOrderNum();
+    /** 알림: 미확인 발주 수 (ORDER_NUM > lastSeen) */
+    int countUnseen(@Param("lastSeen") Integer lastSeen);
+    /** 알림: 미확인 발주 요약 (최신순, limit건) */
+    List<com.dream_comp.auto_system.dto.NewOrderEventDto> findUnseenPreview(
+            @Param("lastSeen") Integer lastSeen,
+            @Param("limit") int limit);
+    /** 알림: orderId로 단건 이벤트 조회 (방금 접수한 주문을 broadcast 하기 위해) */
+    com.dream_comp.auto_system.dto.NewOrderEventDto findEventByOrderId(
+            @Param("orderId") String orderId);
 }

@@ -11,11 +11,12 @@
         <result property="displayName"             column="DISPLAY_NAME"/>
         <result property="passwordResetRequired"   column="PASSWORD_RESET_REQUIRED"/>
         <result property="useYn"                   column="USE_YN"/>
+        <result property="lastSeenOrderNum"        column="LAST_SEEN_ORDER_NUM"/>
     </resultMap>
 
     <sql id="cols">
         ADMIN_NUM, USERNAME, PASSWORD, DISPLAY_NAME,
-        PASSWORD_RESET_REQUIRED, USE_YN
+        PASSWORD_RESET_REQUIRED, USE_YN, LAST_SEEN_ORDER_NUM
     </sql>
 
     <select id="findByUsername" parameterType="string" resultMap="adminUserMap">
@@ -64,5 +65,21 @@
         UPDATE ADMIN_USER
         SET DISPLAY_NAME = #{displayName}
         WHERE ADMIN_NUM = #{adminNum}
+    </update>
+
+    <!-- 알림: lastSeen 갱신 (역전 방지 — 더 큰 값일 때만 업데이트) -->
+    <update id="updateLastSeenOrderNum">
+        UPDATE ADMIN_USER
+           SET LAST_SEEN_ORDER_NUM = #{orderNum}
+         WHERE ADMIN_NUM = #{adminNum}
+           AND (LAST_SEEN_ORDER_NUM IS NULL OR LAST_SEEN_ORDER_NUM &lt; #{orderNum})
+    </update>
+
+    <!-- 알림: 첫 로그인 자동 보정 (NULL일 때만 세팅 — 멱등성 보장) -->
+    <update id="initializeLastSeen">
+        UPDATE ADMIN_USER
+           SET LAST_SEEN_ORDER_NUM = #{orderNum}
+         WHERE ADMIN_NUM = #{adminNum}
+           AND LAST_SEEN_ORDER_NUM IS NULL
     </update>
 </mapper>

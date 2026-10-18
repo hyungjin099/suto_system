@@ -181,14 +181,24 @@
   letter-spacing: -0.01em;
 }
 
-/* 품목별 납품처 */
+/* 품목별 납품처 (상품 그룹 하단, 비고 위) */
 .itemDest {
-  margin-top: 6px;
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--line, #e3e7dc);
+  border-left: 3px solid var(--muted, #8a9c90);
+  border-radius: 4px;
   font-size: 12.5px;
-  color: var(--ink-2, #555);
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  color: var(--ink-2, #444);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.itemDestText {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
 }
 .itemDestLabel {
   font-size: 10.5px;
@@ -199,4 +209,47 @@
   border-radius: 4px;
   padding: 1px 6px;
   letter-spacing: 0.04em;
+}
+
+/* 상품 그룹 박스 (한 상품의 규격들 + 비고) */
+.productGroup {
+  margin: 10px 0;
+  padding: 10px 12px 12px;
+  background: var(--bg, #f7f9f5);
+  border: 1px solid var(--line, #e3e7dc);
+  border-radius: 8px;
+}
+.productGroup + .productGroup {
+  margin-top: 12px;
+}
+
+/* 품목별 비고 (상품 그룹 하단) */
+.itemNote {
+  margin: 8px 0 2px;
+  padding: 8px 10px;
+  background: #fff;
+  border: 1px solid var(--line, #e3e7dc);
+  border-left: 3px solid var(--brand, #4a7c59);
+  border-radius: 4px;
+  font-size: 12.5px;
+  color: var(--ink-2, #444);
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.itemNoteLabel {
+  flex: none;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--brand, #4a7c59);
+  background: #fff;
+  border: 1px solid var(--brand, #4a7c59);
+  border-radius: 4px;
+  padding: 1px 6px;
+  letter-spacing: 0.04em;
+}
+.itemNoteText {
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
 }
