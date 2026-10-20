@@ -3,7 +3,7 @@
  * STATUS 컬럼으로 시트 전송 결과 확인 가능
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { AdminShell } from "./components/Layout";
 import { useNotification } from "./notifications/NotificationContext";
@@ -63,17 +63,31 @@ function StatusChip({ status }) {
 
 export default function OrderAdmin() {
   const location = useLocation();
-  const { markAsSeen, latestOrderNum } = useNotification();
-  const highlightSince = useMemo(() => {
+  const { markAsSeen, latestOrderNum, lastSeenOrderNum } = useNotification();
+
+  // URL ?highlightSince=N 우선, 없으면 Context lastSeenOrderNum 사용
+  const urlHighlightSince = useMemo(() => {
     const sp = new URLSearchParams(location.search);
     const v = parseInt(sp.get("highlightSince") || "0", 10);
     return Number.isFinite(v) ? v : 0;
   }, [location.search]);
-  const [highlightFading, setHighlightFading] = useState(false);
+
+  // 페이지 진입 시점의 cutoff를 ref로 고정 (이후 markAsSeen 돌아도 안 바뀜)
+  const highlightCutoffRef = useRef(null);
+  const [cutoffReady, setCutoffReady] = useState(false);
+
+  // 페이지에 머무는 중 들어온 신규 orderNum 집합 (각각 3분간 하이라이트)
+  const [freshOrderNums, setFreshOrderNums] = useState(new Set());
+
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [q, setQ] = useState("");
+  // 세분화된 검색 조건
+  const [qOrderId, setQOrderId]   = useState("");  // 주문번호
+  const [qProduct, setQProduct]   = useState("");  // 제품코드/제품명
+  const [qWidth,   setQWidth]     = useState("");  // 폭
+  const [qClient,  setQClient]    = useState("");  // 발주처
+  const [qDest,    setQDest]      = useState("");  // 납품처
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFrom, setDateFrom] = useState(""); // 'YYYY-MM-DD'
   const [dateTo, setDateTo] = useState("");
@@ -93,7 +107,7 @@ export default function OrderAdmin() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { setPage(1); }, [q, statusFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [qOrderId, qProduct, qWidth, qClient, qDest, statusFilter, dateFrom, dateTo]);
 
   const onSaveEdit = async (body) => {
     if (!editingRow) return;
@@ -153,21 +167,68 @@ export default function OrderAdmin() {
       .finally(() => setLoading(false));
   }, []);
 
-  // 페이지 진입 시: 현재까지의 최대 ORDER_NUM을 "본 걸로" 처리
+  // 페이지 진입 시 cutoff 세팅 — URL param 우선, 없으면 Context lastSeenOrderNum.
+  // markAsSeen이 돌기 전의 값을 포착해야 하므로 ref에 1회만 기록.
   useEffect(() => {
-    if (latestOrderNum > 0) markAsSeen(latestOrderNum);
-  }, [latestOrderNum, markAsSeen]);
+    if (highlightCutoffRef.current !== null) return;
+    // URL param이 있으면 그걸로, 없으면 Context 값으로 (Context가 아직 로딩 중이면 lastSeenOrderNum=0 → 0으로 세팅됨; 다음 effect에서 보정)
+    if (urlHighlightSince > 0) {
+      highlightCutoffRef.current = urlHighlightSince;
+      setCutoffReady(true);
+    } else if (lastSeenOrderNum != null) {
+      highlightCutoffRef.current = lastSeenOrderNum;
+      setCutoffReady(true);
+    }
+  }, [urlHighlightSince, lastSeenOrderNum]);
 
-  // 하이라이트 fade: 5초 후 사라짐
+  // 페이지 진입 시: 지금까지의 최대 ORDER_NUM을 "본 걸로" 처리
+  //   (cutoff 세팅 후에 돌리기 위해 cutoffReady 의존)
   useEffect(() => {
-    if (!highlightSince) return undefined;
-    setHighlightFading(false);
-    const t = setTimeout(() => setHighlightFading(true), 5000);
+    if (!cutoffReady) return;
+    if (latestOrderNum > 0) markAsSeen(latestOrderNum);
+  }, [cutoffReady, latestOrderNum, markAsSeen]);
+
+  // cutoff 기반 하이라이트: 3분 후 fade (freshOrderNums 하이라이트와 통일)
+  const [cutoffFading, setCutoffFading] = useState(false);
+  useEffect(() => {
+    if (!cutoffReady) return undefined;
+    const t = setTimeout(() => setCutoffFading(true), 3 * 60 * 1000);
     return () => clearTimeout(t);
-  }, [highlightSince]);
+  }, [cutoffReady]);
+
+  // ★ 머무는 중 새 주문 들어오면 자동 리프레시 + 신규 orderNum 하이라이트 (3분)
+  //   해제 조건: 3분 경과 OR 그 행 클릭(수정 모달 열기) OR 페이지 이탈
+  const seenLatestRef = useRef(0);
+  const FRESH_HIGHLIGHT_MS = 3 * 60 * 1000;
+  useEffect(() => {
+    if (!latestOrderNum || latestOrderNum <= seenLatestRef.current) return;
+    const newOrderNum = latestOrderNum;
+    seenLatestRef.current = newOrderNum;
+    if (!loading) {
+      fetchAdminOrders().then(setRows).catch(() => {});
+      setFreshOrderNums((prev) => {
+        const next = new Set(prev);
+        next.add(newOrderNum);
+        return next;
+      });
+      setTimeout(() => {
+        setFreshOrderNums((prev) => {
+          if (!prev.has(newOrderNum)) return prev;
+          const next = new Set(prev);
+          next.delete(newOrderNum);
+          return next;
+        });
+      }, FRESH_HIGHLIGHT_MS);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestOrderNum]);
 
   const filtered = useMemo(() => {
-    const kw = q.trim().toLowerCase();
+    const kOrder   = qOrderId.trim().toLowerCase();
+    const kProduct = qProduct.trim().toLowerCase();
+    const kWidth   = qWidth.trim();
+    const kClient  = qClient.trim().toLowerCase();
+    const kDest    = qDest.trim().toLowerCase();
     const fromTs = dateFrom ? new Date(dateFrom + "T00:00:00").getTime() : null;
     // dateTo는 그 날 23:59:59까지 포함
     const toTs = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
@@ -179,16 +240,18 @@ export default function OrderAdmin() {
       if (toTs != null) {
         if (!r.orderDate || r.orderDate.getTime() > toTs) return false;
       }
-      if (!kw) return true;
-      return (
-        (r.orderId || "").toLowerCase().includes(kw) ||
-        (r.cliCompName || "").toLowerCase().includes(kw) ||
-        (r.product || "").toLowerCase().includes(kw) ||
-        (r.productLabel || "").toLowerCase().includes(kw) ||
-        (r.destination || "").toLowerCase().includes(kw)
-      );
+      if (kOrder && !(r.orderId || "").toLowerCase().includes(kOrder)) return false;
+      if (kProduct) {
+        const hit = (r.product || "").toLowerCase().includes(kProduct)
+                 || (r.productLabel || "").toLowerCase().includes(kProduct);
+        if (!hit) return false;
+      }
+      if (kWidth && String(r.width ?? "") !== kWidth) return false;
+      if (kClient && !(r.cliCompName || "").toLowerCase().includes(kClient)) return false;
+      if (kDest && !(r.destination || "").toLowerCase().includes(kDest)) return false;
+      return true;
     });
-  }, [rows, q, statusFilter, dateFrom, dateTo]);
+  }, [rows, qOrderId, qProduct, qWidth, qClient, qDest, statusFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -203,8 +266,7 @@ export default function OrderAdmin() {
       alert("다운로드할 주문이 없습니다.");
       return;
     }
-    const excelRows = filtered.map((r, i) => ({
-      "번호":       filtered.length - i,
+    const excelRows = filtered.map((r) => ({
       "주문번호":   r.orderId || "",
       "발주일":     r.orderDate ? fmtDateTime(r.orderDate) : "",
       "제품코드":   r.product || "",
@@ -265,9 +327,34 @@ export default function OrderAdmin() {
       <div className={styles.toolbar}>
         <input
           className={styles.search}
-          placeholder="주문번호 / 발주처 / 제품코드 / 제품명 / 납품처"
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
+          placeholder="주문번호"
+          value={qOrderId}
+          onChange={(e) => setQOrderId(e.target.value)}
+        />
+        <input
+          className={styles.search}
+          placeholder="제품코드 / 제품명"
+          value={qProduct}
+          onChange={(e) => setQProduct(e.target.value)}
+        />
+        <input
+          className={`${styles.search} ${styles.searchWidth}`}
+          placeholder="폭"
+          value={qWidth}
+          onChange={(e) => setQWidth(e.target.value.replace(/[^\d]/g, ""))}
+          inputMode="numeric"
+        />
+        <input
+          className={styles.search}
+          placeholder="발주처"
+          value={qClient}
+          onChange={(e) => setQClient(e.target.value)}
+        />
+        <input
+          className={styles.search}
+          placeholder="납품처"
+          value={qDest}
+          onChange={(e) => setQDest(e.target.value)}
         />
         <div className={styles.dateRange}>
           <input
@@ -316,24 +403,22 @@ export default function OrderAdmin() {
       <div className={styles.wrap}>
         <table className={styles.table}>
           <colgroup>
-            <col width="50px" />
-            <col width="120px" />
             <col width="140px" />
-            <col width="156px" />
-            <col width="*" />
-            <col width="70px" />
-            <col width="70px" />
-            <col width="60px" />
+            <col width="125px" />
+            <col width="110px" />
+            <col width="180px" />
+            <col width="65px" />
+            <col width="65px" />
+            <col width="65px" />
             <col width="140px" />
             <col width="140px" />
-            <col width="160px" />
-            <col width="120px" />
-            <col width="80px" />
-            <col width="100px" />
+            <col width="150px" />
+            <col width="110px" />
+            <col width="90px" />
+            <col width="95px" />
           </colgroup>
           <thead>
             <tr className={styles.headRow}>
-              <th>번호</th>
               <th>주문번호</th>
               <th>발주일</th>
               <th>제품코드</th>
@@ -351,12 +436,15 @@ export default function OrderAdmin() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={14} className={styles.stateCell}>불러오는 중…</td></tr>
+              <tr><td colSpan={13} className={styles.stateCell}>불러오는 중…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={14} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
+              <tr><td colSpan={13} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
             ) : (
               pageItems.map((r, i) => {
-                const isNew = highlightSince > 0 && r.orderNum > highlightSince;
+                const cutoff = highlightCutoffRef.current;
+                const isNewByCutoff = cutoff != null && !cutoffFading && r.orderNum > cutoff;
+                const isNewByFresh  = freshOrderNums.has(r.orderNum);
+                const isNew = isNewByCutoff || isNewByFresh;
                 return (
                 <tr
                   key={`${r.orderNum}-${r.itemNum}`}
@@ -364,13 +452,12 @@ export default function OrderAdmin() {
                   onClick={() => setEditingRow(r)}
                   style={{
                     cursor: "pointer",
-                    backgroundColor: isNew && !highlightFading ? "#d4edda" : undefined,
-                    borderLeft: isNew && !highlightFading ? "4px solid #28a745" : undefined,
+                    backgroundColor: isNew ? "#d4edda" : undefined,
+                    borderLeft: isNew ? "4px solid #28a745" : undefined,
                     transition: "background-color 1.5s ease-out, border-left-color 1.5s ease-out",
                   }}
                   title="클릭해서 수정"
                 >
-                  <td className={styles.cellNum}>{filtered.length - ((page - 1) * PAGE_SIZE + i)}</td>
                   <td className={styles.cellMono}>{r.orderId}</td>
                   <td className={styles.cellNum}>{fmtDateTime(r.orderDate)}</td>
                   <td className={styles.cellMono}>{r.product || "-"}</td>

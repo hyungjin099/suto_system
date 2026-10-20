@@ -99,7 +99,7 @@ CREATE TABLE ORDER_INFO (
     CLI_CODE   VARCHAR(20) NOT NULL,                       -- FK CLIENT_INFO.CLI_CODE
     ORDER_ID   VARCHAR(30) NOT NULL UNIQUE,                -- 'ORD-XXXXXX'
     STATUS          VARCHAR(20) DEFAULT 'PENDING',                  -- 시트 전송 상태 ('PENDING'/'OK'/'FAILED'/'DEFERRED')
-                                                                     --   DEFERRED: 17시 이후 접수. 일자 탭 push는 다음 영업일 02시 배치가 담당.
+                                                                     --   DEFERRED: 18시 이후 접수. 일자 탭 push는 다음 영업일 02시 배치가 담당.
     ORDER_DATE      DATETIME    DEFAULT SYSDATE(),
     -- 기존 운영 DB 마이그레이션 (WORKFLOW_STATUS 컬럼이 있다면):
     --   ALTER TABLE ORDER_INFO DROP COLUMN WORKFLOW_STATUS;

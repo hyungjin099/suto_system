@@ -42,7 +42,7 @@ public class OrderService {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("yyyyMMdd");
     private static final int MAX_ORDERID_RETRY = 5;
     /** 이 시각 이후 접수된 주문은 당일 일자 탭 push를 생략하고 다음 영업일 새벽 배치로 보냄 */
-    private static final int DEFER_PUSH_HOUR = 17;
+    private static final int DEFER_PUSH_HOUR = 18;
 
     public OrderResponseDto submitOrder(OrderRequestDto dto) {
         OrderInsertResult inserted = null;
@@ -61,7 +61,7 @@ public class OrderService {
 
         SheetsWebhookService.PushResult push = new SheetsWebhookService.PushResult(false, null);
         if (defer) {
-            // 17시 이후 접수: 당일 push 생략. DEFERRED 상태로 두면 다음날 02시 DeferredPushJob이 처리.
+            // 18시 이후 접수: 당일 push 생략. DEFERRED 상태로 두면 다음날 02시 DeferredPushJob이 처리.
             markSheetStatus(inserted.orderNum, "DEFERRED");
         } else {
             try {

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 17시 이후 접수된 DEFERRED 주문을 다음 영업일 새벽에 일괄 push.
+ * 18시 이후 접수된 DEFERRED 주문을 다음 영업일 새벽에 일괄 push.
  *
  * - 영업일 판정: 월~금 (공휴일 미반영 — Option A)
  * - 공휴일에 돌아도 Apps Script 쪽 createTodayTab이 "담당 기간 아님"이면 push 실패 → DEFERRED 유지 → 다음 날 재시도
