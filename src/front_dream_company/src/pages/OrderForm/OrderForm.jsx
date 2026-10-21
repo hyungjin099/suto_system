@@ -154,8 +154,9 @@ export default function OrderForm() {
   }, [items.length]);
 
   const tryReview = () => {
-    if (new Date().getHours() === 0) {
-      setBlockMsg("00:00 ~ 01:00 사이에는 시스템 점검 시간으로 주문을 접수할 수 없습니다.\n01시 이후에 다시 시도해 주세요.");
+    const hour = new Date().getHours();
+    if (hour >= 23 || hour < 3) {
+      setBlockMsg("23:00 ~ 03:00 사이에는 시스템 점검 시간으로 주문을 접수할 수 없습니다.\n03시 이후에 다시 시도해 주세요.");
       return;
     }
     setBlockMsg("");

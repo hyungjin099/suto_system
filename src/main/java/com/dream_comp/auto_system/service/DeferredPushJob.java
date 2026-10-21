@@ -20,8 +20,8 @@ import java.util.Map;
 /**
  * 18시 이후 접수된 DEFERRED 주문을 다음 영업일 새벽에 일괄 push.
  *
- * - 영업일 판정: 월~금 (공휴일 미반영 — Option A)
- * - 공휴일에 돌아도 Apps Script 쪽 createTodayTab이 "담당 기간 아님"이면 push 실패 → DEFERRED 유지 → 다음 날 재시도
+ * - 영업일 판정: 월~금 + HolidayService(공휴일/임시공휴일). 비영업일이면 DEFERRED 유지 → 다음 영업일 재시도
+ * - 판정이 어긋나 Apps Script가 ERROR를 돌려줘도 push()가 실패로 처리하므로 DEFERRED 유지
  * - 트리거: 매일 02:00 KST (01시 Apps Script 미완료 이월 이후에 돌도록)
  */
 @Slf4j
@@ -35,12 +35,14 @@ public class DeferredPushJob {
     private final OrderMapper orderMapper;
     private final SheetsWebhookService sheetsWebhookService;
     private final OrderService orderService;
+    private final HolidayService holidayService;
 
     @Scheduled(cron = "0 0 2 * * *", zone = "Asia/Seoul")
     public void run() {
-        DayOfWeek dow = LocalDate.now(KST).getDayOfWeek();
-        if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {
-            log.info("DeferredPushJob — 오늘({}) 영업일 아님, skip", dow);
+        LocalDate today = LocalDate.now(KST);
+        DayOfWeek dow = today.getDayOfWeek();
+        if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY || holidayService.isHoliday(today)) {
+            log.info("DeferredPushJob — 오늘({}) 영업일 아님, skip", today);
             return;
         }
 

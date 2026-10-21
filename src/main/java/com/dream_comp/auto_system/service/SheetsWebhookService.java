@@ -106,15 +106,22 @@ public class SheetsWebhookService {
             boolean ok = response.statusCode() >= 200 && response.statusCode() < 300;
             String deliveryDate = null;
             if (ok) {
-                log.info("Sheets push 완료 (orderId={}, status={}, body={})",
-                        orderId, response.statusCode(), response.body());
-                // Apps Script 응답에서 정확한 납기예정일 파싱 (공휴일 반영된 값)
+                // Apps Script는 오류가 나도 HTTP 200 + {"status":"ERROR"}로 응답하므로 body의 status까지 확인
                 try {
                     Map<?,?> body = objectMapper.readValue(response.body(), Map.class);
-                    Object dd = body.get("deliveryDate");
-                    if (dd instanceof String s && !s.isBlank()) deliveryDate = s;
-                } catch (Exception ignored) {
-                    // 응답 파싱 실패해도 push 자체는 성공 처리
+                    if (!"OK".equals(body.get("status"))) {
+                        ok = false;
+                        log.warn("Sheets push 거부됨 (orderId={}, body={})", orderId, response.body());
+                    } else {
+                        Object dd = body.get("deliveryDate");
+                        if (dd instanceof String s && !s.isBlank()) deliveryDate = s;
+                        log.info("Sheets push 완료 (orderId={}, status={}, body={})",
+                                orderId, response.statusCode(), response.body());
+                    }
+                } catch (Exception e) {
+                    // JSON이 아닌 응답(로그인 페이지 HTML 등)은 성공으로 볼 수 없음
+                    ok = false;
+                    log.warn("Sheets push 응답 파싱 실패 (orderId={}, body={})", orderId, response.body());
                 }
             } else {
                 log.warn("Sheets push 응답 오류 (orderId={}, status={}, body={})",
