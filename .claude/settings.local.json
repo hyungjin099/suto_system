@@ -32,7 +32,12 @@
       "Bash(python -c \"import weasyprint; print\\('weasyprint OK'\\)\")",
       "Bash(\"/c/Program Files/Google/Chrome/Application/chrome.exe\" --headless --disable-gpu --no-pdf-header-footer --print-to-pdf=\"C:/dev/suto_system/docs/worker_guide.pdf\" \"file:///C:/dev/suto_system/docs/worker_guide.html\")",
       "Bash(./gradlew compileJava --quiet)",
-      "Bash(npx vite *)"
+      "Bash(npx vite *)",
+      "Bash(echo \"\\(exit $?\\)\")",
+      "Bash(git log *)",
+      "Bash(node --check apps_script/code.gs)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

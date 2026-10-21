@@ -37,8 +37,9 @@ function setServiceKey() {
   ui.alert('인증키 저장 완료');
 }
 
-const WORK_STATUS_TEXT = '짜는 중';
+const WORK_STATUS_TEXT = '짜는중';
 const DATA_FONT_SIZE = 16;
+const MIN_ROW_HEIGHT = 65;       // 데이터 행 최소 높이(px). 내용 기준 높이가 이보다 낮으면 이 값으로 맞춘다
 const PM_BG_COLOR = '#e3f2fd';   // 14~18시 배경 (더 진한 파랑)
 
 const CUT_SHEET_NAME = '재단취합';
@@ -436,7 +437,7 @@ function cleanupCopiedSpreadsheet(targetSs) {
     cutSheet.getRange('L1').clearContent();
     const cutLastRow = Math.max(cutSheet.getLastRow(), 300);
     if (cutLastRow >= 4) {
-      cutSheet.getRange(4, 1, cutLastRow - 3, 8).clearContent().setBackground('#FFFFFF');
+      cutSheet.getRange(4, 1, cutLastRow - 3, 9).clearContent().setBackground('#FFFFFF');
     }
     cutSheet.getRange('B2').clearContent();
   }
@@ -624,9 +625,36 @@ function writeOrderToSheet(payload) {
       .setBorder(true, true, true, true, true, true,
                  '#000000', SpreadsheetApp.BorderStyle.SOLID);
 
+    // 8) 행 높이: 내용에 맞춰 자동 조절, 최소 MIN_ROW_HEIGHT
+    _fitRowHeights_(sheet, baseRow + 1, totalRows);
+
     SpreadsheetApp.flush();
     return { written: totalRows, deliveryDate: deliveryDate };
   } finally { lock.releaseLock(); }
+}
+
+/**
+ * 지정 행들의 높이를 내용에 맞게 자동 조절한 뒤, MIN_ROW_HEIGHT보다 낮은 행은 MIN_ROW_HEIGHT로 올린다.
+ * 값·줄바꿈·글꼴 크기가 모두 반영된 뒤에 호출해야 한다(autoResizeRows는 반영된 내용을 기준으로 계산).
+ * 병합된 셀의 내용은 자동 높이 계산에 포함되지 않는다.
+ */
+function _fitRowHeights_(sheet, startRow, numRows) {
+  if (numRows <= 0) return;
+  SpreadsheetApp.flush();
+  sheet.autoResizeRows(startRow, numRows);
+
+  // 최소 높이 미만인 행을 모아 연속 구간 단위로 한 번에 설정
+  var runStart = -1;
+  for (var i = 0; i <= numRows; i++) {
+    var row = startRow + i;
+    var tooShort = (i < numRows) && sheet.getRowHeight(row) < MIN_ROW_HEIGHT;
+    if (tooShort && runStart === -1) {
+      runStart = row;
+    } else if (!tooShort && runStart !== -1) {
+      sheet.setRowHeights(runStart, row - runStart, MIN_ROW_HEIGHT);
+      runStart = -1;
+    }
+  }
 }
 
 function computeNextNo_(sheet) {
@@ -848,7 +876,10 @@ function _copyUnfinishedImpl() {
     .setBorder(true, true, true, true, true, true,
                '#000000', SpreadsheetApp.BorderStyle.SOLID);
 
-  // 8) 어제 시트 R열에 "이월됨" 마커 (행 번호 기준 — 원본/자식 모두)
+  // 8) 행 높이: 내용에 맞춰 자동 조절, 최소 MIN_ROW_HEIGHT
+  _fitRowHeights_(todaySheet, baseRow + 1, totalRows);
+
+  // 9) 어제 시트 R열에 "이월됨" 마커 (행 번호 기준 — 원본/자식 모두)
   var sourceRows = toCopy.map(function(r) { return r.sourceRow; });
   _markAsCopiedInYesterday_(yesterdaySheet, sourceRows);
 
