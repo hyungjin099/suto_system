@@ -97,6 +97,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8080";
 function newItem() {
   return {
     _id: Math.random().toString(36).slice(2),
+    fabricKey: "",      // 선택한 별칭 행(aliasNum). 같은 제품코드의 별칭들을 구분하는 키
     product: "",
     productLabel: "",
     width: "",
@@ -146,8 +147,9 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
       .then((res) =>
         setFabricOptions(
           res.data.map((f) => ({
-            value: f.prodCode,
+            value: String(f.aliasNum),   // 같은 제품코드에 별칭이 여러 개일 수 있어 aliasNum으로 구분
             label: f.aliasName,
+            aliasName: f.aliasName,
             prodCode: f.prodCode,
             prodName: f.prodName,
             price: f.clientFabPrice,
@@ -161,9 +163,14 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
   const setItem = (id, patch) =>
     setItems((arr) => arr.map((it) => (it._id === id ? { ...it, ...patch } : it)));
 
-  const onPickFabric = (id, prodCode) => {
-    const fab = fabricOptions.find((f) => f.value === prodCode);
-    setItem(id, { product: prodCode, productLabel: fab?.prodName || prodCode });
+  // 고객 주문 페이지와 동일: productLabel = 별칭(없으면 공식원단명). 서버가 이 값으로 별칭·가격 스냅샷을 찾는다.
+  const onPickFabric = (id, fabricKey) => {
+    const fab = fabricOptions.find((f) => f.value === fabricKey);
+    setItem(id, {
+      fabricKey: fab ? fabricKey : "",
+      product: fab?.prodCode || "",
+      productLabel: fab?.aliasName || fab?.prodName || "",
+    });
   };
 
   const addItem = () => setItems((arr) => [...arr, newItem()]);
@@ -176,7 +183,10 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
     if (!cliCode) { setError("거래처를 선택해 주세요."); return; }
     if (items.length === 0) { setError("품목을 1개 이상 추가해 주세요."); return; }
     for (const it of items) {
-      if (!it.product?.trim()) { setError("모든 품목의 제품을 선택해 주세요."); return; }
+      // 거래처를 바꾸면 옵션 목록이 바뀌므로, 현재 목록에 없는 선택은 무효로 본다
+      if (!it.product?.trim() || !fabricOptions.some((f) => f.value === it.fabricKey)) {
+        setError("모든 품목의 제품을 선택해 주세요."); return;
+      }
       if (!Number.isFinite(+it.rolls) || +it.rolls < 1) {
         setError("롤수는 1 이상이어야 합니다."); return;
       }
@@ -279,7 +289,7 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
                   <div className={styles.field}>
                     <label className={styles.label}>제품</label>
                     <Select
-                      value={fabricOptions.find((f) => f.value === it.product) || null}
+                      value={fabricOptions.find((f) => f.value === it.fabricKey) || null}
                       onChange={(opt) => onPickFabric(it._id, opt ? opt.value : "")}
                       options={fabricOptions}
                       placeholder={
