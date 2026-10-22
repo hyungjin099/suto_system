@@ -23,6 +23,12 @@ import styles from "./OrderAdmin.module.css";
 
 const PAGE_SIZE = 20;
 
+const isSameDay = (a, b) =>
+  !!a && !!b &&
+  a.getFullYear() === b.getFullYear() &&
+  a.getMonth() === b.getMonth() &&
+  a.getDate() === b.getDate();
+
 const fmtDateTime = (d) =>
   d
     ? new Intl.DateTimeFormat("ko-KR", {
@@ -223,6 +229,9 @@ export default function OrderAdmin() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [latestOrderNum]);
 
+  // 오늘 주문 표시용 기준일. 자정을 넘겨 화면을 열어 둔 경우에도 맞도록 렌더마다 계산한다(값싼 연산).
+  const today = new Date();
+
   const filtered = useMemo(() => {
     const kOrder   = qOrderId.trim().toLowerCase();
     const kProduct = qProduct.trim().toLowerCase();
@@ -403,7 +412,7 @@ export default function OrderAdmin() {
       <div className={styles.wrap}>
         <table className={styles.table}>
           <colgroup>
-            <col width="140px" />
+            <col width="175px" />
             <col width="125px" />
             <col width="110px" />
             <col width="180px" />
@@ -458,7 +467,16 @@ export default function OrderAdmin() {
                   }}
                   title="클릭해서 수정"
                 >
-                  <td className={styles.cellMono}>{r.orderId}</td>
+                  <td className={styles.cellMono}>
+                    <span className={isSameDay(r.orderDate, today) ? styles.orderIdToday : undefined}>
+                      {r.orderId}
+                    </span>
+                    {r.createdBy && r.createdBy !== "CUSTOMER" && (
+                      <span className={styles.selfBadge} title={`관리자가 직접 입력한 주문 (${r.createdBy})`}>
+                        self
+                      </span>
+                    )}
+                  </td>
                   <td className={styles.cellNum}>{fmtDateTime(r.orderDate)}</td>
                   <td className={styles.cellMono}>{r.product || "-"}</td>
                   <td className={styles.cellName}>{r.productLabel || "-"}</td>

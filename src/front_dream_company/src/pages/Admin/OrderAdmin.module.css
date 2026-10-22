@@ -116,6 +116,32 @@
   font-size: 12.5px;
   white-space: nowrap;
 }
+/* 오늘 접수된 주문의 주문번호: 굵게 + 브랜드 녹색 */
+.orderIdToday {
+  font-weight: 800;
+  color: var(--brand-ink, #1b3a2a);
+}
+/* 관리자가 직접 입력한 주문 표시 뱃지 */
+.selfBadge {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 18px;
+  margin-left: 7px;
+  padding: 1px 8px 0;   /* 글자 위치 보정(폰트 상단 쏠림). 가운데 정렬이라 위쪽 패딩 값의 절반만큼 글자가 내려감 → 값 2당 1px */
+  border-radius: 999px;
+  background: linear-gradient(135deg, #f6b84b 0%, #e8892b 100%);
+  color: #fff;
+  font-family: inherit;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  text-transform: uppercase;
+  vertical-align: middle;
+  box-shadow: 0 1px 3px rgba(232, 137, 43, 0.45);
+}
+
 .cellName {
   font-weight: 600;
   overflow: hidden;

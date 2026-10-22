@@ -218,6 +218,7 @@ export async function fetchAdminOrders() {
     deliveryDate: r.deliveryDate || "",
     unitPrice: r.unitPrice,
     aliasName: r.aliasName || "",
+    createdBy: r.createdBy || "",   // 'CUSTOMER' | 관리자 username | ''(접수 기록 없는 과거 주문)
   }));
 }
 

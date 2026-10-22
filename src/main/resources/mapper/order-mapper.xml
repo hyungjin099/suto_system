@@ -55,6 +55,7 @@
         <result property="deliveryDate"   column="DELIVERY_DATE"/>
         <result property="unitPrice"      column="UNIT_PRICE"/>
         <result property="aliasName"      column="ALIAS_NAME"/>
+        <result property="createdBy"      column="CREATED_BY"/>
     </resultMap>
 
     <select id="findAllAdmin" resultMap="adminRowMap">
@@ -63,7 +64,10 @@
             oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME,
+            (SELECT a.ACTOR FROM ORDER_AUDIT a
+              WHERE a.ORDER_NUM = oi.ORDER_NUM AND a.ACTION = 'CREATE'
+              ORDER BY a.AUDIT_NUM LIMIT 1) AS CREATED_BY
         FROM ORDER_INFO oi
         LEFT JOIN ORDER_ITEM it ON it.ORDER_NUM = oi.ORDER_NUM
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
