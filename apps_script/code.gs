@@ -40,7 +40,8 @@ function setServiceKey() {
 const WORK_STATUS_TEXT = '짜는중';
 const DATA_FONT_SIZE = 16;
 const MIN_ROW_HEIGHT = 65;       // 데이터 행 최소 높이(px). 내용 기준 높이가 이보다 낮으면 이 값으로 맞춘다
-const PM_BG_COLOR = '#e3f2fd';   // 14~18시 배경 (더 진한 파랑)
+const SPLIT_HOUR = 14;           // 이 시각(시) 이후 접수된 주문부터 "오후 주문"
+const SPLIT_LINE_COLOR = '#d93025';  // 오후 주문 구분선(빨강)
 
 const CUT_SHEET_NAME = '재단취합';
 const REGION_SHEET_NAME = '지역코드';
@@ -145,15 +146,45 @@ function manualCreateNextPeriod() {
 }
 
 // ===========================================
-// 시간대/납품일/배경색
+// 시간대/납품일/오후 주문 구분선
 // ===========================================
 function getOrderShift(d) { return d.getHours() < 13 ? 'AM' : 'PM'; }
 
-/** 14~18시 접수 데이터만 연한 파란 배경 */
-function getRowColorByHour(date) {
-  var h = date.getHours();
-  if (h < 14 || h >= 18) return null;
-  return PM_BG_COLOR;
+/** 셀 값(Date 또는 'yyyy-MM-dd HH:mm:ss' 문자열) → 시트에 보이는 날짜·시각. 해석 불가면 null */
+function _cellWallClock_(v, sheetTz) {
+  if (v instanceof Date) {
+    if (isNaN(v.getTime())) return null;
+    return {
+      day: Utilities.formatDate(v, sheetTz, 'yyyy-MM-dd'),
+      hour: Number(Utilities.formatDate(v, sheetTz, 'H'))
+    };
+  }
+  var m = String(v === null || v === undefined ? '' : v)
+    .match(/(\d{4})-(\d{2})-(\d{2})[ T](\d{1,2}):\d{2}/);
+  if (!m) return null;
+  return { day: m[1] + '-' + m[2] + '-' + m[3], hour: Number(m[4]) };
+}
+
+/**
+ * 오늘 접수된 주문 중 SPLIT_HOUR(14시) 이후 첫 데이터 행의 윗 테두리(A~Q)에 빨간 선을 긋는다.
+ *  - 이월 행/전날 18시 이후 지연 입력 행은 접수일이 오늘이 아니므로 대상이 아님
+ *  - 새 주문을 쓸 때마다 호출해도 같은 행을 다시 칠할 뿐이라 안전(데이터 쓰기 테두리가 선을 덮어쓰는 경우의 복구 포함)
+ */
+function _markAfternoonSplit_(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 4) return;
+  var todayStr = Utilities.formatDate(new Date(), CONFIG.TIMEZONE, 'yyyy-MM-dd');
+  var tz = SpreadsheetApp.getActiveSpreadsheet().getSpreadsheetTimeZone();
+  var vals = sheet.getRange(4, 3, lastRow - 3, 1).getValues();   // C열 발주일
+  for (var i = 0; i < vals.length; i++) {
+    var wc = _cellWallClock_(vals[i][0], tz);
+    if (wc && wc.day === todayStr && wc.hour >= SPLIT_HOUR) {
+      sheet.getRange(4 + i, 1, 1, 17).setBorder(
+        true, null, null, null, null, null,
+        SPLIT_LINE_COLOR, SpreadsheetApp.BorderStyle.SOLID_MEDIUM);
+      return;
+    }
+  }
 }
 
 function calculateDeliveryDate(orderDate) {
@@ -533,7 +564,7 @@ function writeOrderToSheet(payload) {
       return { written: 0, deliveryDate: deliveryDate };
     }
 
-    // 그룹핑: orderId + productCode
+    // 그룹핑: productCode + productLabel(별칭). 한 번의 호출은 주문 1건이라 orderId는 키에 불필요
     var groups = [];
     var groupMap = {};
     filteredItems.forEach(function(it) {
@@ -578,19 +609,8 @@ function writeOrderToSheet(payload) {
     var fullRange = sheet.getRange(baseRow + 1, 1, totalRows, 18);
     fullRange.setValues(allRowValues);
 
-    // 2) 배경색 (14~18시만 연한 파랑)
-    var bg = getRowColorByHour(orderDateObj);
-    if (bg) {
-      var bgArr = [];
-      for (var r = 0; r < totalRows; r++) {
-        var line = [];
-        for (var c = 0; c < 18; c++) line.push(bg);
-        bgArr.push(line);
-      }
-      fullRange.setBackgrounds(bgArr);
-    } else {
-      fullRange.setBackground(null);
-    }
+    // 2) 배경색 없음 (14시 이후 구분은 배경이 아니라 빨간 선으로: 아래 9단계)
+    fullRange.setBackground(null);
 
     // 3) 폰트 / 세로정렬
     fullRange
@@ -627,6 +647,9 @@ function writeOrderToSheet(payload) {
 
     // 8) 행 높이: 내용에 맞춰 자동 조절, 최소 MIN_ROW_HEIGHT
     _fitRowHeights_(sheet, baseRow + 1, totalRows);
+
+    // 9) 14시 이후 첫 주문 행의 윗 테두리에 빨간 선. 7단계 테두리가 기존 선을 덮어쓸 수 있어 매번 다시 긋는다
+    _markAfternoonSplit_(sheet);
 
     SpreadsheetApp.flush();
     return { written: totalRows, deliveryDate: deliveryDate };
@@ -680,32 +703,7 @@ function onEdit(e) {
   if (name === CONFIG.HOLIDAY_SHEET_NAME) { _holidayCache = null; return; }
   if (name === CUT_SHEET_NAME) { handleCutSheetEdit_(e); return; }
   if (name === REGION_SHEET_NAME) return;
-  handleDailyTabEdit_(e);
-}
-
-function handleDailyTabEdit_(e) {
-  var sheet = e.range.getSheet();
-  var startCol = e.range.getColumn();
-  var endCol   = startCol + e.range.getNumColumns() - 1;
-  var startRow = e.range.getRow();
-  var endRow   = startRow + e.range.getNumRows() - 1;
-  if (endRow < 2) return;
-
-  function isEmpty(v) { return v === '' || v === null || v === undefined; }
-
-  // C 발주일 → 배경색 재적용
-  if (startCol <= 3 && endCol >= 3) {
-    for (var r = Math.max(2, startRow); r <= endRow; r++) {
-      var v = sheet.getRange(r, 3).getValue();
-      var bgRange = sheet.getRange(r, 2, 1, 16);
-      if (isEmpty(v)) { bgRange.setBackground(null); continue; }
-      var d = (v instanceof Date) ? v : new Date(String(v).replace(' ', 'T') + '+09:00');
-      if (!isNaN(d.getTime())) {
-        var bg = getRowColorByHour(d);
-        if (bg) bgRange.setBackground(bg); else bgRange.setBackground(null);
-      }
-    }
-  }
+  // 일자 탭은 편집 시 자동으로 할 일이 없다(예전의 발주일 기준 배경색 재적용은 배경색 폐지로 제거)
 }
 
 function collectItemNumsInTab(sheet) {
@@ -801,11 +799,12 @@ function _copyUnfinishedImpl() {
   });
   if (toCopy.length === 0) { Logger.log('이월 skip — 모두 중복'); return; }
 
-  // 그룹핑: orderId + productCode
+  // 그룹핑: orderId + productCode + productName(별칭)
+  //  같은 제품코드라도 별칭이 다르면 별개 그룹이어야 한다. 묶으면 D/E 병합 시 첫 행의 제품명만 남아 별칭이 사라진다.
   var groups = [];
   var groupMap = {};
   toCopy.forEach(function(r) {
-    var key = String(r.orderId || '') + '||' + String(r.productCode || '');
+    var key = String(r.orderId || '') + '||' + String(r.productCode || '') + '||' + String(r.productName || '');
     if (groupMap[key] === undefined) {
       groupMap[key] = groups.length;
       groups.push({ rows: [] });
