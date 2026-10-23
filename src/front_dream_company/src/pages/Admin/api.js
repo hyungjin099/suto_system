@@ -219,7 +219,14 @@ export async function fetchAdminOrders() {
     unitPrice: r.unitPrice,
     aliasName: r.aliasName || "",
     createdBy: r.createdBy || "",   // 'CUSTOMER' | 관리자 username | ''(접수 기록 없는 과거 주문)
+    cutDone: r.cutDone === "Y",     // 재단 작업 완료 여부
   }));
+}
+
+/** 재단 작업 완료 체크/해제. 시트와 연동 없음(관리자 화면 전용) */
+export async function setOrderItemCutDone(itemNum, done) {
+  const res = await axios.patch(`${BASE_URL}/api/admin/orders/items/${itemNum}/cut-done`, { done });
+  return res.data; // { itemNum, cutDone }
 }
 
 export async function updateAdminOrderItem(itemNum, body) {

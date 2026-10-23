@@ -166,8 +166,14 @@ public class OrderService {
         }
     }
 
-    public List<OrderVo> findByCliCode(String cliCode) {
-        return orderMapper.findByCliCode(cliCode);
+    /** 접수일 기준 from(포함) ~ to(포함) 기간의 주문. 둘 다 null이면 전체. */
+    public List<OrderVo> findByCliCode(String cliCode, LocalDate from, LocalDate to) {
+        if (from != null && to != null && from.isAfter(to)) {
+            throw new IllegalArgumentException("조회 시작일이 종료일보다 늦을 수 없습니다");
+        }
+        LocalDateTime fromDt = from == null ? null : from.atStartOfDay();
+        LocalDateTime toDt = to == null ? null : to.plusDays(1).atStartOfDay();   // 종료일 하루 전체 포함
+        return orderMapper.findByCliCode(cliCode, fromDt, toDt);
     }
 
     public List<AdminOrderRowDto> findAllForAdmin() {
@@ -239,6 +245,26 @@ public class OrderService {
                 snapshotOf(current), snapshotOf(updated), "품목 수정");
         // 시트 반영 안 함: 작업자가 시트에서 직접 처리하는 설계 (가이드 참고)
         return updated;
+    }
+
+    /** 재단 작업 완료 여부 변경. 관리자 화면 전용이며 스프레드시트에는 반영하지 않는다. */
+    @Transactional
+    public boolean setCutDone(Long itemNum, boolean done) {
+        AdminOrderRowDto current = orderMapper.findAdminItemByNum(itemNum);
+        if (current == null) throw new IllegalArgumentException("존재하지 않는 주문 품목입니다");
+
+        String next = done ? "Y" : "N";
+        if (next.equals(current.getCutDone())) return done;   // 이미 같은 상태면 기록하지 않음
+
+        orderMapper.updateCutDone(itemNum, next);
+
+        Map<String, Object> before = new HashMap<>();
+        before.put("cutDone", current.getCutDone());
+        Map<String, Object> after = new HashMap<>();
+        after.put("cutDone", next);
+        orderAuditService.log("WORKFLOW_CHANGE", current.getOrderNum(), itemNum, before, after,
+                done ? "재단 작업 완료 체크" : "재단 작업 완료 해제");
+        return done;
     }
 
     public List<com.dream_comp.auto_system.dto.OrderAuditDto> findAuditByOrderNum(Long orderNum) {

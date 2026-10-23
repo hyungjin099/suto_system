@@ -95,8 +95,11 @@ public class OrderController {
 
     /** 거래처별 주문 내역 (최신순) — 주문 페이지의 '내역 보기' 탭에서 사용 */
     @GetMapping("/api/clients/{cliCode}/orders")
-    public ResponseEntity<List<OrderVo>> findByCliCode(@PathVariable String cliCode) {
-        return ResponseEntity.ok(orderService.findByCliCode(cliCode));
+    public ResponseEntity<List<OrderVo>> findByCliCode(
+            @PathVariable String cliCode,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate from,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE) java.time.LocalDate to) {
+        return ResponseEntity.ok(orderService.findByCliCode(cliCode, from, to));
     }
 
     /** 관리자: 전체 주문 내역 (품목 단위 평면, 스프레드시트와 비교용) */
@@ -111,6 +114,18 @@ public class OrderController {
             @PathVariable Long itemNum,
             @RequestBody com.dream_comp.auto_system.dto.OrderItemUpdateDto dto) {
         return ResponseEntity.ok(orderService.updateItem(itemNum, dto));
+    }
+
+    /** 관리자: 재단 작업 완료 여부 체크/해제 (DB 전용 — 시트와 연동 없음). body: {"done": true|false} */
+    @PatchMapping("/api/admin/orders/items/{itemNum}/cut-done")
+    public ResponseEntity<Map<String, Object>> setCutDone(@PathVariable Long itemNum,
+                                                           @RequestBody Map<String, Object> body) {
+        Object v = body.get("done");
+        if (!(v instanceof Boolean)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "done(true/false)이 필요합니다"));
+        }
+        boolean done = orderService.setCutDone(itemNum, (Boolean) v);
+        return ResponseEntity.ok(Map.of("itemNum", itemNum, "cutDone", done));
     }
 
     /** 관리자: 주문 품목 삭제 (DB 전용 — 시트는 작업자가 직접 처리) */

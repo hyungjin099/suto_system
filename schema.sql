@@ -124,9 +124,12 @@ CREATE TABLE ORDER_ITEM (
     DELIVERY_DATE VARCHAR(20),                             -- 납품예정일 (override, NULL이면 발주일 기준 자동계산)
     UNIT_PRICE    INT NULL,                                -- 주문 당시 단가 (가격 스냅샷)
     ALIAS_NAME    VARCHAR(100) NULL,                       -- 주문 당시 거래처 별칭 (스냅샷)
+    CUT_DONE      CHAR(1) NOT NULL DEFAULT 'N',            -- 재단 작업 완료 여부 'Y'/'N'. 관리자 화면 전용(스프레드시트와 연동 안 함)
     CONSTRAINT PK_ORDER_ITEM PRIMARY KEY (ITEM_NUM),
     CONSTRAINT FK_ITEM_ORDER FOREIGN KEY (ORDER_NUM) REFERENCES ORDER_INFO(ORDER_NUM)
 );
+-- 기존 운영 DB 마이그레이션 (재단 작업 완료 체크박스):
+--   ALTER TABLE ORDER_ITEM ADD COLUMN CUT_DONE CHAR(1) NOT NULL DEFAULT 'N' AFTER ALIAS_NAME;
 
 
 -- ==========================================================================

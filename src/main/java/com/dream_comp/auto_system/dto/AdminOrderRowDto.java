@@ -23,5 +23,6 @@ public class AdminOrderRowDto {
     private String deliveryDate;    // 납품예정일 (override, null이면 시트에서 자동계산)
     private Integer unitPrice;      // 단가 스냅샷
     private String aliasName;       // 별칭 스냅샷
-    private String createdBy;       // 접수 주체: 'CUSTOMER' 또는 관리자 username (접수 감사 기록이 없는 과거 주문은 null)
+    private String cutDone;         // 재단 작업 완료 여부 'Y'/'N' (관리자 화면 전용, 시트와 무관)
+    private String createdBy;      // 접수 주체: 'CUSTOMER' 또는 관리자 username (접수 감사 기록이 없는 과거 주문은 null)
 }

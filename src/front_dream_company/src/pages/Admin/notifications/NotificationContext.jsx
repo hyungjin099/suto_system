@@ -21,6 +21,8 @@ export function NotificationProvider({ children, enabled }) {
   const [preview, setPreview] = useState([]);              // 복귀 배너 preview
   const [lastSeenOrderNum, setLastSeenOrderNum] = useState(0);
   const [latestOrderNum, setLatestOrderNum] = useState(0);
+  // 서버에서 미확인 정보를 한 번이라도 받았는지. 새로고침 직후 초기값(0)을 실제 값으로 오해하지 않기 위한 플래그
+  const [unseenLoaded, setUnseenLoaded] = useState(false);
 
   // 실시간 수신 토스트 스택 (최대 5개)
   const [toasts, setToasts] = useState([]);                // {id, event, createdAt}
@@ -38,6 +40,7 @@ export function NotificationProvider({ children, enabled }) {
       setPreview(data.preview || []);
       setLastSeenOrderNum(data.lastSeenOrderNum || 0);
       setLatestOrderNum(data.latestOrderNum || 0);
+      setUnseenLoaded(true);
     } catch (_) {
       // 401이면 adminAuth interceptor가 리다이렉트 처리
     }
@@ -176,13 +179,14 @@ export function NotificationProvider({ children, enabled }) {
     preview,
     lastSeenOrderNum,
     latestOrderNum,
+    unseenLoaded,
     toasts,
     bannerDismissed,
     markAsSeen,
     dismissToast,
     dismissBanner,
     refreshUnseen,
-  }), [unseenCount, preview, lastSeenOrderNum, latestOrderNum, toasts, bannerDismissed,
+  }), [unseenCount, preview, lastSeenOrderNum, latestOrderNum, unseenLoaded, toasts, bannerDismissed,
       markAsSeen, dismissToast, dismissBanner, refreshUnseen]);
 
   return (

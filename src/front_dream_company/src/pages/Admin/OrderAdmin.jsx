@@ -4,7 +4,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AdminShell } from "./components/Layout";
 import { useNotification } from "./notifications/NotificationContext";
 import PageHeader from "./components/PageHeader";
@@ -13,6 +13,7 @@ import {
   fetchAdminOrders,
   updateAdminOrderItem,
   deleteAdminOrderItem,
+  setOrderItemCutDone,
   fetchClients,
 } from "./api";
 import OrderEditModal from "./components/OrderEditModal";
@@ -69,7 +70,8 @@ function StatusChip({ status }) {
 
 export default function OrderAdmin() {
   const location = useLocation();
-  const { markAsSeen, latestOrderNum, lastSeenOrderNum } = useNotification();
+  const navigate = useNavigate();
+  const { markAsSeen, latestOrderNum, lastSeenOrderNum, unseenLoaded } = useNotification();
 
   // URL ?highlightSince=N 우선, 없으면 Context lastSeenOrderNum 사용
   const urlHighlightSince = useMemo(() => {
@@ -145,6 +147,19 @@ export default function OrderAdmin() {
     }
   };
 
+  // 재단 작업 완료 체크박스: 화면을 먼저 바꾸고 저장하며, 실패하면 되돌린다
+  const toggleCutDone = async (row, done) => {
+    const apply = (v) =>
+      setRows((arr) => arr.map((x) => (x.itemNum === row.itemNum ? { ...x, cutDone: v } : x)));
+    apply(done);
+    try {
+      await setOrderItemCutDone(row.itemNum, done);
+    } catch (err) {
+      apply(!done);
+      alert(err?.response?.data?.message || "재단 작업 완료 상태를 저장하지 못했습니다.");
+    }
+  };
+
   const onDeleteEdit = (target) => {
     if (!target) return;
     setDeleteTarget(target); // 확인 모달 오픈
@@ -177,15 +192,18 @@ export default function OrderAdmin() {
   // markAsSeen이 돌기 전의 값을 포착해야 하므로 ref에 1회만 기록.
   useEffect(() => {
     if (highlightCutoffRef.current !== null) return;
-    // URL param이 있으면 그걸로, 없으면 Context 값으로 (Context가 아직 로딩 중이면 lastSeenOrderNum=0 → 0으로 세팅됨; 다음 effect에서 보정)
     if (urlHighlightSince > 0) {
       highlightCutoffRef.current = urlHighlightSince;
       setCutoffReady(true);
-    } else if (lastSeenOrderNum != null) {
+      // 새로고침해도 같은 하이라이트가 다시 켜지지 않도록 주소에서 파라미터를 지운다
+      navigate(location.pathname, { replace: true });
+    } else if (unseenLoaded) {
+      // 서버에서 실제 값을 받은 뒤에만 기준선으로 쓴다(새로고침 직후 초기값 0을 쓰면 전체가 새 주문으로 칠해짐)
       highlightCutoffRef.current = lastSeenOrderNum;
       setCutoffReady(true);
     }
-  }, [urlHighlightSince, lastSeenOrderNum]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [urlHighlightSince, lastSeenOrderNum, unseenLoaded]);
 
   // 페이지 진입 시: 지금까지의 최대 ORDER_NUM을 "본 걸로" 처리
   //   (cutoff 세팅 후에 돌리기 위해 cutoffReady 의존)
@@ -207,7 +225,10 @@ export default function OrderAdmin() {
   const seenLatestRef = useRef(0);
   const FRESH_HIGHLIGHT_MS = 3 * 60 * 1000;
   useEffect(() => {
-    if (!latestOrderNum || latestOrderNum <= seenLatestRef.current) return;
+    if (!latestOrderNum) return;
+    // 처음 관측한 최신 번호는 "지금까지 있던 주문"의 기준선일 뿐 새 주문이 아니다(새로고침/페이지 진입 때 오인 방지)
+    if (seenLatestRef.current === 0) { seenLatestRef.current = latestOrderNum; return; }
+    if (latestOrderNum <= seenLatestRef.current) return;
     const newOrderNum = latestOrderNum;
     seenLatestRef.current = newOrderNum;
     if (!loading) {
@@ -276,6 +297,7 @@ export default function OrderAdmin() {
       return;
     }
     const excelRows = filtered.map((r) => ({
+      "재단완료":   r.cutDone ? "완료" : "미완료",
       "주문번호":   r.orderId || "",
       "발주일":     r.orderDate ? fmtDateTime(r.orderDate) : "",
       "제품코드":   r.product || "",
@@ -412,22 +434,24 @@ export default function OrderAdmin() {
       <div className={styles.wrap}>
         <table className={styles.table}>
           <colgroup>
+            <col width="55px" />
             <col width="175px" />
             <col width="125px" />
-            <col width="110px" />
+            <col width="130px" />
             <col width="180px" />
             <col width="65px" />
             <col width="65px" />
             <col width="65px" />
-            <col width="140px" />
-            <col width="140px" />
-            <col width="150px" />
+            <col width="93px" />
+            <col width="93px" />
+            <col width="244px" />
             <col width="110px" />
             <col width="90px" />
             <col width="95px" />
           </colgroup>
           <thead>
             <tr className={styles.headRow}>
+              <th>완료</th>
               <th>주문번호</th>
               <th>발주일</th>
               <th>제품코드</th>
@@ -445,9 +469,9 @@ export default function OrderAdmin() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={13} className={styles.stateCell}>불러오는 중…</td></tr>
+              <tr><td colSpan={14} className={styles.stateCell}>불러오는 중…</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={13} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
+              <tr><td colSpan={14} className={styles.stateCell}>조건에 맞는 주문이 없습니다.</td></tr>
             ) : (
               pageItems.map((r, i) => {
                 const cutoff = highlightCutoffRef.current;
@@ -467,6 +491,15 @@ export default function OrderAdmin() {
                   }}
                   title="클릭해서 수정"
                 >
+                  <td className={styles.cellCheck} onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      className={styles.cutCheck}
+                      checked={!!r.cutDone}
+                      onChange={(e) => toggleCutDone(r, e.target.checked)}
+                      title={r.cutDone ? "재단 작업 완료 (클릭하면 미완료로 변경)" : "재단 작업 미완료 (클릭하면 완료로 변경)"}
+                    />
+                  </td>
                   <td className={styles.cellMono}>
                     <span className={isSameDay(r.orderDate, today) ? styles.orderIdToday : undefined}>
                       {r.orderId}
@@ -483,8 +516,8 @@ export default function OrderAdmin() {
                   <td className={styles.cellNum}>{r.width ?? "-"}</td>
                   <td className={styles.cellNum}>{r.length ?? "-"}</td>
                   <td className={styles.cellNum}>{r.rolls ?? "-"}</td>
-                  <td>{r.cliCompName || r.cliCode || "-"}</td>
-                  <td>{r.destination || "-"}</td>
+                  <td className={styles.cellCenter}>{r.cliCompName || r.cliCode || "-"}</td>
+                  <td className={styles.cellCenter}>{r.destination || "-"}</td>
                   <td className={styles.cellNote}>{r.note || "-"}</td>
                   <td className={styles.cellNum}>{r.deliveryDate || calcDelivery(r.orderDate)}</td>
                   <td className={styles.cellNum}>

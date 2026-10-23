@@ -55,6 +55,7 @@
         <result property="deliveryDate"   column="DELIVERY_DATE"/>
         <result property="unitPrice"      column="UNIT_PRICE"/>
         <result property="aliasName"      column="ALIAS_NAME"/>
+        <result property="cutDone"        column="CUT_DONE"/>
         <result property="createdBy"      column="CREATED_BY"/>
     </resultMap>
 
@@ -64,7 +65,7 @@
             oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME,
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE,
             (SELECT a.ACTOR FROM ORDER_AUDIT a
               WHERE a.ORDER_NUM = oi.ORDER_NUM AND a.ACTION = 'CREATE'
               ORDER BY a.AUDIT_NUM LIMIT 1) AS CREATED_BY
@@ -88,12 +89,17 @@
             oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE
         FROM ORDER_ITEM it
         JOIN ORDER_INFO  oi ON oi.ORDER_NUM = it.ORDER_NUM
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
         WHERE it.ITEM_NUM = #{itemNum}
     </select>
+
+    <!-- 재단 작업 완료 여부 변경 (관리자 화면 전용) -->
+    <update id="updateCutDone">
+        UPDATE ORDER_ITEM SET CUT_DONE = #{cutDone} WHERE ITEM_NUM = #{itemNum}
+    </update>
 
     <update id="updateItem" parameterType="com.dream_comp.auto_system.vo.OrderItemUpdateVo">
         UPDATE ORDER_ITEM
@@ -154,7 +160,7 @@
     </delete>
 
     <!-- 거래처별 주문 내역 조회 (최신순) -->
-    <select id="findByCliCode" parameterType="string" resultMap="orderResultMap">
+    <select id="findByCliCode" resultMap="orderResultMap">
         SELECT
             oi.ORDER_NUM, oi.CLI_CODE, oi.ORDER_ID, oi.STATUS, oi.ORDER_DATE,
             it.ITEM_NUM, it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH,
@@ -162,6 +168,8 @@
         FROM ORDER_INFO oi
         LEFT JOIN ORDER_ITEM it ON it.ORDER_NUM = oi.ORDER_NUM
         WHERE oi.CLI_CODE = #{cliCode}
+        <if test="from != null">AND oi.ORDER_DATE &gt;= #{from}</if>
+        <if test="to != null">AND oi.ORDER_DATE &lt; #{to}</if>
         ORDER BY oi.ORDER_DATE DESC, oi.ORDER_NUM DESC, it.ITEM_NUM ASC
     </select>
 
