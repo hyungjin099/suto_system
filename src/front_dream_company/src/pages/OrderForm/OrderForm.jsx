@@ -257,7 +257,7 @@ export default function OrderForm() {
 
       {tab === "history" ? (
         <main className={styles.main}>
-          <OrderHistory cliCode={cliCode} />
+          <OrderHistory cliCode={cliCode} clientName={clientName} />
         </main>
       ) : (
       <>

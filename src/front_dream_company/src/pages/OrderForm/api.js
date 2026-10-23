@@ -21,8 +21,12 @@ export async function changeClientPassword(cliCode, currentPassword, newPassword
   return res.data;
 }
 
-export async function fetchClientOrders(cliCode) {
-  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/orders`);
+/** from/to: 'yyyy-MM-dd' (접수일 기준, 양끝 포함). 생략하면 전체 */
+export async function fetchClientOrders(cliCode, { from, to } = {}) {
+  const params = {};
+  if (from) params.from = from;
+  if (to) params.to = to;
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/orders`, { params });
   return res.data.map((o) => ({
     orderNum: o.orderNum,
     orderId: o.orderId,

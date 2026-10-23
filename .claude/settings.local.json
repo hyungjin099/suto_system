@@ -38,7 +38,17 @@
       "Bash(node --check apps_script/code.gs)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(sed -n '/id=\"updateItem\"/,/<\\\\/update>/p' src/main/resources/mapper/order-mapper.xml)",
+      "Bash(sed -n '/int updateItem/,$p' src/main/java/com/dream_comp/auto_system/mapper/OrderMapper.java)",
+      "Bash(sed -n '/const refreshUnseen/,/}, \\\\[\\\\]\\);/p' notifications/NotificationContext.jsx)",
+      "Bash(sed -n '/페이지 진입 시 cutoff 세팅/,/}, \\\\[urlHighlightSince, lastSeenOrderNum\\\\]\\);/p' OrderAdmin.jsx)",
+      "Bash(sed -n '/const seenLatestRef/,/}, \\\\[latestOrderNum\\\\]\\);/p' OrderAdmin.jsx)",
+      "Bash(python3 -)",
+      "Bash(sed -i 's|System.out.println\\(\\\\\\(\"MAPPERCHECK[^\"]*\"\\\\\\) + \\\\\\(.*\\\\\\)\\);$|out.append\\(\\\\1\\).append\\(\\\\2\\).append\\(\"\\\\\\\\n\"\\);|' src/test/java/tmpcheck/MapperSqlCheck.java)",
+      "Bash(sed -i 's|System.out.println\\(\"MAPPERCHECK parse OK\"\\);|out.append\\(\"MAPPERCHECK parse OK\\\\\\\\n\"\\);|' src/test/java/tmpcheck/MapperSqlCheck.java)",
+      "Bash(sed -i 's|static final Configuration cfg = new Configuration\\(\\);|static final Configuration cfg = new Configuration\\(\\);\\\\n static final StringBuilder out = new StringBuilder\\(\\);|' src/test/java/tmpcheck/MapperSqlCheck.java)",
+      "Bash(sed -i 's|^ }\\\\n}$||' src/test/java/tmpcheck/MapperSqlCheck.java)"
     ]
   }
 }

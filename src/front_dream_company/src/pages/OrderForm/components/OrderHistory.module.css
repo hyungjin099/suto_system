@@ -1,8 +1,83 @@
+/* ── 기간 선택 / 결과 요약 / 인쇄 ───────────────────────── */
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--surface, #fff);
+  border: 1px solid var(--line, #e6e8df);
+  border-radius: 12px;
+}
+.chips { display: flex; gap: 6px; }
+.chip {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--line, #e6e8df);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--ink-2, #4a544c);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.chip:hover { border-color: var(--brand, #1b3a2a); }
+.chipActive {
+  background: var(--brand, #1b3a2a);
+  border-color: var(--brand, #1b3a2a);
+  color: #fff;
+}
+.dateRange { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.dateInput {
+  height: 32px;
+  padding: 0 8px;
+  border: 1px solid var(--line, #e6e8df);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--ink, #18221b);
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+}
+.dateInput:focus { border-color: var(--brand, #1b3a2a); }
+.dateSep { color: var(--muted, #79847b); }
+
+.resultBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 0 4px;
+}
+.resultText {
+  font-size: 13px;
+  color: var(--ink-2, #4a544c);
+  font-variant-numeric: tabular-nums;
+}
+.printBtn {
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid var(--brand, #1b3a2a);
+  border-radius: 8px;
+  background: var(--surface, #fff);
+  color: var(--brand, #1b3a2a);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.printBtn:hover:not(:disabled) { background: var(--brand, #1b3a2a); color: #fff; }
+.printBtn:disabled { opacity: 0.45; cursor: not-allowed; }
+.printHint { font-size: 12px; color: var(--muted, #79847b); white-space: nowrap; }
+
 .list {
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px 0;
+  padding: 12px 0 16px;
 }
 .empty {
   padding: 60px 20px;
@@ -18,10 +93,10 @@
 }
 .head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 9px 16px;
   background: linear-gradient(135deg, var(--brand-soft, #eaf3e8) 0%, var(--surface, #fff) 100%);
   border-bottom: 1px solid var(--brand-line, #cfe1cb);
 }
@@ -32,8 +107,15 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.02em;
 }
+/* 주문번호 + 주문일시를 한 줄에. 폭이 좁으면 일시만 아래로 내려간다 */
+.headMain {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+  min-width: 0;
+}
 .date {
-  margin-top: 4px;
   font-size: 12px;
   color: var(--muted, #79847b);
   font-variant-numeric: tabular-nums;
@@ -56,27 +138,42 @@
   border-bottom: 1px dashed var(--line, #e6e8df);
 }
 .itemRow:last-child { border-bottom: none; }
+/* 상품명 + 치수를 한 줄에. 폭이 좁으면 치수 묶음이 통째로 아래로 내려간다 */
+.itemTitle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 10px;
+}
 .itemName {
   font-size: 14px;
   font-weight: 600;
   color: var(--ink, #18221b);
 }
 .itemDims {
-  margin-top: 4px;
+  white-space: nowrap;
   font-size: 12.5px;
   color: var(--muted, #79847b);
   font-variant-numeric: tabular-nums;
 }
+/* 납품처 / 비고: 각각 한 줄(블록)씩 차지하고, 긴 내용과 입력한 줄바꿈은 그대로 여러 줄로 표시 */
 .itemMeta {
   margin-top: 6px;
   font-size: 12.5px;
   color: var(--ink-2, #4a544c);
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  align-items: flex-start;
   gap: 6px;
-  flex-wrap: wrap;
+}
+.metaText {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.5;
 }
 .tag {
+  flex-shrink: 0;
   font-size: 10.5px;
   font-weight: 700;
   color: var(--muted, #79847b);
