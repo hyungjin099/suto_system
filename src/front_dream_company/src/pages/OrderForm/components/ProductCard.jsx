@@ -73,7 +73,7 @@ export default function ProductCard({
         <ProductCombobox
           value={item.product}
           onChange={(v) => setField("product", v)}
-          placeholder={fabricsLoading ? "원단 목록 불러오는 중…" : "제품을 선택하세요 (코드/이름으로 검색)"}
+          placeholder={fabricsLoading ? "원단 목록 불러오는 중…" : "제품을 선택하세요 (이름으로 검색)"}
           options={products}
           disabled={fabricsLoading}
           error={errors?.product}

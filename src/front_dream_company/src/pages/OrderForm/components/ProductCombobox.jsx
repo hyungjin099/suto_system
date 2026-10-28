@@ -1,6 +1,6 @@
 /* 제품명 검색 가능 셀렉트 (react-select 래퍼)
- * - 입력창에 타이핑하면 원단코드/원단명 중간 매칭으로 필터
- * - 각 옵션은 [원단코드] 원단명 뱃지 레이아웃
+ * - 입력창에 타이핑하면 원단명 중간 매칭으로 필터
+ * - 화면에는 별칭(제품명)만 표시한다. 제품코드는 고객에게 보여주지 않는다.
  */
 
 import Select, { components } from "react-select";
@@ -9,22 +9,7 @@ const Option = (props) => {
   const { data } = props;
   return (
     <components.Option {...props}>
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-        <span
-          style={{
-            fontSize: 12,
-            padding: "2px 8px",
-            borderRadius: 4,
-            background: "#e8f0ec",
-            color: "#1b3a2a",
-            fontWeight: 600,
-            whiteSpace: "nowrap",
-          }}
-        >
-          {data.prodCode}
-        </span>
-        <span style={{ fontSize: 14 }}>{data.aliasName}</span>
-      </div>
+      <span style={{ fontSize: 14 }}>{data.aliasName}</span>
     </components.Option>
   );
 };
@@ -33,21 +18,7 @@ const SingleValue = (props) => {
   const { data } = props;
   return (
     <components.SingleValue {...props}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-        <span
-          style={{
-            fontSize: 11,
-            padding: "1px 7px",
-            borderRadius: 4,
-            background: "#e8f0ec",
-            color: "#1b3a2a",
-            fontWeight: 600,
-          }}
-        >
-          {data.prodCode}
-        </span>
-        <span>{data.aliasName}</span>
-      </span>
+      <span>{data.aliasName}</span>
     </components.SingleValue>
   );
 };
