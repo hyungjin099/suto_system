@@ -198,11 +198,11 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, saving,
               disabled={saving || deleting}
               style={btnDanger}
             >
-              {deleting ? "삭제 중…" : "삭제"}
+              {deleting ? "처리 중…" : "주문 취소"}
             </button>
           )}
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
-            <button type="button" onClick={onClose} disabled={saving || deleting} style={btnGhost}>취소</button>
+            <button type="button" onClick={onClose} disabled={saving || deleting} style={btnGhost}>닫기</button>
             <button type="submit" disabled={saving || deleting} style={btnPrimary}>
               {saving ? "저장 중…" : "저장"}
             </button>

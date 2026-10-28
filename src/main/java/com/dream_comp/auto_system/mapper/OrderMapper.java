@@ -29,9 +29,8 @@ public interface OrderMapper {
     int updateItem(OrderItemUpdateVo vo);
     /** 재단 작업 완료 여부('Y'/'N') 변경 */
     int updateCutDone(@Param("itemNum") Long itemNum, @Param("cutDone") String cutDone);
-    int deleteItem(Long itemNum);
-    int countItemsByOrderNum(Long orderNum);
-    int deleteOrder(Long orderNum);
+    /** 품목 취소/복구 ('Y' = 취소, 'N' = 복구). 행은 지우지 않는다 */
+    int updateCancel(@Param("itemNum") Long itemNum, @Param("cancelYn") String cancelYn);
 
     /** 알림: 현재 DB에 저장된 최대 ORDER_NUM (없으면 NULL) */
     Integer findMaxOrderNum();

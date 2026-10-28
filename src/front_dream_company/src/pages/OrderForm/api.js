@@ -45,6 +45,12 @@ export async function fetchClientOrders(cliCode, { from, to } = {}) {
   }));
 }
 
+/** 지금 이 거래처에게 보여줄 팝업 1건. 없으면 null (204) */
+export async function fetchActivePopup(cliCode) {
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/popup`);
+  return res.status === 200 && res.data ? res.data : null; // { popupNum, title, content, contentVer }
+}
+
 export async function fetchClientDestinations(cliCode) {
   if (!cliCode) return [];
   const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/destinations`);

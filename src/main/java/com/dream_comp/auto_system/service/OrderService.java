@@ -189,29 +189,30 @@ public class OrderService {
         return orderMapper.findDestinationsByCliCode(cliCode);
     }
 
+    /**
+     * 품목 취소/복구. 행을 지우지 않고 취소 표시만 한다(취소 이력 조회용).
+     * 시트에는 반영하지 않는다: 이미 시트에 올라간 주문은 작업자가 직접 처리하는 설계.
+     */
     @Transactional
-    public void deleteItem(Long itemNum) {
+    public boolean setCancelled(Long itemNum, boolean cancel) {
         AdminOrderRowDto row = orderMapper.findAdminItemByNum(itemNum);
         if (row == null) throw new IllegalArgumentException("존재하지 않는 주문 품목입니다");
 
-        Long orderNum = row.getOrderNum();
-        orderMapper.deleteItem(itemNum);
+        String next = cancel ? "Y" : "N";
+        if (next.equals(row.getCancelled())) return cancel;   // 이미 같은 상태면 기록하지 않음
 
-        boolean orderRemoved = false;
-        if (orderMapper.countItemsByOrderNum(orderNum) == 0) {
-            orderMapper.deleteOrder(orderNum);
-            orderRemoved = true;
-        }
+        orderMapper.updateCancel(itemNum, next);
 
-        orderAuditService.log("DELETE", orderNum, itemNum, snapshotOf(row), null,
-                orderRemoved ? "품목 삭제 + 마지막 품목이라 주문 헤더도 삭제됨" : "품목 삭제");
-        // 시트 반영 안 함: 작업자가 시트에서 직접 처리하는 설계 (가이드 참고)
+        orderAuditService.log(cancel ? "CANCEL" : "RESTORE", row.getOrderNum(), itemNum,
+                snapshotOf(row), null, cancel ? "품목 취소" : "품목 취소 복구");
+        return cancel;
     }
 
     @Transactional
     public AdminOrderRowDto updateItem(Long itemNum, OrderItemUpdateDto dto) {
         AdminOrderRowDto current = orderMapper.findAdminItemByNum(itemNum);
         if (current == null) throw new IllegalArgumentException("존재하지 않는 주문 품목입니다");
+        if ("Y".equals(current.getCancelled())) throw new IllegalArgumentException("취소된 품목은 수정할 수 없습니다. 먼저 취소를 복구해 주세요");
         if (dto.getProduct() == null || dto.getProduct().isBlank())
             throw new IllegalArgumentException("제품코드를 입력해 주세요");
         if (dto.getProductLabel() == null || dto.getProductLabel().isBlank())
@@ -252,6 +253,7 @@ public class OrderService {
     public boolean setCutDone(Long itemNum, boolean done) {
         AdminOrderRowDto current = orderMapper.findAdminItemByNum(itemNum);
         if (current == null) throw new IllegalArgumentException("존재하지 않는 주문 품목입니다");
+        if ("Y".equals(current.getCancelled())) throw new IllegalArgumentException("취소된 품목입니다");
 
         String next = done ? "Y" : "N";
         if (next.equals(current.getCutDone())) return done;   // 이미 같은 상태면 기록하지 않음

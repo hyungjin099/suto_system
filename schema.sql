@@ -7,6 +7,8 @@
 
 SET FOREIGN_KEY_CHECKS = 0;
 
+DROP TABLE IF EXISTS POPUP_NOTICE_TARGET;
+DROP TABLE IF EXISTS POPUP_NOTICE;
 DROP TABLE IF EXISTS SYSTEM_SETTING;
 DROP TABLE IF EXISTS ORDER_AUDIT;
 DROP TABLE IF EXISTS ADMIN_USER;
@@ -125,11 +127,16 @@ CREATE TABLE ORDER_ITEM (
     UNIT_PRICE    INT NULL,                                -- 주문 당시 단가 (가격 스냅샷)
     ALIAS_NAME    VARCHAR(100) NULL,                       -- 주문 당시 거래처 별칭 (스냅샷)
     CUT_DONE      CHAR(1) NOT NULL DEFAULT 'N',            -- 재단 작업 완료 여부 'Y'/'N'. 관리자 화면 전용(스프레드시트와 연동 안 함)
+    CANCEL_YN     CHAR(1) NOT NULL DEFAULT 'N',            -- 취소 여부 'Y'/'N'. 삭제 대신 취소 처리해 이력을 남긴다(시트와 무관)
+    CANCELLED_AT  DATETIME NULL,                           -- 취소한 시각
     CONSTRAINT PK_ORDER_ITEM PRIMARY KEY (ITEM_NUM),
     CONSTRAINT FK_ITEM_ORDER FOREIGN KEY (ORDER_NUM) REFERENCES ORDER_INFO(ORDER_NUM)
 );
 -- 기존 운영 DB 마이그레이션 (재단 작업 완료 체크박스):
 --   ALTER TABLE ORDER_ITEM ADD COLUMN CUT_DONE CHAR(1) NOT NULL DEFAULT 'N' AFTER ALIAS_NAME;
+-- 운영 DB 마이그레이션 (주문 취소 처리):
+--   ALTER TABLE ORDER_ITEM ADD COLUMN CANCEL_YN CHAR(1) NOT NULL DEFAULT 'N' AFTER CUT_DONE,
+--                          ADD COLUMN CANCELLED_AT DATETIME NULL AFTER CANCEL_YN;
 
 
 -- ==========================================================================
@@ -189,6 +196,32 @@ CREATE TABLE SYSTEM_SETTING (
 );
 -- 초기 설정 키:
 --   SHEETS_WEBHOOK_URL: Google Apps Script 웹앱 URL. 최고관리자 페이지에서 편집.
+
+
+-- ==========================================================================
+-- 10. 고객 주문 페이지 팝업 공지 (관리자가 등록, 고객에게는 동시에 1개만 노출)
+--     CONTENT_VER: 제목/내용이 바뀔 때마다 +1 → 다시 보지 않기를 누른 고객에게도 다시 노출
+--     운영 반영 시 아래 두 CREATE TABLE 문만 실행하면 됩니다.
+-- ==========================================================================
+CREATE TABLE POPUP_NOTICE (
+    POPUP_NUM   INT AUTO_INCREMENT,
+    TITLE       VARCHAR(100) NOT NULL,
+    CONTENT     TEXT         NOT NULL,
+    START_AT    DATETIME     NOT NULL,
+    END_AT      DATETIME     NOT NULL,
+    USE_YN      CHAR(1)      NOT NULL DEFAULT 'Y',
+    TARGET_ALL  CHAR(1)      NOT NULL DEFAULT 'Y',      -- 'Y' 전체 거래처 / 'N' POPUP_NOTICE_TARGET 의 거래처만
+    CONTENT_VER INT          NOT NULL DEFAULT 1,
+    CREATED_AT  DATETIME     DEFAULT SYSDATE(),
+    CONSTRAINT PK_POPUP_NOTICE PRIMARY KEY (POPUP_NUM)
+);
+
+CREATE TABLE POPUP_NOTICE_TARGET (
+    POPUP_NUM INT         NOT NULL,
+    CLI_CODE  VARCHAR(20) NOT NULL,
+    CONSTRAINT PK_POPUP_NOTICE_TARGET PRIMARY KEY (POPUP_NUM, CLI_CODE),
+    CONSTRAINT FK_POPUP_TARGET_POPUP FOREIGN KEY (POPUP_NUM) REFERENCES POPUP_NOTICE(POPUP_NUM) ON DELETE CASCADE
+);
 
 
 -- ==========================================================================

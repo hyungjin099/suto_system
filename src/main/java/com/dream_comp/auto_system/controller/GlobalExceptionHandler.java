@@ -25,6 +25,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
+    /** 팝업 기간·대상 충돌 → 409 + 충돌한 팝업 목록 (화면이 교체 여부를 묻는다) */
+    @ExceptionHandler(PopupConflictException.class)
+    public ResponseEntity<Map<String, Object>> handlePopupConflict(PopupConflictException ex) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("code", "POPUP_CONFLICT");
+        body.put("message", ex.getMessage());
+        body.put("conflicts", ex.getConflicts());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
+    }
+
     /** 비즈니스 검증 실패 (예: 거래처코드 중복) → 400 + 단일 메시지 */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> handleIllegalArgument(IllegalArgumentException ex) {

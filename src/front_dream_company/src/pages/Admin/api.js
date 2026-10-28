@@ -220,6 +220,8 @@ export async function fetchAdminOrders() {
     aliasName: r.aliasName || "",
     createdBy: r.createdBy || "",   // 'CUSTOMER' | 관리자 username | ''(접수 기록 없는 과거 주문)
     cutDone: r.cutDone === "Y",     // 재단 작업 완료 여부
+    cancelled: r.cancelled === "Y", // 취소 여부 (취소해도 행은 남아 이력으로 조회됨)
+    cancelledAt: r.cancelledAt ? new Date(r.cancelledAt) : null,
   }));
 }
 
@@ -234,8 +236,10 @@ export async function updateAdminOrderItem(itemNum, body) {
   return res.data; // AdminOrderRow (서버 반환 그대로)
 }
 
-export async function deleteAdminOrderItem(itemNum) {
-  await axios.delete(`${BASE_URL}/api/admin/orders/items/${itemNum}`);
+/** 주문 품목 취소/복구. 행은 지우지 않는다. 시트와 연동 없음 */
+export async function setAdminOrderItemCancelled(itemNum, cancel) {
+  const res = await axios.patch(`${BASE_URL}/api/admin/orders/items/${itemNum}/cancel`, { cancel });
+  return res.data; // { itemNum, cancelled }
 }
 
 export async function fetchClientDestinations(cliCode) {
@@ -257,4 +261,62 @@ export async function fetchOrderAudit(orderNum) {
     memo: a.memo,
     at: a.at ? new Date(a.at) : null,
   }));
+}
+
+// ── 고객 주문 페이지 팝업 ─────────────────────────────────
+function toPopup(p) {
+  return {
+    popupNum: p.popupNum,
+    title: p.title || "",
+    content: p.content || "",
+    startAt: p.startAt ? new Date(p.startAt) : null,
+    endAt: p.endAt ? new Date(p.endAt) : null,
+    use: p.useYn === "Y",
+    targetAll: p.targetAll === "Y",
+    cliCodes: p.cliCodes || [],
+    contentVer: p.contentVer,
+  };
+}
+
+// Date → 'yyyy-MM-ddTHH:mm' (서버는 KST 로컬 시각으로 해석)
+function toLocalIso(d) {
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function toPopupReq(form) {
+  return {
+    title: form.title,
+    content: form.content,
+    startAt: toLocalIso(form.startAt),
+    endAt: toLocalIso(form.endAt),
+    use: form.use,
+    targetAll: form.targetAll,
+    cliCodes: form.targetAll ? [] : form.cliCodes,
+    replaceConflicts: !!form.replaceConflicts,
+  };
+}
+
+export async function fetchPopups() {
+  const res = await axios.get(`${BASE_URL}/api/admin/popups`);
+  return res.data.map(toPopup);
+}
+
+export async function createPopup(form) {
+  const res = await axios.post(`${BASE_URL}/api/admin/popups`, toPopupReq(form));
+  return toPopup(res.data);
+}
+
+export async function updatePopup(popupNum, form) {
+  const res = await axios.put(`${BASE_URL}/api/admin/popups/${popupNum}`, toPopupReq(form));
+  return toPopup(res.data);
+}
+
+export async function setPopupUse(popupNum, use, replace = false) {
+  const res = await axios.patch(`${BASE_URL}/api/admin/popups/${popupNum}/use`, { use, replace });
+  return toPopup(res.data);
+}
+
+export async function deletePopup(popupNum) {
+  await axios.delete(`${BASE_URL}/api/admin/popups/${popupNum}`);
 }

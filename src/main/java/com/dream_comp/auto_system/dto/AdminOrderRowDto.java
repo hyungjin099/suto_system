@@ -24,5 +24,7 @@ public class AdminOrderRowDto {
     private Integer unitPrice;      // 단가 스냅샷
     private String aliasName;       // 별칭 스냅샷
     private String cutDone;         // 재단 작업 완료 여부 'Y'/'N' (관리자 화면 전용, 시트와 무관)
+    private String cancelled;      // 취소 여부 'Y'/'N' (취소해도 행은 남고 이력으로 조회됨)
+    private LocalDateTime cancelledAt;
     private String createdBy;      // 접수 주체: 'CUSTOMER' 또는 관리자 username (접수 감사 기록이 없는 과거 주문은 null)
 }

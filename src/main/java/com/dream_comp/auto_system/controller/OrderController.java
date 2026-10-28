@@ -128,11 +128,16 @@ public class OrderController {
         return ResponseEntity.ok(Map.of("itemNum", itemNum, "cutDone", done));
     }
 
-    /** 관리자: 주문 품목 삭제 (DB 전용 — 시트는 작업자가 직접 처리) */
-    @DeleteMapping("/api/admin/orders/items/{itemNum}")
-    public ResponseEntity<Void> deleteItem(@PathVariable Long itemNum) {
-        orderService.deleteItem(itemNum);
-        return ResponseEntity.noContent().build();
+    /** 관리자: 주문 품목 취소/복구 (DB 전용 — 행은 남기고 취소 표시만 함). body: {"cancel": true|false} */
+    @PatchMapping("/api/admin/orders/items/{itemNum}/cancel")
+    public ResponseEntity<Map<String, Object>> setCancelled(@PathVariable Long itemNum,
+                                                             @RequestBody Map<String, Object> body) {
+        Object v = body.get("cancel");
+        if (!(v instanceof Boolean)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "cancel(true/false)이 필요합니다"));
+        }
+        boolean cancelled = orderService.setCancelled(itemNum, (Boolean) v);
+        return ResponseEntity.ok(Map.of("itemNum", itemNum, "cancelled", cancelled));
     }
 
     /** 관리자: 내가 아직 안 본 발주 수 + 미리보기 (최신 5건) */

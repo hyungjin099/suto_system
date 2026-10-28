@@ -12,6 +12,7 @@ import AdminChangePassword from "./pages/Admin/AdminChangePassword";
 import AdminUsers from "./pages/Admin/AdminUsers";
 import SystemSettingsAdmin from "./pages/Admin/SystemSettingsAdmin";
 import FabricSortAdmin from "./pages/Admin/FabricSortAdmin";
+import PopupAdmin from "./pages/Admin/PopupAdmin";
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
         <Route path="/admin/fabric-alias" element={<AdminGuard><FabricAliasAdmin /></AdminGuard>} />
         <Route path="/admin/fabric-sort" element={<AdminGuard><FabricSortAdmin /></AdminGuard>} />
         <Route path="/admin/orders" element={<AdminGuard><OrderAdmin /></AdminGuard>} />
+        <Route path="/admin/popups" element={<AdminGuard><PopupAdmin /></AdminGuard>} />
 
         {/* 관리자 계정 관리 — admin 계정만 접근 가능 */}
         <Route path="/admin/users" element={<AdminGuard superAdminOnly><AdminUsers /></AdminGuard>} />

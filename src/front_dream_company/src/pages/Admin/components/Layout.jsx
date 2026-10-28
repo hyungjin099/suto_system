@@ -13,6 +13,7 @@ import {
   IconLink,
   IconTruck,
   IconGear,
+  IconChart,
 } from "./Icons";
 import { cx } from "../utils";
 import { useNotification } from "../notifications/NotificationContext";
@@ -51,6 +52,12 @@ const MENU_ITEMS = [
     path: "/admin/fabric-sort",
     Icon: IconLink,
   },
+  {
+    key: "popups",
+    label: "팝업 관리",
+    path: "/admin/popups",
+    Icon: IconChart,
+  },
 ];
 
 // 현재 경로 → (현재 메뉴 key, 페이지 이름)
@@ -65,6 +72,8 @@ function resolveActive(pathname) {
     return { key: "fabric-alias", category: "원단 관리", page: "원단 별칭 매칭" };
   if (pathname.startsWith("/admin/fabric-sort"))
     return { key: "fabric-sort", category: "원단 관리", page: "고객 제품 목록 정렬" };
+  if (pathname.startsWith("/admin/popups"))
+    return { key: "popups", category: "고객 페이지", page: "팝업 관리" };
   if (pathname.startsWith("/admin/users"))
     return { key: "users", category: "시스템", page: "관리자 계정" };
   if (pathname.startsWith("/admin/settings"))

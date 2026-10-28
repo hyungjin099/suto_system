@@ -250,3 +250,30 @@
   color: var(--brand-ink);
   border-color: var(--brand-line);
 }
+
+/* 취소된 주문: 흐리게 + 취소선, 클릭하면 복구 확인 */
+.rowCancelled td {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--muted) 60%, transparent);
+}
+.rowCancelled td:first-child,
+.rowCancelled .cancelBadge { text-decoration: none; }
+.rowCancelled { opacity: 0.7; }
+.cancelBadge {
+  display: inline-flex;
+  align-items: center;
+  box-sizing: border-box;
+  height: 18px;
+  margin-left: 7px;
+  padding: 1px 8px 0;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  line-height: 1;
+  vertical-align: middle;
+  text-decoration: none;
+}

@@ -56,6 +56,8 @@
         <result property="unitPrice"      column="UNIT_PRICE"/>
         <result property="aliasName"      column="ALIAS_NAME"/>
         <result property="cutDone"        column="CUT_DONE"/>
+        <result property="cancelled"      column="CANCEL_YN"/>
+        <result property="cancelledAt"    column="CANCELLED_AT"/>
         <result property="createdBy"      column="CREATED_BY"/>
     </resultMap>
 
@@ -65,7 +67,7 @@
             oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE,
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE, it.CANCEL_YN, it.CANCELLED_AT,
             (SELECT a.ACTOR FROM ORDER_AUDIT a
               WHERE a.ORDER_NUM = oi.ORDER_NUM AND a.ACTION = 'CREATE'
               ORDER BY a.AUDIT_NUM LIMIT 1) AS CREATED_BY
@@ -89,7 +91,7 @@
             oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE, it.CANCEL_YN, it.CANCELLED_AT
         FROM ORDER_ITEM it
         JOIN ORDER_INFO  oi ON oi.ORDER_NUM = it.ORDER_NUM
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
@@ -129,6 +131,7 @@
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
         WHERE oi.STATUS IN ('PENDING','FAILED')
           AND oi.ORDER_DATE > (NOW() - INTERVAL 24 HOUR)
+          AND it.CANCEL_YN = 'N'        -- 취소된 품목은 시트로 보내지 않는다
         ORDER BY oi.ORDER_NUM, it.ITEM_NUM
     </select>
 
@@ -144,20 +147,17 @@
         LEFT JOIN ORDER_ITEM it ON it.ORDER_NUM = oi.ORDER_NUM
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
         WHERE oi.STATUS = 'DEFERRED'
+          AND it.CANCEL_YN = 'N'        -- 취소된 품목은 시트로 보내지 않는다
         ORDER BY oi.ORDER_NUM, it.ITEM_NUM
     </select>
 
-    <delete id="deleteItem">
-        DELETE FROM ORDER_ITEM WHERE ITEM_NUM = #{itemNum}
-    </delete>
-
-    <select id="countItemsByOrderNum" parameterType="long" resultType="int">
-        SELECT COUNT(*) FROM ORDER_ITEM WHERE ORDER_NUM = #{orderNum}
-    </select>
-
-    <delete id="deleteOrder">
-        DELETE FROM ORDER_INFO WHERE ORDER_NUM = #{orderNum}
-    </delete>
+    <!-- 주문 품목 취소/복구 (행은 지우지 않고 표시만 바꿔 이력을 남긴다) -->
+    <update id="updateCancel">
+        UPDATE ORDER_ITEM
+        SET CANCEL_YN    = #{cancelYn},
+            CANCELLED_AT = IF(#{cancelYn} = 'Y', NOW(), NULL)
+        WHERE ITEM_NUM = #{itemNum}
+    </update>
 
     <!-- 거래처별 주문 내역 조회 (최신순) -->
     <select id="findByCliCode" resultMap="orderResultMap">
@@ -168,6 +168,7 @@
         FROM ORDER_INFO oi
         LEFT JOIN ORDER_ITEM it ON it.ORDER_NUM = oi.ORDER_NUM
         WHERE oi.CLI_CODE = #{cliCode}
+          AND (it.ITEM_NUM IS NULL OR it.CANCEL_YN = 'N')     -- 취소된 품목은 고객 화면에 보이지 않는다
         <if test="from != null">AND oi.ORDER_DATE &gt;= #{from}</if>
         <if test="to != null">AND oi.ORDER_DATE &lt; #{to}</if>
         ORDER BY oi.ORDER_DATE DESC, oi.ORDER_NUM DESC, it.ITEM_NUM ASC
@@ -198,8 +199,10 @@
 
     <!-- 알림: 미확인 수 (lastSeen 초과) -->
     <select id="countUnseen" resultType="int">
-        SELECT COUNT(*) FROM ORDER_INFO
-        WHERE ORDER_NUM &gt; COALESCE(#{lastSeen}, 0)
+        SELECT COUNT(*) FROM ORDER_INFO oi
+        WHERE oi.ORDER_NUM &gt; COALESCE(#{lastSeen}, 0)
+          AND EXISTS (SELECT 1 FROM ORDER_ITEM it
+                      WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N')   -- 전부 취소된 주문은 알림에서 제외
     </select>
 
     <!-- 알림: 미확인 미리보기 (최신순, limit 건) -->
@@ -222,15 +225,17 @@
             oi.ORDER_DATE,
             oi.STATUS,
             (SELECT it.PRODUCT_LABEL FROM ORDER_ITEM it
-              WHERE it.ORDER_NUM = oi.ORDER_NUM
+              WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N'
               ORDER BY it.ITEM_NUM LIMIT 1) AS FIRST_PRODUCT_LABEL,
             (SELECT COUNT(*) FROM ORDER_ITEM it
-              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS ITEM_COUNT,
+              WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N') AS ITEM_COUNT,
             (SELECT COALESCE(SUM(it.ROLLS), 0) FROM ORDER_ITEM it
-              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS TOTAL_ROLLS
+              WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N') AS TOTAL_ROLLS
         FROM ORDER_INFO oi
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
         WHERE oi.ORDER_NUM &gt; COALESCE(#{lastSeen}, 0)
+          AND EXISTS (SELECT 1 FROM ORDER_ITEM it
+                      WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N')   -- 전부 취소된 주문은 알림에서 제외
         ORDER BY oi.ORDER_NUM DESC
         LIMIT #{limit}
     </select>
@@ -244,12 +249,12 @@
             oi.ORDER_DATE,
             oi.STATUS,
             (SELECT it.PRODUCT_LABEL FROM ORDER_ITEM it
-              WHERE it.ORDER_NUM = oi.ORDER_NUM
+              WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N'
               ORDER BY it.ITEM_NUM LIMIT 1) AS FIRST_PRODUCT_LABEL,
             (SELECT COUNT(*) FROM ORDER_ITEM it
-              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS ITEM_COUNT,
+              WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N') AS ITEM_COUNT,
             (SELECT COALESCE(SUM(it.ROLLS), 0) FROM ORDER_ITEM it
-              WHERE it.ORDER_NUM = oi.ORDER_NUM) AS TOTAL_ROLLS
+              WHERE it.ORDER_NUM = oi.ORDER_NUM AND it.CANCEL_YN = 'N') AS TOTAL_ROLLS
         FROM ORDER_INFO oi
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
         WHERE oi.ORDER_ID = #{orderId}

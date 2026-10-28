@@ -12,7 +12,7 @@ import Pagination from "./components/Pagination";
 import {
   fetchAdminOrders,
   updateAdminOrderItem,
-  deleteAdminOrderItem,
+  setAdminOrderItemCancelled,
   setOrderItemCutDone,
   fetchClients,
 } from "./api";
@@ -97,6 +97,7 @@ export default function OrderAdmin() {
   const [qClient,  setQClient]    = useState("");  // 발주처
   const [qDest,    setQDest]      = useState("");  // 납품처
   const [statusFilter, setStatusFilter] = useState("");
+  const [cancelFilter, setCancelFilter] = useState("all"); // all 전체 | active 미취소 | cancelled 취소됨
   const [dateFrom, setDateFrom] = useState(""); // 'YYYY-MM-DD'
   const [dateTo, setDateTo] = useState("");
   const [page, setPage] = useState(1);
@@ -106,7 +107,8 @@ export default function OrderAdmin() {
   const [creating, setCreating] = useState(false);
   const [createSaving, setCreateSaving] = useState(false);
   const [clients, setClients] = useState([]);
-  const [deleteTarget, setDeleteTarget] = useState(null); // 삭제 확인 모달용
+  const [deleteTarget, setDeleteTarget] = useState(null); // 취소 확인 모달용
+  const [restoreTarget, setRestoreTarget] = useState(null); // 취소 복구 확인 모달용
 
   // 새 주문 추가 모달용 거래처 목록 로드 (사용구분 YES만)
   useEffect(() => {
@@ -115,7 +117,7 @@ export default function OrderAdmin() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => { setPage(1); }, [qOrderId, qProduct, qWidth, qClient, qDest, statusFilter, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [qOrderId, qProduct, qWidth, qClient, qDest, statusFilter, cancelFilter, dateFrom, dateTo]);
 
   const onSaveEdit = async (body) => {
     if (!editingRow) return;
@@ -165,21 +167,23 @@ export default function OrderAdmin() {
     setDeleteTarget(target); // 확인 모달 오픈
   };
 
-  const confirmDeleteOrder = async () => {
-    if (!deleteTarget) return;
+  // 취소/복구: 행은 지우지 않고 표시만 바꾼다. 저장 후 서버 기준으로 다시 불러와 취소 시각까지 맞춘다
+  const changeCancelled = async (target, cancel) => {
     setDeleting(true);
     try {
-      await deleteAdminOrderItem(deleteTarget.itemNum);
-      setRows((arr) => arr.filter((r) => r.itemNum !== deleteTarget.itemNum));
+      await setAdminOrderItemCancelled(target.itemNum, cancel);
+      setRows(await fetchAdminOrders());
       setEditingRow(null);
-      setDeleteTarget(null);
     } catch (err) {
-      alert(err?.response?.data?.message || "삭제 중 오류가 발생했습니다.");
-      setDeleteTarget(null);
+      alert(err?.response?.data?.message || (cancel ? "취소 처리 중 오류가 발생했습니다." : "복구 중 오류가 발생했습니다."));
     } finally {
+      setDeleteTarget(null);
+      setRestoreTarget(null);
       setDeleting(false);
     }
   };
+  const confirmDeleteOrder = () => deleteTarget && changeCancelled(deleteTarget, true);
+  const confirmRestoreOrder = () => restoreTarget && changeCancelled(restoreTarget, false);
 
   useEffect(() => {
     fetchAdminOrders()
@@ -263,6 +267,8 @@ export default function OrderAdmin() {
     // dateTo는 그 날 23:59:59까지 포함
     const toTs = dateTo ? new Date(dateTo + "T23:59:59").getTime() : null;
     return rows.filter((r) => {
+      if (cancelFilter === "active" && r.cancelled) return false;
+      if (cancelFilter === "cancelled" && !r.cancelled) return false;
       if (statusFilter && r.status !== statusFilter) return false;
       if (fromTs != null) {
         if (!r.orderDate || r.orderDate.getTime() < fromTs) return false;
@@ -281,14 +287,17 @@ export default function OrderAdmin() {
       if (kDest && !(r.destination || "").toLowerCase().includes(kDest)) return false;
       return true;
     });
-  }, [rows, qOrderId, qProduct, qWidth, qClient, qDest, statusFilter, dateFrom, dateTo]);
+  }, [rows, qOrderId, qProduct, qWidth, qClient, qDest, statusFilter, cancelFilter, dateFrom, dateTo]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const pageItems = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  const okCount = rows.filter((r) => r.status === "OK").length;
-  const failCount = rows.filter((r) => r.status === "FAILED").length;
-  const pendingCount = rows.filter((r) => r.status === "PENDING").length;
+  // 상단 집계는 취소되지 않은 주문 기준, 취소 건수는 따로 보여 준다
+  const activeRows = rows.filter((r) => !r.cancelled);
+  const cancelledCount = rows.length - activeRows.length;
+  const okCount = activeRows.filter((r) => r.status === "OK").length;
+  const failCount = activeRows.filter((r) => r.status === "FAILED").length;
+  const pendingCount = activeRows.filter((r) => r.status === "PENDING").length;
 
   // 엑셀 다운로드 — 화면에 보이는 필터·검색 결과(filtered)를 화면 컬럼 순서 그대로
   const onDownloadExcel = () => {
@@ -310,6 +319,8 @@ export default function OrderAdmin() {
       "비고":       r.note || "",
       "납품예정일": r.deliveryDate || calcDelivery(r.orderDate),
       "단가":       r.unitPrice ?? "",
+      "취소여부":   r.cancelled ? "취소" : "",
+      "취소일시":   r.cancelledAt ? fmtDateTime(r.cancelledAt) : "",
     }));
     downloadXlsx(excelRows, `주문내역_${todayYmd()}`, "주문내역");
   };
@@ -418,6 +429,16 @@ export default function OrderAdmin() {
         </div>
         <select
           className={styles.select}
+          value={cancelFilter}
+          onChange={(e) => setCancelFilter(e.target.value)}
+          title="취소된 주문 보기 설정"
+        >
+          <option value="active">미취소 주문만</option>
+          <option value="all">전체 주문</option>
+          <option value="cancelled">취소된 주문만</option>
+        </select>
+        <select
+          className={styles.select}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -427,7 +448,7 @@ export default function OrderAdmin() {
           <option value="PENDING">미전송</option>
         </select>
         <div className={styles.counts}>
-          전체 <b>{rows.length}</b> · 전송완료 <b className={styles.numOk}>{okCount}</b> · 실패 <b className={styles.numFail}>{failCount}</b> · 미전송 <b>{pendingCount}</b>
+          전체 <b>{activeRows.length}</b> · 전송완료 <b className={styles.numOk}>{okCount}</b> · 실패 <b className={styles.numFail}>{failCount}</b> · 미전송 <b>{pendingCount}</b> · 취소 <b className={styles.numFail}>{cancelledCount}</b>
         </div>
       </div>
 
@@ -481,21 +502,22 @@ export default function OrderAdmin() {
                 return (
                 <tr
                   key={`${r.orderNum}-${r.itemNum}`}
-                  className={styles.row}
-                  onClick={() => setEditingRow(r)}
+                  className={r.cancelled ? `${styles.row} ${styles.rowCancelled}` : styles.row}
+                  onClick={() => (r.cancelled ? setRestoreTarget(r) : setEditingRow(r))}
                   style={{
                     cursor: "pointer",
                     backgroundColor: isNew ? "#d4edda" : undefined,
                     borderLeft: isNew ? "4px solid #28a745" : undefined,
                     transition: "background-color 1.5s ease-out, border-left-color 1.5s ease-out",
                   }}
-                  title="클릭해서 수정"
+                  title={r.cancelled ? "취소된 품목 (클릭하면 복구할 수 있습니다)" : "클릭해서 수정"}
                 >
                   <td className={styles.cellCheck} onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       className={styles.cutCheck}
                       checked={!!r.cutDone}
+                      disabled={r.cancelled}
                       onChange={(e) => toggleCutDone(r, e.target.checked)}
                       title={r.cutDone ? "재단 작업 완료 (클릭하면 미완료로 변경)" : "재단 작업 미완료 (클릭하면 완료로 변경)"}
                     />
@@ -504,7 +526,15 @@ export default function OrderAdmin() {
                     <span className={isSameDay(r.orderDate, today) ? styles.orderIdToday : undefined}>
                       {r.orderId}
                     </span>
-                    {r.createdBy && r.createdBy !== "CUSTOMER" && (
+                    {r.cancelled && (
+                      <span
+                        className={styles.cancelBadge}
+                        title={r.cancelledAt ? `${fmtDateTime(r.cancelledAt)}에 취소됨` : "취소됨"}
+                      >
+                        취소
+                      </span>
+                    )}
+                    {!r.cancelled && r.createdBy && r.createdBy !== "CUSTOMER" && (
                       <span className={styles.selfBadge} title={`관리자가 직접 입력한 주문 (${r.createdBy})`}>
                         self
                       </span>
@@ -569,7 +599,7 @@ export default function OrderAdmin() {
 
       {deleteTarget && (
         <ConfirmDialog
-          title="주문 품목을 삭제하시겠어요?"
+          title="주문 품목을 취소하시겠어요?"
           body={
             <div style={{ fontSize: 13, lineHeight: 1.6 }}>
               <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
@@ -582,16 +612,49 @@ export default function OrderAdmin() {
                 {deleteTarget.rolls ? ` · ${deleteTarget.rolls}롤` : ""}
               </div>
               <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)" }}>
-                시스템에서만 삭제되며 스프레드시트에는 반영되지 않습니다.<br />
-                삭제 후 시트도 지워야 한다면 <b>작업자에게 공유</b>해주세요. 되돌릴 수 없습니다.
+                취소 처리되어 기본 목록에서는 사라지고, 고객 주문 내역에도 보이지 않습니다.<br />
+                취소 이력은 <b>[취소된 주문만]</b>으로 조회할 수 있고 언제든 복구할 수 있습니다.<br />
+                스프레드시트에는 반영되지 않으니, 시트에서도 처리가 필요하면 <b>작업자에게 공유</b>해주세요.
               </div>
             </div>
           }
-          confirmLabel={deleting ? "삭제 중…" : "삭제"}
+          confirmLabel={deleting ? "취소 처리 중…" : "주문 취소"}
           danger
           disabled={deleting}
           onCancel={() => !deleting && setDeleteTarget(null)}
           onConfirm={confirmDeleteOrder}
+        />
+      )}
+
+      {restoreTarget && (
+        <ConfirmDialog
+          title="취소된 품목입니다. 복구하시겠어요?"
+          body={
+            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
+                주문번호 {restoreTarget.orderId}
+              </div>
+              <div style={{ color: "var(--ink-2)" }}>
+                {restoreTarget.productLabel || restoreTarget.product}
+                {restoreTarget.width ? ` · ${restoreTarget.width}mm` : ""}
+                {restoreTarget.length ? ` × ${restoreTarget.length}m` : ""}
+                {restoreTarget.rolls ? ` · ${restoreTarget.rolls}롤` : ""}
+              </div>
+              {restoreTarget.cancelledAt && (
+                <div style={{ marginTop: 6, fontSize: 12, color: "var(--muted)" }}>
+                  취소 일시 {fmtDateTime(restoreTarget.cancelledAt)}
+                </div>
+              )}
+              <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)" }}>
+                복구하면 다시 일반 주문으로 표시되고 고객 주문 내역에도 보입니다.<br />
+                스프레드시트에는 자동 반영되지 않으니, 이미 시트에 없는 품목이라면 <b>작업자에게 공유</b>해주세요.
+              </div>
+            </div>
+          }
+          confirmLabel={deleting ? "복구 중…" : "복구"}
+          disabled={deleting}
+          onCancel={() => !deleting && setRestoreTarget(null)}
+          onConfirm={confirmRestoreOrder}
         />
       )}
     </AdminShell>

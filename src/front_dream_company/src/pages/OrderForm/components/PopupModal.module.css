@@ -1,0 +1,205 @@
+@keyframes pm-fadein { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pm-pop {
+  from { transform: translateY(24px) scale(0.97); opacity: 0; }
+  to   { transform: translateY(0) scale(1);       opacity: 1; }
+}
+@keyframes pm-ring {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(-12deg); }
+  30% { transform: rotate(10deg); }
+  45% { transform: rotate(-6deg); }
+  60% { transform: rotate(0); }
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: color-mix(in oklab, #0a120c 58%, transparent);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: pm-fadein 0.2s ease;
+}
+
+.modal {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100dvh - 40px);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #fff);
+  border-radius: 24px;
+  box-shadow:
+    0 0 0 1px rgba(20, 30, 22, 0.05),
+    0 30px 70px -16px rgba(10, 30, 15, 0.45);
+  overflow: hidden;
+  animation: pm-pop 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* 상단 브랜드 컬러 띠 */
+.modal::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--brand, #1b3a2a), color-mix(in oklab, var(--brand, #1b3a2a) 55%, #9be0a8));
+  z-index: 1;
+}
+
+.handle { display: none; }
+
+.closeBtn {
+  position: absolute;
+  top: 16px;
+  right: 14px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--ink, #18221b) 6%, transparent);
+  color: var(--ink-2, #3d4a40);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.closeBtn:hover { background: color-mix(in oklab, var(--ink, #18221b) 12%, transparent); }
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 28px 58px 18px 24px;
+  background: linear-gradient(180deg, var(--brand-soft, #eaf3e8) 0%, var(--surface, #fff) 100%);
+}
+
+.iconBadge {
+  flex-shrink: 0;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: #fff;
+  background: linear-gradient(145deg, color-mix(in oklab, var(--brand, #1b3a2a) 80%, #9be0a8), var(--brand, #1b3a2a));
+  box-shadow: 0 10px 22px -8px color-mix(in oklab, var(--brand, #1b3a2a) 70%, transparent);
+}
+.iconBadge svg {
+  transform-origin: 50% 70%;
+  animation: pm-ring 1.6s ease 0.35s 1;
+}
+
+.headText { min-width: 0; }
+.eyebrow {
+  margin-bottom: 3px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--brand, #1b3a2a);
+}
+.title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.35;
+  color: var(--ink, #18221b);
+  word-break: break-word;
+}
+
+/* 내용이 길면 이 영역만 스크롤 */
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  margin: 0 20px;
+  padding: 16px 4px 18px;
+  border-top: 1px solid var(--line, #e6e8df);
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--ink-2, #3d4a40);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.content a {
+  color: var(--brand, #1b3a2a);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in oklab, var(--brand, #1b3a2a) 35%, transparent);
+  word-break: break-all;
+}
+.content a:hover { text-decoration-color: var(--brand, #1b3a2a); }
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  padding: 6px 20px 18px;
+}
+
+.okBtn {
+  order: 1;
+  height: 50px;
+  border: none;
+  border-radius: 14px;
+  background: linear-gradient(145deg, color-mix(in oklab, var(--brand, #1b3a2a) 85%, #9be0a8), var(--brand, #1b3a2a));
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  box-shadow: 0 12px 24px -10px color-mix(in oklab, var(--brand, #1b3a2a) 75%, transparent);
+  transition: transform 0.1s, filter 0.15s;
+}
+.okBtn:hover { filter: brightness(1.06); }
+.okBtn:active { transform: scale(0.985); }
+
+.hideBtn {
+  order: 2;
+  height: 44px;
+  border: none;
+  background: transparent;
+  color: var(--muted, #79847b);
+  font-size: 13px;
+  cursor: pointer;
+}
+.hideBtn:hover { color: var(--ink-2, #3d4a40); text-decoration: underline; }
+
+/* 폰: 화면 아래에서 올라오는 시트 */
+@media (max-width: 520px) {
+  .overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    max-width: none;
+    max-height: 88dvh;
+    border-radius: 24px 24px 0 0;
+    padding-bottom: env(safe-area-inset-bottom);
+    animation-name: pm-sheet;
+  }
+  .modal::before { display: none; }
+  .handle {
+    display: block;
+    width: 40px;
+    height: 4px;
+    margin: 10px auto 0;
+    border-radius: 999px;
+    background: color-mix(in oklab, var(--ink, #18221b) 18%, transparent);
+  }
+  .header { padding-top: 14px; }
+  .closeBtn { top: 18px; }
+}
+
+@keyframes pm-sheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}

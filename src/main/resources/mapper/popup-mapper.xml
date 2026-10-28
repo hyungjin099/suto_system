@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dream_comp.auto_system.mapper.PopupMapper">
+
+    <resultMap id="popupResultMap" type="com.dream_comp.auto_system.dto.PopupDto">
+        <id     property="popupNum"   column="POPUP_NUM"/>
+        <result property="title"      column="TITLE"/>
+        <result property="content"    column="CONTENT"/>
+        <result property="startAt"    column="START_AT"/>
+        <result property="endAt"      column="END_AT"/>
+        <result property="useYn"      column="USE_YN"/>
+        <result property="targetAll"  column="TARGET_ALL"/>
+        <result property="contentVer" column="CONTENT_VER"/>
+        <result property="createdAt"  column="CREATED_AT"/>
+        <collection property="cliCodes" ofType="string" column="POPUP_NUM" select="findTargets"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="popupResultMap">
+        SELECT POPUP_NUM, TITLE, CONTENT, START_AT, END_AT, USE_YN, TARGET_ALL, CONTENT_VER, CREATED_AT
+        FROM POPUP_NOTICE
+        ORDER BY POPUP_NUM DESC
+    </select>
+
+    <select id="findByPopupNum" parameterType="long" resultMap="popupResultMap">
+        SELECT POPUP_NUM, TITLE, CONTENT, START_AT, END_AT, USE_YN, TARGET_ALL, CONTENT_VER, CREATED_AT
+        FROM POPUP_NOTICE
+        WHERE POPUP_NUM = #{popupNum}
+    </select>
+
+    <select id="findTargets" parameterType="long" resultType="string">
+        SELECT CLI_CODE FROM POPUP_NOTICE_TARGET WHERE POPUP_NUM = #{popupNum} ORDER BY CLI_CODE
+    </select>
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="popupNum" keyColumn="POPUP_NUM">
+        INSERT INTO POPUP_NOTICE (TITLE, CONTENT, START_AT, END_AT, USE_YN, TARGET_ALL)
+        VALUES (#{title}, #{content}, #{startAt}, #{endAt}, #{useYn}, #{targetAll})
+    </insert>
+
+    <!-- CONTENT_VER 를 TITLE/CONTENT 보다 먼저 SET: 대입은 왼쪽부터 평가되므로 변경 전 값과 비교된다. BINARY: 대소문자만 바꾼 수정도 변경으로 본다 -->
+    <update id="update">
+        UPDATE POPUP_NOTICE
+        SET CONTENT_VER = CONTENT_VER + IF(BINARY TITLE &lt;&gt; BINARY #{title} OR BINARY CONTENT &lt;&gt; BINARY #{content}, 1, 0),
+            TITLE       = #{title},
+            CONTENT     = #{content},
+            START_AT    = #{startAt},
+            END_AT      = #{endAt},
+            USE_YN      = #{useYn},
+            TARGET_ALL  = #{targetAll}
+        WHERE POPUP_NUM = #{popupNum}
+    </update>
+
+    <update id="updateUse">
+        UPDATE POPUP_NOTICE SET USE_YN = #{useYn} WHERE POPUP_NUM = #{popupNum}
+    </update>
+
+    <delete id="delete">
+        DELETE FROM POPUP_NOTICE WHERE POPUP_NUM = #{popupNum}
+    </delete>
+
+    <delete id="deleteTargets">
+        DELETE FROM POPUP_NOTICE_TARGET WHERE POPUP_NUM = #{popupNum}
+    </delete>
+
+    <insert id="insertTargets">
+        INSERT INTO POPUP_NOTICE_TARGET (POPUP_NUM, CLI_CODE) VALUES
+        <foreach collection="cliCodes" item="code" separator=",">
+            (#{popupNum}, #{code})
+        </foreach>
+    </insert>
+
+    <!-- 노출 조건: 사용 중 + 기간 내 + (전체 대상 또는 이 거래처가 대상). 여러 개면 가장 최근 등록 1건 -->
+    <select id="findActiveFor" resultType="com.dream_comp.auto_system.dto.PopupPublicDto">
+        SELECT p.POPUP_NUM AS popupNum, p.TITLE AS title, p.CONTENT AS content, p.CONTENT_VER AS contentVer
+        FROM POPUP_NOTICE p
+        WHERE p.USE_YN = 'Y'
+          AND #{now} &gt;= p.START_AT AND #{now} &lt;= p.END_AT
+          AND (p.TARGET_ALL = 'Y'
+               OR EXISTS (SELECT 1 FROM POPUP_NOTICE_TARGET t
+                          WHERE t.POPUP_NUM = p.POPUP_NUM AND t.CLI_CODE = #{cliCode}))
+        ORDER BY p.POPUP_NUM DESC
+        LIMIT 1
+    </select>
+
+</mapper>

@@ -10,6 +10,7 @@ import ProductCard from "./components/ProductCard";
 import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
 import UnavailableScreen from "./components/UnavailableScreen";
+import PopupModal from "./components/PopupModal";
 import { IconPlus, IconChevron } from "./components/Icons";
 import { emptyItem, validateItem } from "./constants";
 import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations, fetchOrderAvailability } from "./api";
@@ -237,6 +238,7 @@ export default function OrderForm() {
     <PasswordGate cliCode={cliCode} clientName={clientName}>
     <div className={styles.page}>
       <Header clientCompany={clientName} />
+      <PopupModal cliCode={cliCode} active={tab === "order"} />
 
       <div className={styles.tabBar}>
         <button
