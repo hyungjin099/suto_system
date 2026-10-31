@@ -10,7 +10,7 @@ const fmtLocal = (d) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-export default function OrderEditModal({ row, onClose, onSave, onDelete, saving, deleting }) {
+export default function OrderEditModal({ row, onClose, onSave, onDelete, onReorder, saving, deleting }) {
   const [form, setForm] = useState({
     product: "",
     productLabel: "",
@@ -191,16 +191,29 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, saving,
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", gap: 8, marginTop: 18 }}>
-          {onDelete && (
-            <button
-              type="button"
-              onClick={() => onDelete(row)}
-              disabled={saving || deleting}
-              style={btnDanger}
-            >
-              {deleting ? "처리 중…" : "주문 취소"}
-            </button>
-          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            {onDelete && (
+              <button
+                type="button"
+                onClick={() => onDelete(row)}
+                disabled={saving || deleting}
+                style={btnDanger}
+              >
+                {deleting ? "처리 중…" : "주문 취소"}
+              </button>
+            )}
+            {onReorder && (
+              <button
+                type="button"
+                onClick={() => onReorder(row)}
+                disabled={saving || deleting}
+                style={btnGhost}
+                title="저장된 원본 내용으로 새 주문 입력창을 엽니다. 이 창에서 고친 내용은 반영되지 않습니다."
+              >
+                재주문
+              </button>
+            )}
+          </div>
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
             <button type="button" onClick={onClose} disabled={saving || deleting} style={btnGhost}>닫기</button>
             <button type="submit" disabled={saving || deleting} style={btnPrimary}>

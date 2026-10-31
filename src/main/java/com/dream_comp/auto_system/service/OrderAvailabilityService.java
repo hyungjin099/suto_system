@@ -1,6 +1,7 @@
 package com.dream_comp.auto_system.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.time.DayOfWeek;
@@ -30,17 +31,21 @@ public class OrderAvailabilityService {
 
     private final HolidayService holidayService;
 
+    /** 로컬 테스트 전용(application-local.properties 에서만 켬). true 면 주말·공휴일에도 접수 가능. 운영에서는 항상 false */
+    @Value("${app.dev.ignore-closed-days:false}")
+    private boolean ignoreClosedDays;
+
     public Result check() {
         return check(LocalDateTime.now(KST));
     }
 
     public Result check(LocalDateTime nowKst) {
         DayOfWeek dow = nowKst.getDayOfWeek();
-        if (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY) {
+        if (!ignoreClosedDays && (dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY)) {
             return new Result(false, "WEEKEND",
                     "주말에는 주문을 접수하지 않습니다.");
         }
-        if (holidayService.isHoliday(nowKst.toLocalDate())) {
+        if (!ignoreClosedDays && holidayService.isHoliday(nowKst.toLocalDate())) {
             return new Result(false, "HOLIDAY",
                     "공휴일에는 주문을 접수하지 않습니다.");
         }

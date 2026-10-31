@@ -277,3 +277,8 @@
   vertical-align: middle;
   text-decoration: none;
 }
+
+/* 취소 후 새 주문으로 복구된 품목: 같은 배지를 회색 톤으로 */
+.cancelBadgeRestored {
+  background: var(--muted);
+}

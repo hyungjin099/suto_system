@@ -8,7 +8,8 @@ import axios from "axios";
 import Select, { components as rsComponents } from "react-select";
 import ModalShell from "./ModalShell";
 import { IconX } from "./Icons";
-import { fetchClientDestinations } from "../api";
+import { fetchClientDestinations, fetchFrequentItems } from "../api";
+import { matchFabric } from "../../OrderForm/reorder";
 import styles from "./OrderCreateModal.module.css";
 
 /* react-select 공통 스타일 — 모달 내 인풋 높이·테마와 통일 */
@@ -108,13 +109,39 @@ function newItem() {
   };
 }
 
-export default function OrderCreateModal({ clients, onClose, onCreated, saving, setSaving }) {
-  const [cliCode, setCliCode] = useState("");
+/* 과거 품목(재주문·자주 주문한 품목) + 현재 주문 가능한 원단 → 입력 행. 비고는 비워서 담는다 */
+function itemFromEntry(e, fab) {
+  return {
+    ...newItem(),
+    fabricKey: fab.value,
+    product: fab.prodCode || "",
+    productLabel: fab.aliasName || fab.prodName || "",
+    width: String(e.width ?? ""),
+    length: String(e.length ?? ""),
+    rolls: e.rolls ?? 1,
+    destination: (e.destination || "").trim(),
+    note: "",
+  };
+}
+
+/**
+ * prefill: 재주문으로 열 때 { cliCode, entries: [{ product, productLabel, width, length, rolls, destination }] }
+ *          원본 주문 값 그대로이며, 거래처와 품목이 미리 채워진다(원본 주문은 바뀌지 않는다).
+ */
+export default function OrderCreateModal({ clients, onClose, onCreated, saving, setSaving, prefill }) {
+  const prefillClientOk = !!prefill && clients.some((c) => c.cliCode === prefill.cliCode);
+  const [cliCode, setCliCode] = useState(prefillClientOk ? prefill.cliCode : "");
   const [items, setItems] = useState([newItem()]);
+  const [pending, setPending] = useState(prefillClientOk ? prefill.entries : null); // 원단 목록이 로드되면 입력 행으로 변환
+  const [skipped, setSkipped] = useState([]);
+  const [fabricsReadyFor, setFabricsReadyFor] = useState("");   // 어느 거래처의 원단 목록까지 로드됐는지
+  const [frequent, setFrequent] = useState([]);
   const [fabricOptions, setFabricOptions] = useState([]);
   const [fabricsLoading, setFabricsLoading] = useState(false);
   const [destinations, setDestinations] = useState([]);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(
+    prefill && !prefillClientOk ? "이 거래처는 현재 사용 중이 아니어서 재주문을 불러올 수 없습니다." : ""
+  );
 
   const selectedClient = useMemo(
     () => clients.find((c) => c.cliCode === cliCode),
@@ -157,8 +184,47 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
         )
       )
       .catch(() => setFabricOptions([]))
-      .finally(() => setFabricsLoading(false));
+      .finally(() => {
+        setFabricsLoading(false);
+        setFabricsReadyFor(cliCode);
+      });
   }, [cliCode]);
+
+  // 재주문: 원단 목록이 로드된 뒤, 지금도 주문 가능한 품목만 입력 행으로 채운다
+  useEffect(() => {
+    if (!pending || !cliCode || fabricsReadyFor !== cliCode) return;
+    const rows = [];
+    const miss = [];
+    pending.forEach((e) => {
+      const fab = matchFabric(fabricOptions, e);
+      if (fab) rows.push(itemFromEntry(e, fab));
+      else miss.push(e.productLabel || e.product || "(이름 없음)");
+    });
+    if (rows.length) setItems(rows);
+    setSkipped(miss);
+    setPending(null);
+  }, [pending, cliCode, fabricsReadyFor, fabricOptions]);
+
+  // 자주 주문한 품목 (거래처를 고르면 표시, 지금도 주문 가능한 것만)
+  useEffect(() => {
+    if (!cliCode) { setFrequent([]); return; }
+    let alive = true;
+    fetchFrequentItems(cliCode)
+      .then((list) => alive && setFrequent(list))
+      .catch(() => alive && setFrequent([]));
+    return () => { alive = false; };
+  }, [cliCode]);
+  const frequentOrderable = useMemo(
+    () => (fabricsReadyFor === cliCode ? frequent.filter((e) => matchFabric(fabricOptions, e)).slice(0, 6) : []),
+    [frequent, fabricOptions, fabricsReadyFor, cliCode]
+  );
+
+  // 칩을 누르면 품목 한 줄 추가 (제품을 아직 고르지 않은 빈 줄은 대체)
+  const addFromEntry = (e) => {
+    const fab = matchFabric(fabricOptions, e);
+    if (!fab) return;
+    setItems((arr) => [...arr.filter((it) => it.fabricKey), itemFromEntry(e, fab)]);
+  };
 
   const setItem = (id, patch) =>
     setItems((arr) => arr.map((it) => (it._id === id ? { ...it, ...patch } : it)));
@@ -223,8 +289,8 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
         {/* 헤더 */}
         <div className={styles.header}>
           <div className={styles.headerText}>
-            <span className={styles.eyebrow}>NEW ORDER</span>
-            <h3 className={styles.title}>새 주문 추가</h3>
+            <span className={styles.eyebrow}>{prefill ? "REORDER" : "NEW ORDER"}</span>
+            <h3 className={styles.title}>{prefill ? "재주문 (새 주문 추가)" : "새 주문 추가"}</h3>
           </div>
           <button type="button" onClick={onClose} className={styles.closeBtn} aria-label="닫기">
             <IconX />
@@ -233,6 +299,16 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
 
         {/* 본문 */}
         <div className={styles.body}>
+          {prefill && (
+            <div className={styles.infoBox}>
+              기존 주문의 저장된 원본 내용을 불러왔습니다. 원본 주문은 바뀌지 않습니다.
+              규격·롤수를 확인한 뒤 <b>주문 추가</b>를 눌러 주세요. (비고는 비워서 불러옵니다)
+              {skipped.length > 0 && (
+                <div className={styles.warnLine}>지금은 주문할 수 없어 담지 못한 품목: {skipped.join(", ")}</div>
+              )}
+            </div>
+          )}
+
           {/* 거래처 섹션 */}
           <section className={styles.section}>
             <div className={styles.sectionHeader}>
@@ -269,6 +345,27 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
                 + 품목 추가
               </button>
             </div>
+
+            {frequentOrderable.length > 0 && (
+              <div className={styles.freqBox}>
+                <div className={styles.freqTitle}>자주 주문한 품목 <span>누르면 품목이 추가됩니다</span></div>
+                <div className={styles.freqChips}>
+                  {frequentOrderable.map((e) => (
+                    <button
+                      key={`${e.product}|${e.productLabel}|${e.width}|${e.length}`}
+                      type="button"
+                      className={styles.freqChip}
+                      onClick={() => addFromEntry(e)}
+                      title={`최근 ${e.rolls}롤 주문 · 최근 3개월 ${e.orderCount}회`}
+                    >
+                      <b>+</b>
+                      <span>{e.productLabel || e.product}</span>
+                      <em>{e.width}×{e.length} · {e.rolls}롤</em>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className={styles.itemsList}>
               {items.map((it, idx) => (

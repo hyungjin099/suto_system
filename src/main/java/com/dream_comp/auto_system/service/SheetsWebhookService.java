@@ -5,6 +5,7 @@ import com.dream_comp.auto_system.dto.OrderRequestDto;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.net.URI;
@@ -25,6 +26,10 @@ public class SheetsWebhookService {
 
     private final ObjectMapper objectMapper;
     private final SystemSettingService settingService;
+
+    /** 로컬 테스트 전용(application-local.properties 에서만 켬). true 면 시트로 아무것도 보내지 않는다. 운영에서는 항상 false */
+    @Value("${app.dev.skip-sheets-push:false}")
+    private boolean skipSheetsPush;
 
     // Apps Script Web App은 POST 시 302 리다이렉트를 반환하므로 ALWAYS 설정
     private final HttpClient httpClient = HttpClient.newBuilder()
@@ -81,6 +86,10 @@ public class SheetsWebhookService {
     /** orderDateOverride != null 이면 payload의 orderDate를 그 값으로 강제. (DeferredPushJob 등 지연 발송용) */
     public PushResult push(String orderId, OrderRequestDto dto, List<Long> itemNums,
                            LocalDateTime orderDateOverride) {
+        if (skipSheetsPush) {
+            log.warn("[DEV] app.dev.skip-sheets-push=true → 시트 전송 건너뜀 (orderId={})", orderId);
+            return new PushResult(false, null);
+        }
         String webhookUrl = currentWebhookUrl();
         if (isUnset(webhookUrl)) {
             log.warn("Sheets webhook URL 미설정 → 시트 전송 건너뜀 (orderId={})", orderId);

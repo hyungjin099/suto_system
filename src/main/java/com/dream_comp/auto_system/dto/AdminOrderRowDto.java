@@ -26,5 +26,6 @@ public class AdminOrderRowDto {
     private String cutDone;         // 재단 작업 완료 여부 'Y'/'N' (관리자 화면 전용, 시트와 무관)
     private String cancelled;      // 취소 여부 'Y'/'N' (취소해도 행은 남고 이력으로 조회됨)
     private LocalDateTime cancelledAt;
+    private String restoredOrderId; // 취소 후 새 주문으로 복구했다면 그 주문번호 (없으면 null)
     private String createdBy;      // 접수 주체: 'CUSTOMER' 또는 관리자 username (접수 감사 기록이 없는 과거 주문은 null)
 }

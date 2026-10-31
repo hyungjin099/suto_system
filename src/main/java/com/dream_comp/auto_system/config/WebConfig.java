@@ -43,7 +43,8 @@ public class WebConfig implements WebMvcConfigurer {
                         "/api/clients/*/fabrics",
                         "/api/clients/*/orders",
                         "/api/clients/*/destinations",
-                        "/api/clients/*/popup"
+                        "/api/clients/*/popup",
+                        "/api/clients/*/frequent-items"
                 );
     }
 }

@@ -255,3 +255,49 @@
   transition: opacity 0.12s;
 }
 .btnSubmit:disabled, .btnCancel:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* 재주문 안내 / 자주 주문한 품목 */
+.infoBox {
+  padding: 10px 14px;
+  background: var(--brand-soft, #eaf3e8);
+  border: 1px solid var(--brand-line, #cfe1cb);
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--brand-ink, #1d4a1c);
+}
+.warnLine { margin-top: 4px; color: #b42318; font-weight: 600; }
+.freqBox {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line, #e6e8df);
+  border-radius: 10px;
+  background: var(--bg, #f6f7f3);
+}
+.freqTitle { margin-bottom: 8px; font-size: 12.5px; font-weight: 700; color: var(--ink, #18221b); }
+.freqTitle span { margin-left: 6px; font-weight: 500; color: var(--muted, #79847b); }
+.freqChips { display: flex; flex-wrap: wrap; gap: 6px; }
+.freqChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid var(--brand-line, #cfe1cb);
+  border-radius: 999px;
+  background: var(--surface, #fff);
+  color: var(--brand-ink, #1d4a1c);
+  font-family: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.freqChip:hover { border-color: var(--brand, #1b3a2a); background: var(--brand-soft, #eaf3e8); }
+.freqChip b {
+  width: 18px; height: 18px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 50%;
+  background: var(--brand, #1b3a2a); color: #fff;
+  font-size: 13px; line-height: 1;
+}
+.freqChip span { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.freqChip em { font-style: normal; color: var(--ink-2, #3d4a40); font-variant-numeric: tabular-nums; }

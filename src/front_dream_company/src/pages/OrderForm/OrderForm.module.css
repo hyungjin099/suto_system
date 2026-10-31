@@ -242,3 +242,32 @@
   color: var(--brand, #2563eb);
   border-bottom-color: var(--brand, #2563eb);
 }
+
+/* 재주문 안내 */
+.reorderNotice {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 11px 14px;
+  background: var(--brand-soft);
+  border: 1px solid var(--brand-line);
+  border-radius: 10px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--brand-ink);
+}
+.reorderSkipped { margin-top: 4px; font-size: 12.5px; color: #b42318; }
+.reorderNoticeX {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}

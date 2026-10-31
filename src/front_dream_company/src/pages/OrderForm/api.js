@@ -45,6 +45,13 @@ export async function fetchClientOrders(cliCode, { from, to } = {}) {
   }));
 }
 
+/** 자주 주문한 품목 (최근 90일, 같은 제품+규격 반복 횟수순) */
+export async function fetchFrequentItems(cliCode) {
+  if (!cliCode) return [];
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/frequent-items`);
+  return res.data; // [{ product, productLabel, width, length, rolls, destination, note, orderCount }]
+}
+
 /** 지금 이 거래처에게 보여줄 팝업 1건. 없으면 null (204) */
 export async function fetchActivePopup(cliCode) {
   const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/popup`);

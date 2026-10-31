@@ -58,6 +58,7 @@
         <result property="cutDone"        column="CUT_DONE"/>
         <result property="cancelled"      column="CANCEL_YN"/>
         <result property="cancelledAt"    column="CANCELLED_AT"/>
+        <result property="restoredOrderId" column="RESTORED_ORDER_ID"/>
         <result property="createdBy"      column="CREATED_BY"/>
     </resultMap>
 
@@ -67,7 +68,7 @@
             oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE, it.CANCEL_YN, it.CANCELLED_AT,
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE, it.CANCEL_YN, it.CANCELLED_AT, it.RESTORED_ORDER_ID,
             (SELECT a.ACTOR FROM ORDER_AUDIT a
               WHERE a.ORDER_NUM = oi.ORDER_NUM AND a.ACTION = 'CREATE'
               ORDER BY a.AUDIT_NUM LIMIT 1) AS CREATED_BY
@@ -91,7 +92,7 @@
             oi.STATUS,
             oi.CLI_CODE, ci.CLI_COMP_NAME,
             it.PRODUCT, it.PRODUCT_LABEL, it.WIDTH, it.LENGTH, it.ROLLS,
-            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE, it.CANCEL_YN, it.CANCELLED_AT
+            it.DESTINATION, it.NOTE, it.DELIVERY_DATE, it.UNIT_PRICE, it.ALIAS_NAME, it.CUT_DONE, it.CANCEL_YN, it.CANCELLED_AT, it.RESTORED_ORDER_ID
         FROM ORDER_ITEM it
         JOIN ORDER_INFO  oi ON oi.ORDER_NUM = it.ORDER_NUM
         LEFT JOIN CLIENT_INFO ci ON ci.CLI_CODE = oi.CLI_CODE
@@ -151,12 +152,24 @@
         ORDER BY oi.ORDER_NUM, it.ITEM_NUM
     </select>
 
-    <!-- 주문 품목 취소/복구 (행은 지우지 않고 표시만 바꿔 이력을 남긴다) -->
+    <!-- 주문 품목 취소 (행은 지우지 않고 표시만 바꿔 이력을 남긴다) -->
     <update id="updateCancel">
         UPDATE ORDER_ITEM
         SET CANCEL_YN    = #{cancelYn},
             CANCELLED_AT = IF(#{cancelYn} = 'Y', NOW(), NULL)
         WHERE ITEM_NUM = #{itemNum}
+    </update>
+
+    <!-- 새 주문으로 복구 시작: 취소됐고 아직 복구 안 된 품목만 선점('-'). 0건이면 이미 복구됨/처리 중 -->
+    <update id="claimRestore">
+        UPDATE ORDER_ITEM
+        SET RESTORED_ORDER_ID = '-'
+        WHERE ITEM_NUM = #{itemNum} AND CANCEL_YN = 'Y' AND RESTORED_ORDER_ID IS NULL
+    </update>
+
+    <!-- 복구로 만든 새 주문번호 기록 (null 이면 선점 해제) -->
+    <update id="updateRestored">
+        UPDATE ORDER_ITEM SET RESTORED_ORDER_ID = #{orderId,jdbcType=VARCHAR} WHERE ITEM_NUM = #{itemNum}
     </update>
 
     <!-- 거래처별 주문 내역 조회 (최신순) -->

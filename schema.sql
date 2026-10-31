@@ -129,6 +129,7 @@ CREATE TABLE ORDER_ITEM (
     CUT_DONE      CHAR(1) NOT NULL DEFAULT 'N',            -- 재단 작업 완료 여부 'Y'/'N'. 관리자 화면 전용(스프레드시트와 연동 안 함)
     CANCEL_YN     CHAR(1) NOT NULL DEFAULT 'N',            -- 취소 여부 'Y'/'N'. 삭제 대신 취소 처리해 이력을 남긴다(시트와 무관)
     CANCELLED_AT  DATETIME NULL,                           -- 취소한 시각
+    RESTORED_ORDER_ID VARCHAR(30) NULL,                    -- 취소 후 새 주문으로 복구했다면 그 새 주문번호(중복 복구 방지)
     CONSTRAINT PK_ORDER_ITEM PRIMARY KEY (ITEM_NUM),
     CONSTRAINT FK_ITEM_ORDER FOREIGN KEY (ORDER_NUM) REFERENCES ORDER_INFO(ORDER_NUM)
 );
@@ -137,6 +138,8 @@ CREATE TABLE ORDER_ITEM (
 -- 운영 DB 마이그레이션 (주문 취소 처리):
 --   ALTER TABLE ORDER_ITEM ADD COLUMN CANCEL_YN CHAR(1) NOT NULL DEFAULT 'N' AFTER CUT_DONE,
 --                          ADD COLUMN CANCELLED_AT DATETIME NULL AFTER CANCEL_YN;
+-- 운영 DB 마이그레이션 (취소 주문을 새 주문으로 복구):
+--   ALTER TABLE ORDER_ITEM ADD COLUMN RESTORED_ORDER_ID VARCHAR(30) NULL AFTER CANCELLED_AT;
 
 
 -- ==========================================================================

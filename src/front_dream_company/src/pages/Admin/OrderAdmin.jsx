@@ -12,7 +12,8 @@ import Pagination from "./components/Pagination";
 import {
   fetchAdminOrders,
   updateAdminOrderItem,
-  setAdminOrderItemCancelled,
+  cancelAdminOrderItem,
+  restoreAdminOrderItem,
   setOrderItemCutDone,
   fetchClients,
 } from "./api";
@@ -105,6 +106,7 @@ export default function OrderAdmin() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [reorderPrefill, setReorderPrefill] = useState(null); // 재주문으로 연 새 주문 추가 창의 미리 채울 내용
   const [createSaving, setCreateSaving] = useState(false);
   const [clients, setClients] = useState([]);
   const [deleteTarget, setDeleteTarget] = useState(null); // 취소 확인 모달용
@@ -162,28 +164,59 @@ export default function OrderAdmin() {
     }
   };
 
+  // 재주문: 수정 창에서 고치던 내용과 무관하게 저장된 원본(row) 값으로 새 주문 입력창을 연다
+  const onReorderEdit = (row) => {
+    setReorderPrefill({
+      cliCode: row.cliCode,
+      entries: [{
+        product: row.product,
+        productLabel: row.productLabel,
+        width: row.width,
+        length: row.length,
+        rolls: row.rolls,
+        destination: row.destination,
+      }],
+    });
+    setEditingRow(null);
+    setCreating(true);
+  };
+
   const onDeleteEdit = (target) => {
     if (!target) return;
     setDeleteTarget(target); // 확인 모달 오픈
   };
 
-  // 취소/복구: 행은 지우지 않고 표시만 바꾼다. 저장 후 서버 기준으로 다시 불러와 취소 시각까지 맞춘다
-  const changeCancelled = async (target, cancel) => {
+  // 취소: 행은 지우지 않고 표시만 바꾼다. 저장 후 서버 기준으로 다시 불러와 취소 시각까지 맞춘다
+  const confirmDeleteOrder = async () => {
+    if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await setAdminOrderItemCancelled(target.itemNum, cancel);
+      await cancelAdminOrderItem(deleteTarget.itemNum);
       setRows(await fetchAdminOrders());
       setEditingRow(null);
     } catch (err) {
-      alert(err?.response?.data?.message || (cancel ? "취소 처리 중 오류가 발생했습니다." : "복구 중 오류가 발생했습니다."));
+      alert(err?.response?.data?.message || "취소 처리 중 오류가 발생했습니다.");
     } finally {
       setDeleteTarget(null);
+      setDeleting(false);
+    }
+  };
+
+  // 복구: 취소 기록은 이력으로 남기고, 같은 내용으로 새 주문을 접수한다(시트에도 새로 전송)
+  const confirmRestoreOrder = async () => {
+    if (!restoreTarget) return;
+    setDeleting(true);
+    try {
+      const res = await restoreAdminOrderItem(restoreTarget.itemNum);
+      setRows(await fetchAdminOrders());
+      alert(`새 주문 ${res.newOrderId} 로 복구되었습니다.`);
+    } catch (err) {
+      alert(err?.response?.data?.message || "복구 중 오류가 발생했습니다.");
+    } finally {
       setRestoreTarget(null);
       setDeleting(false);
     }
   };
-  const confirmDeleteOrder = () => deleteTarget && changeCancelled(deleteTarget, true);
-  const confirmRestoreOrder = () => restoreTarget && changeCancelled(restoreTarget, false);
 
   useEffect(() => {
     fetchAdminOrders()
@@ -321,6 +354,7 @@ export default function OrderAdmin() {
       "단가":       r.unitPrice ?? "",
       "취소여부":   r.cancelled ? "취소" : "",
       "취소일시":   r.cancelledAt ? fmtDateTime(r.cancelledAt) : "",
+      "복구주문번호": r.restoredOrderId || "",
     }));
     downloadXlsx(excelRows, `주문내역_${todayYmd()}`, "주문내역");
   };
@@ -352,7 +386,7 @@ export default function OrderAdmin() {
             </button>
             <button
               type="button"
-              onClick={() => setCreating(true)}
+              onClick={() => { setReorderPrefill(null); setCreating(true); }}
               style={{
                 height: 36, padding: "0 16px", borderRadius: 8, border: "none",
                 background: "var(--brand)", color: "#fff", fontSize: 13, fontWeight: 700, cursor: "pointer",
@@ -510,7 +544,7 @@ export default function OrderAdmin() {
                     borderLeft: isNew ? "4px solid #28a745" : undefined,
                     transition: "background-color 1.5s ease-out, border-left-color 1.5s ease-out",
                   }}
-                  title={r.cancelled ? "취소된 품목 (클릭하면 복구할 수 있습니다)" : "클릭해서 수정"}
+                  title={r.cancelled ? (r.restoredOrderId ? `새 주문 ${r.restoredOrderId} 로 복구됨` : "취소된 품목 (클릭하면 새 주문으로 복구할 수 있습니다)") : "클릭해서 수정"}
                 >
                   <td className={styles.cellCheck} onClick={(e) => e.stopPropagation()}>
                     <input
@@ -528,10 +562,13 @@ export default function OrderAdmin() {
                     </span>
                     {r.cancelled && (
                       <span
-                        className={styles.cancelBadge}
-                        title={r.cancelledAt ? `${fmtDateTime(r.cancelledAt)}에 취소됨` : "취소됨"}
+                        className={`${styles.cancelBadge} ${r.restoredOrderId ? styles.cancelBadgeRestored : ""}`}
+                        title={
+                          (r.cancelledAt ? `${fmtDateTime(r.cancelledAt)}에 취소됨` : "취소됨")
+                          + (r.restoredOrderId ? ` · 새 주문 ${r.restoredOrderId} 로 복구됨` : "")
+                        }
                       >
-                        취소
+                        {r.restoredOrderId ? "취소&복구" : "취소"}
                       </span>
                     )}
                     {!r.cancelled && r.createdBy && r.createdBy !== "CUSTOMER" && (
@@ -577,6 +614,7 @@ export default function OrderAdmin() {
           onClose={() => setEditingRow(null)}
           onSave={onSaveEdit}
           onDelete={onDeleteEdit}
+          onReorder={onReorderEdit}
         />
       )}
 
@@ -585,9 +623,11 @@ export default function OrderAdmin() {
           clients={clients}
           saving={createSaving}
           setSaving={setCreateSaving}
-          onClose={() => setCreating(false)}
+          prefill={reorderPrefill}
+          onClose={() => { setCreating(false); setReorderPrefill(null); }}
           onCreated={async () => {
             setCreating(false);
+            setReorderPrefill(null);
             // 목록 새로고침
             try {
               const fresh = await fetchAdminOrders();
@@ -613,7 +653,7 @@ export default function OrderAdmin() {
               </div>
               <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)" }}>
                 취소 처리되어 기본 목록에서는 사라지고, 고객 주문 내역에도 보이지 않습니다.<br />
-                취소 이력은 <b>[취소된 주문만]</b>으로 조회할 수 있고 언제든 복구할 수 있습니다.<br />
+                취소 이력은 <b>[취소된 주문만]</b>으로 조회할 수 있고, 필요하면 <b>새 주문으로 복구</b>할 수 있습니다.<br />
                 스프레드시트에는 반영되지 않으니, 시트에서도 처리가 필요하면 <b>작업자에게 공유</b>해주세요.
               </div>
             </div>
@@ -626,9 +666,26 @@ export default function OrderAdmin() {
         />
       )}
 
-      {restoreTarget && (
+      {restoreTarget && restoreTarget.restoredOrderId && (
         <ConfirmDialog
-          title="취소된 품목입니다. 복구하시겠어요?"
+          title="이미 새 주문으로 복구된 품목입니다"
+          body={
+            <div style={{ fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ color: "var(--ink-2)" }}>
+                주문번호 {restoreTarget.orderId} 의 이 품목은<br />
+                새 주문 <b>{restoreTarget.restoredOrderId}</b> 로 복구되었습니다.
+              </div>
+            </div>
+          }
+          confirmLabel="확인"
+          onCancel={() => setRestoreTarget(null)}
+          onConfirm={() => setRestoreTarget(null)}
+        />
+      )}
+
+      {restoreTarget && !restoreTarget.restoredOrderId && (
+        <ConfirmDialog
+          title="취소된 주문을 새 주문으로 복구하시겠어요?"
           body={
             <div style={{ fontSize: 13, lineHeight: 1.6 }}>
               <div style={{ fontWeight: 700, color: "var(--ink)", marginBottom: 4 }}>
@@ -645,13 +702,18 @@ export default function OrderAdmin() {
                   취소 일시 {fmtDateTime(restoreTarget.cancelledAt)}
                 </div>
               )}
-              <div style={{ marginTop: 10, fontSize: 12, color: "var(--muted)" }}>
-                복구하면 다시 일반 주문으로 표시되고 고객 주문 내역에도 보입니다.<br />
-                스프레드시트에는 자동 반영되지 않으니, 이미 시트에 없는 품목이라면 <b>작업자에게 공유</b>해주세요.
+              <div style={{ marginTop: 10, color: "var(--ink)" }}>
+                <b>취소된 주문은 새 주문으로 복구됩니다.</b><br />
+                새 주문번호와 현재 시각으로 접수되고, 납기예정일도 새로 계산되며, 스프레드시트에도 새로 전송됩니다.
+                단가는 복구 시점의 단가가 적용됩니다.
+              </div>
+              <div style={{ marginTop: 10, padding: "8px 10px", borderRadius: 8, background: "#fef2f2", color: "#b42318", fontWeight: 600 }}>
+                취소한 주문이 시트에 남아있으면 안됩니다.<br />
+                취소한 주문이 시트에서 제거되었는지 확인 후 진행해주세요.
               </div>
             </div>
           }
-          confirmLabel={deleting ? "복구 중…" : "복구"}
+          confirmLabel={deleting ? "복구 중…" : "새 주문으로 복구"}
           disabled={deleting}
           onCancel={() => !deleting && setRestoreTarget(null)}
           onConfirm={confirmRestoreOrder}

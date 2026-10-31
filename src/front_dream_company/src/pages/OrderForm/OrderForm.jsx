@@ -11,9 +11,11 @@ import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
 import UnavailableScreen from "./components/UnavailableScreen";
 import PopupModal from "./components/PopupModal";
+import FrequentItems from "./components/FrequentItems";
+import { entriesToItems, matchFabric, isBlankItem } from "./reorder";
 import { IconPlus, IconChevron } from "./components/Icons";
 import { emptyItem, validateItem } from "./constants";
-import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations, fetchOrderAvailability } from "./api";
+import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations, fetchOrderAvailability, fetchFrequentItems } from "./api";
 import styles from "./OrderForm.module.css";
 
 const cx = (...args) => args.filter(Boolean).join(" ");
@@ -55,6 +57,8 @@ export default function OrderForm() {
     fetchClientDestinations(cliCode).then(setDestinations).catch(() => setDestinations([]));
   }, [cliCode]);
   const [errors, setErrors] = useState({ items: {} });
+  const [frequent, setFrequent] = useState([]);
+  const [reorderNotice, setReorderNotice] = useState(null); // { added, skipped[] }
   const [showSummary, setShowSummary] = useState(false);
   const [submitted, setSubmitted] = useState(null);
   const [tab, setTab] = useState("order"); // 'order' | 'history'
@@ -84,6 +88,16 @@ export default function OrderForm() {
       .catch(() => {})
       .finally(() => setFabricsLoading(false));
   }, [cliCode]);
+
+  // 자주 주문한 품목 (지금도 주문 가능한 것만)
+  useEffect(() => {
+    if (!cliCode) { setFrequent([]); return; }
+    fetchFrequentItems(cliCode).then(setFrequent).catch(() => setFrequent([]));
+  }, [cliCode]);
+  const frequentOrderable = useMemo(
+    () => frequent.filter((e) => matchFabric(fabricOptions, e)).slice(0, 6),
+    [frequent, fabricOptions]
+  );
 
   const totalRolls = useMemo(
     () => items.reduce((sum, it) =>
@@ -129,6 +143,18 @@ export default function OrderForm() {
     if (errors.items[id]) {
       setErrors((e) => ({ ...e, items: { ...e.items, [id]: undefined } }));
     }
+  };
+
+  // 재주문·자주 주문한 품목 → 주문서에 카드로 추가 (제품을 아직 안 고른 빈 카드는 대체)
+  const addEntries = (entries) => {
+    const { items: added, skipped } = entriesToItems(entries, fabricOptions, clientName);
+    if (added.length) {
+      setItems((arr) => [...arr.filter((it) => !isBlankItem(it)), ...added]);
+      setErrors({ items: {} });
+      addedRef.current = added[0].id;
+    }
+    setReorderNotice({ added: added.length, skipped });
+    setTab("order");
   };
 
   const removeItem = (id) => {
@@ -211,6 +237,7 @@ export default function OrderForm() {
     setItems([emptyItem(clientName)]);
     setErrors({ items: {} });
     setSubmitted(null);
+    setReorderNotice(null);
     setTab("order");
   };
 
@@ -259,7 +286,17 @@ export default function OrderForm() {
 
       {tab === "history" ? (
         <main className={styles.main}>
-          <OrderHistory cliCode={cliCode} clientName={clientName} />
+          <OrderHistory
+            cliCode={cliCode}
+            clientName={clientName}
+            fabricOptions={fabricOptions}
+            fabricsLoading={fabricsLoading}
+            onReorder={(entries) => {
+              addEntries(entries);
+              addedRef.current = null;               // 내역에서 넘어왔을 땐 맨 위의 안내 문구가 보이게
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
         </main>
       ) : (
       <>
@@ -273,6 +310,24 @@ export default function OrderForm() {
             버튼으로 항목을 늘려주세요.
           </p>
         </section>
+
+        {reorderNotice && (
+          <div className={styles.reorderNotice} role="status">
+            <div>
+              {reorderNotice.added > 0
+                ? <><b>{reorderNotice.added}개 카드</b>를 주문서에 담았습니다. 롤수 등 내용을 확인한 뒤 발주해 주세요.</>
+                : "담을 수 있는 품목이 없습니다."}
+              {reorderNotice.skipped.length > 0 && (
+                <div className={styles.reorderSkipped}>
+                  지금은 주문할 수 없어 담지 못한 품목: {reorderNotice.skipped.join(", ")}
+                </div>
+              )}
+            </div>
+            <button type="button" className={styles.reorderNoticeX} onClick={() => setReorderNotice(null)} aria-label="닫기">×</button>
+          </div>
+        )}
+
+        <FrequentItems entries={frequentOrderable} onPick={(e) => addEntries([e])} />
 
         {/* Products */}
         <section className={cx(styles.section, styles.first)}>

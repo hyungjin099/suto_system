@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { fetchClientOrders } from "../api";
 import { formatNumber } from "../utils";
 import { printOrders, isTouchDevice } from "../printOrders";
+import { matchFabric } from "../reorder";
 import styles from "./OrderHistory.module.css";
 
 const fmtDate = (d) =>
@@ -43,12 +44,13 @@ function rangeFor(preset) {
   };
 }
 
-export default function OrderHistory({ cliCode, clientName }) {
+export default function OrderHistory({ cliCode, clientName, fabricOptions = [], fabricsLoading, onReorder }) {
   const [preset, setPreset] = useState("week");              // 기본: 이번 주(월~일)
   const [{ from, to }, setRange] = useState(() => rangeFor("week"));
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selected, setSelected] = useState(() => new Set());   // 다시 담을 품목(itemNum)
 
   const canPrint = useMemo(() => !isTouchDevice(), []);      // 폰/태블릿은 인쇄 불가
   const rangeInvalid = !from || !to || from > to;
@@ -56,7 +58,7 @@ export default function OrderHistory({ cliCode, clientName }) {
   useEffect(() => {
     if (!cliCode || rangeInvalid) return undefined;
     let cancelled = false;
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setSelected(new Set());
     fetchClientOrders(cliCode, { from, to })
       .then((rows) => { if (!cancelled) setOrders(rows); })
       .catch(() => { if (!cancelled) setError("주문 내역을 불러오지 못했습니다."); })
@@ -78,6 +80,32 @@ export default function OrderHistory({ cliCode, clientName }) {
   );
   const periodText = from === to ? from : `${from} ~ ${to}`;
   const presetLabel = PRESETS.find((p) => p.key === preset)?.label;
+
+  // 지금도 주문할 수 있는 품목(별칭이 살아 있는 것)만 다시 담을 수 있다
+  const orderable = (it) => !fabricsLoading && !!matchFabric(fabricOptions, it);
+  const toggleItem = (itemNum) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemNum)) next.delete(itemNum); else next.add(itemNum);
+      return next;
+    });
+  const toggleOrder = (o) => {
+    const ids = o.items.filter(orderable).map((it) => it.itemNum);
+    if (!ids.length) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      const all = ids.every((id) => next.has(id));
+      ids.forEach((id) => (all ? next.delete(id) : next.add(id)));
+      return next;
+    });
+  };
+  const doReorder = () => {
+    // 오래된 주문부터 순서대로 담는다(화면 목록은 최신순)
+    const entries = [...orders].reverse().flatMap((o) => o.items.filter((it) => selected.has(it.itemNum)));
+    if (!entries.length) return;
+    onReorder(entries);
+    setSelected(new Set());
+  };
 
   const onPrint = () => {
     printOrders({
@@ -167,8 +195,15 @@ export default function OrderHistory({ cliCode, clientName }) {
                     <span className={styles.orderId}>{o.orderId}</span>
                     <span className={styles.date}>{fmtDate(o.orderDate)}</span>
                   </div>
-                  <div className={styles.summary}>
-                    {o.items.length}개 제품 · {rolls}롤
+                  <div className={styles.headRight}>
+                    {onReorder && o.items.some(orderable) && (
+                      <button type="button" className={styles.selOrderBtn} onClick={() => toggleOrder(o)}>
+                        {o.items.filter(orderable).every((it) => selected.has(it.itemNum)) ? "전체 추가 해제" : "전체 추가"}
+                      </button>
+                    )}
+                    <div className={styles.summary}>
+                      {o.items.length}개 제품 · {rolls}롤
+                    </div>
                   </div>
                 </div>
                 <div className={styles.items}>
@@ -196,12 +231,40 @@ export default function OrderHistory({ cliCode, clientName }) {
                           </div>
                         )}
                       </div>
+                      {onReorder && (
+                        orderable(it) ? (
+                          <button
+                            type="button"
+                            className={`${styles.addBtn} ${selected.has(it.itemNum) ? styles.addBtnOn : ""}`}
+                            onClick={() => toggleItem(it.itemNum)}
+                            aria-pressed={selected.has(it.itemNum)}
+                          >
+                            <span className={styles.addIcon} aria-hidden="true">
+                              {selected.has(it.itemNum) ? "✓" : "+"}
+                            </span>
+                            재주문에 추가
+                          </button>
+                        ) : (
+                          <span className={styles.noPick} title="지금은 주문할 수 없는 품목입니다">주문 불가</span>
+                        )
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {selected.size > 0 && (
+        <div className={styles.reorderBar}>
+          <button type="button" className={styles.reorderBtn} onClick={doReorder}>
+            {selected.size}개 품목 다시 주문하기
+          </button>
+          <button type="button" className={styles.reorderClear} onClick={() => setSelected(new Set())}>
+            전체 해제
+          </button>
         </div>
       )}
     </div>

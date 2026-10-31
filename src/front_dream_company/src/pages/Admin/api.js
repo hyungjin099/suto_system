@@ -222,6 +222,7 @@ export async function fetchAdminOrders() {
     cutDone: r.cutDone === "Y",     // 재단 작업 완료 여부
     cancelled: r.cancelled === "Y", // 취소 여부 (취소해도 행은 남아 이력으로 조회됨)
     cancelledAt: r.cancelledAt ? new Date(r.cancelledAt) : null,
+    restoredOrderId: r.restoredOrderId && r.restoredOrderId !== "-" ? r.restoredOrderId : "", // 새 주문으로 복구된 경우 그 주문번호
   }));
 }
 
@@ -236,10 +237,16 @@ export async function updateAdminOrderItem(itemNum, body) {
   return res.data; // AdminOrderRow (서버 반환 그대로)
 }
 
-/** 주문 품목 취소/복구. 행은 지우지 않는다. 시트와 연동 없음 */
-export async function setAdminOrderItemCancelled(itemNum, cancel) {
-  const res = await axios.patch(`${BASE_URL}/api/admin/orders/items/${itemNum}/cancel`, { cancel });
+/** 주문 품목 취소. 행은 지우지 않는다. 시트와 연동 없음 */
+export async function cancelAdminOrderItem(itemNum) {
+  const res = await axios.patch(`${BASE_URL}/api/admin/orders/items/${itemNum}/cancel`);
   return res.data; // { itemNum, cancelled }
+}
+
+/** 취소된 품목을 새 주문으로 복구 (새 주문번호·현재 시각으로 접수, 시트에도 새로 전송) */
+export async function restoreAdminOrderItem(itemNum) {
+  const res = await axios.post(`${BASE_URL}/api/admin/orders/items/${itemNum}/restore`);
+  return res.data; // { itemNum, newOrderId, deliveryDate }
 }
 
 export async function fetchClientDestinations(cliCode) {
@@ -319,4 +326,11 @@ export async function setPopupUse(popupNum, use, replace = false) {
 
 export async function deletePopup(popupNum) {
   await axios.delete(`${BASE_URL}/api/admin/popups/${popupNum}`);
+}
+
+/** 자주 주문한 품목 (최근 90일, 같은 제품+규격 반복 횟수순) — 새 주문 추가 창의 빠른 담기용 */
+export async function fetchFrequentItems(cliCode) {
+  if (!cliCode) return [];
+  const res = await axios.get(`${BASE_URL}/api/clients/${cliCode}/frequent-items`);
+  return res.data; // [{ product, productLabel, width, length, rolls, destination, note, orderCount }]
 }

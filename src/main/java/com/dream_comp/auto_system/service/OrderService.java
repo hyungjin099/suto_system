@@ -2,6 +2,7 @@ package com.dream_comp.auto_system.service;
 
 import com.dream_comp.auto_system.dto.AdminOrderRowDto;
 import com.dream_comp.auto_system.dto.ClientFabricDto;
+import com.dream_comp.auto_system.dto.FrequentItemDto;
 import com.dream_comp.auto_system.dto.OrderItemDto;
 import com.dream_comp.auto_system.dto.OrderItemUpdateDto;
 import com.dream_comp.auto_system.dto.OrderRequestDto;
@@ -176,6 +177,44 @@ public class OrderService {
         return orderMapper.findByCliCode(cliCode, fromDt, toDt);
     }
 
+    /** 자주 주문하는 품목 조회 기간(일) */
+    private static final int FREQUENT_DAYS = 90;
+    private static final int FREQUENT_LIMIT = 8;
+
+    /**
+     * 최근 90일 주문에서 '같은 제품 + 같은 규격(폭×길이)'을 많이 주문한 순으로 상위 품목을 돌려준다.
+     * 취소된 품목은 주문 내역 쿼리에서 이미 제외된다. 롤수·납품처·비고는 가장 최근 주문의 값.
+     */
+    public List<FrequentItemDto> findFrequentItems(String cliCode) {
+        List<OrderVo> orders = findByCliCode(cliCode, LocalDate.now(KST).minusDays(FREQUENT_DAYS), null); // 최신순
+        Map<String, FrequentItemDto> byKey = new java.util.LinkedHashMap<>();
+        for (OrderVo o : orders) {
+            if (o.getItems() == null) continue;
+            for (OrderItemVo it : o.getItems()) {
+                if (it.getItemNum() == null || it.getProduct() == null) continue;
+                String label = it.getProductLabel() == null ? "" : it.getProductLabel();
+                String key = it.getProduct() + "|" + label + "|" + it.getWidth() + "|" + it.getLength();
+                FrequentItemDto f = byKey.get(key);
+                if (f == null) {             // 최신순이므로 처음 만난 것이 가장 최근 주문
+                    f = new FrequentItemDto();
+                    f.setProduct(it.getProduct());
+                    f.setProductLabel(label);
+                    f.setWidth(it.getWidth());
+                    f.setLength(it.getLength());
+                    f.setRolls(it.getRolls());
+                    f.setDestination(it.getDestination());
+                    f.setNote(it.getNote());
+                    byKey.put(key, f);
+                }
+                f.setOrderCount(f.getOrderCount() + 1);
+            }
+        }
+        return byKey.values().stream()
+                .sorted(java.util.Comparator.comparingInt(FrequentItemDto::getOrderCount).reversed()) // 동률은 최근 순 유지(안정 정렬)
+                .limit(FREQUENT_LIMIT)
+                .toList();
+    }
+
     public List<AdminOrderRowDto> findAllForAdmin() {
         return orderMapper.findAllAdmin();
     }
@@ -190,22 +229,65 @@ public class OrderService {
     }
 
     /**
-     * 품목 취소/복구. 행을 지우지 않고 취소 표시만 한다(취소 이력 조회용).
+     * 품목 취소. 행을 지우지 않고 취소 표시만 한다(취소 이력 조회용).
      * 시트에는 반영하지 않는다: 이미 시트에 올라간 주문은 작업자가 직접 처리하는 설계.
      */
     @Transactional
-    public boolean setCancelled(Long itemNum, boolean cancel) {
+    public void cancelItem(Long itemNum) {
         AdminOrderRowDto row = orderMapper.findAdminItemByNum(itemNum);
         if (row == null) throw new IllegalArgumentException("존재하지 않는 주문 품목입니다");
+        if ("Y".equals(row.getCancelled())) return;   // 이미 취소됨
 
-        String next = cancel ? "Y" : "N";
-        if (next.equals(row.getCancelled())) return cancel;   // 이미 같은 상태면 기록하지 않음
+        orderMapper.updateCancel(itemNum, "Y");
+        orderAuditService.log("CANCEL", row.getOrderNum(), itemNum, snapshotOf(row), null, "품목 취소");
+    }
 
-        orderMapper.updateCancel(itemNum, next);
+    /**
+     * 취소된 품목을 '새 주문'으로 복구한다.
+     * 취소 기록은 이력으로 남기고, 같은 내용으로 새 주문번호·현재 시각의 주문을 새로 접수한다
+     * (납기예정일 계산, 18시 이후 이월, 시트 전송은 일반 신규 주문과 동일).
+     * 단가는 복구 시점의 거래처 단가가 새로 적용된다.
+     */
+    public OrderResponseDto restoreAsNewOrder(Long itemNum) {
+        AdminOrderRowDto row = orderMapper.findAdminItemByNum(itemNum);
+        if (row == null) throw new IllegalArgumentException("존재하지 않는 주문 품목입니다");
+        if (!"Y".equals(row.getCancelled())) throw new IllegalArgumentException("취소된 품목만 복구할 수 있습니다");
+        if (row.getRestoredOrderId() != null && !"-".equals(row.getRestoredOrderId())) {
+            throw new IllegalArgumentException("이미 새 주문(" + row.getRestoredOrderId() + ")으로 복구된 품목입니다");
+        }
+        // 더블클릭·동시 작업으로 새 주문이 두 번 만들어지지 않도록 먼저 선점한다
+        if (orderMapper.claimRestore(itemNum) == 0) {
+            throw new IllegalArgumentException("이미 복구되었거나 복구 처리 중인 품목입니다");
+        }
 
-        orderAuditService.log(cancel ? "CANCEL" : "RESTORE", row.getOrderNum(), itemNum,
-                snapshotOf(row), null, cancel ? "품목 취소" : "품목 취소 복구");
-        return cancel;
+        OrderResponseDto res;
+        try {
+            OrderItemDto item = new OrderItemDto();
+            item.setProduct(row.getProduct());
+            item.setProductLabel(row.getProductLabel());
+            item.setWidth(row.getWidth() == null ? 0 : row.getWidth());
+            item.setLength(row.getLength() == null ? 0 : row.getLength());
+            item.setRolls(row.getRolls() == null ? 0 : row.getRolls());
+            item.setDestination(row.getDestination());
+            item.setNote(row.getNote());
+
+            OrderRequestDto req = new OrderRequestDto();
+            req.setCliCode(row.getCliCode());
+            req.setClientName(row.getCliCompName() == null ? "" : row.getCliCompName());
+            req.setManagerPhone("");
+            req.setItems(List.of(item));
+            res = submitOrder(req);
+        } catch (RuntimeException e) {
+            orderMapper.updateRestored(itemNum, null);   // 새 주문이 만들어지지 않았으니 선점 해제
+            throw e;
+        }
+
+        orderMapper.updateRestored(itemNum, res.getOrderId());
+        Map<String, Object> after = new HashMap<>();
+        after.put("restoredOrderId", res.getOrderId());
+        orderAuditService.log("RESTORE", row.getOrderNum(), itemNum, snapshotOf(row), after,
+                "새 주문 " + res.getOrderId() + "(으)로 복구");
+        return res;
     }
 
     @Transactional

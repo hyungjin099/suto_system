@@ -102,6 +102,13 @@ public class OrderController {
         return ResponseEntity.ok(orderService.findByCliCode(cliCode, from, to));
     }
 
+    /** 자주 주문한 품목 (최근 90일, 같은 제품+규격 반복 횟수순) — 주문 폼의 빠른 담기용 */
+    @GetMapping("/api/clients/{cliCode}/frequent-items")
+    public ResponseEntity<List<com.dream_comp.auto_system.dto.FrequentItemDto>> frequentItems(
+            @PathVariable String cliCode) {
+        return ResponseEntity.ok(orderService.findFrequentItems(cliCode));
+    }
+
     /** 관리자: 전체 주문 내역 (품목 단위 평면, 스프레드시트와 비교용) */
     @GetMapping("/api/admin/orders")
     public ResponseEntity<List<com.dream_comp.auto_system.dto.AdminOrderRowDto>> findAllForAdmin() {
@@ -128,16 +135,22 @@ public class OrderController {
         return ResponseEntity.ok(Map.of("itemNum", itemNum, "cutDone", done));
     }
 
-    /** 관리자: 주문 품목 취소/복구 (DB 전용 — 행은 남기고 취소 표시만 함). body: {"cancel": true|false} */
+    /** 관리자: 주문 품목 취소 (DB 전용 — 행은 남기고 취소 표시만 함. 시트는 작업자가 직접 처리) */
     @PatchMapping("/api/admin/orders/items/{itemNum}/cancel")
-    public ResponseEntity<Map<String, Object>> setCancelled(@PathVariable Long itemNum,
-                                                             @RequestBody Map<String, Object> body) {
-        Object v = body.get("cancel");
-        if (!(v instanceof Boolean)) {
-            return ResponseEntity.badRequest().body(Map.of("message", "cancel(true/false)이 필요합니다"));
-        }
-        boolean cancelled = orderService.setCancelled(itemNum, (Boolean) v);
-        return ResponseEntity.ok(Map.of("itemNum", itemNum, "cancelled", cancelled));
+    public ResponseEntity<Map<String, Object>> cancelItem(@PathVariable Long itemNum) {
+        orderService.cancelItem(itemNum);
+        return ResponseEntity.ok(Map.of("itemNum", itemNum, "cancelled", true));
+    }
+
+    /** 관리자: 취소된 품목을 새 주문으로 복구 (새 주문번호·현재 시각으로 접수, 시트에도 새로 전송) */
+    @PostMapping("/api/admin/orders/items/{itemNum}/restore")
+    public ResponseEntity<Map<String, Object>> restoreItem(@PathVariable Long itemNum) {
+        OrderResponseDto res = orderService.restoreAsNewOrder(itemNum);
+        Map<String, Object> body = new HashMap<>();
+        body.put("itemNum", itemNum);
+        body.put("newOrderId", res.getOrderId());
+        body.put("deliveryDate", res.getDeliveryDate());
+        return ResponseEntity.ok(body);
     }
 
     /** 관리자: 내가 아직 안 본 발주 수 + 미리보기 (최신 5건) */
