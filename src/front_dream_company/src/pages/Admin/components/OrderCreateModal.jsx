@@ -8,7 +8,7 @@ import axios from "axios";
 import Select, { components as rsComponents } from "react-select";
 import ModalShell from "./ModalShell";
 import { IconX } from "./Icons";
-import { fetchClientDestinations, fetchFrequentItems } from "../api";
+import { fetchClientDestinations } from "../api";   // fetchFrequentItems: 자주 주문한 품목 비활성화
 import { matchFabric } from "../../OrderForm/reorder";
 import styles from "./OrderCreateModal.module.css";
 
@@ -135,7 +135,8 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
   const [pending, setPending] = useState(prefillClientOk ? prefill.entries : null); // 원단 목록이 로드되면 입력 행으로 변환
   const [skipped, setSkipped] = useState([]);
   const [fabricsReadyFor, setFabricsReadyFor] = useState("");   // 어느 거래처의 원단 목록까지 로드됐는지
-  const [frequent, setFrequent] = useState([]);
+  // [재주문 일부 기능 임시 비활성화]
+  // const [frequent, setFrequent] = useState([]);
   const [fabricOptions, setFabricOptions] = useState([]);
   const [fabricsLoading, setFabricsLoading] = useState(false);
   const [destinations, setDestinations] = useState([]);
@@ -205,7 +206,7 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
     setPending(null);
   }, [pending, cliCode, fabricsReadyFor, fabricOptions]);
 
-  // 자주 주문한 품목 (거래처를 고르면 표시, 지금도 주문 가능한 것만)
+  /* [재주문 일부 기능 임시 비활성화] 자주 주문한 품목 (거래처를 고르면 표시, 지금도 주문 가능한 것만)
   useEffect(() => {
     if (!cliCode) { setFrequent([]); return; }
     let alive = true;
@@ -225,6 +226,7 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
     if (!fab) return;
     setItems((arr) => [...arr.filter((it) => it.fabricKey), itemFromEntry(e, fab)]);
   };
+  */
 
   const setItem = (id, patch) =>
     setItems((arr) => arr.map((it) => (it._id === id ? { ...it, ...patch } : it)));
@@ -346,6 +348,7 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
               </button>
             </div>
 
+            {/* [재주문 일부 기능 임시 비활성화] 자주 주문한 품목 칩
             {frequentOrderable.length > 0 && (
               <div className={styles.freqBox}>
                 <div className={styles.freqTitle}>자주 주문한 품목 <span>누르면 품목이 추가됩니다</span></div>
@@ -366,6 +369,7 @@ export default function OrderCreateModal({ clients, onClose, onCreated, saving, 
                 </div>
               </div>
             )}
+            */}
 
             <div className={styles.itemsList}>
               {items.map((it, idx) => (

@@ -164,7 +164,7 @@ export default function OrderAdmin() {
     }
   };
 
-  // 재주문: 수정 창에서 고치던 내용과 무관하게 저장된 원본(row) 값으로 새 주문 입력창을 연다
+  /* [재주문 일부 기능 임시 비활성화] 재주문: 수정 창에서 고치던 내용과 무관하게 저장된 원본(row) 값으로 새 주문 입력창을 연다
   const onReorderEdit = (row) => {
     setReorderPrefill({
       cliCode: row.cliCode,
@@ -180,6 +180,7 @@ export default function OrderAdmin() {
     setEditingRow(null);
     setCreating(true);
   };
+  */
 
   const onDeleteEdit = (target) => {
     if (!target) return;
@@ -614,7 +615,7 @@ export default function OrderAdmin() {
           onClose={() => setEditingRow(null)}
           onSave={onSaveEdit}
           onDelete={onDeleteEdit}
-          onReorder={onReorderEdit}
+          /* [재주문 일부 기능 임시 비활성화] 재주문 버튼 연결: onReorder={onReorderEdit} */
         />
       )}
 

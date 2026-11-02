@@ -11,11 +11,12 @@ import SummaryModal from "./components/SummaryModal";
 import SuccessScreen from "./components/SuccessScreen";
 import UnavailableScreen from "./components/UnavailableScreen";
 import PopupModal from "./components/PopupModal";
-import FrequentItems from "./components/FrequentItems";
-import { entriesToItems, matchFabric, isBlankItem } from "./reorder";
+// [재주문 일부 기능 임시 비활성화] 자주 주문한 품목(칩)
+// import FrequentItems from "./components/FrequentItems";
+import { entriesToItems, isBlankItem } from "./reorder";   // matchFabric 은 자주 주문한 품목에서만 쓰여 함께 비활성화
 import { IconPlus, IconChevron } from "./components/Icons";
 import { emptyItem, validateItem } from "./constants";
-import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations, fetchOrderAvailability, fetchFrequentItems } from "./api";
+import { fetchClientFabrics, submitOrder, fetchClientInfo, fetchClientDestinations, fetchOrderAvailability } from "./api";   // fetchFrequentItems: 자주 주문한 품목 비활성화
 import styles from "./OrderForm.module.css";
 
 const cx = (...args) => args.filter(Boolean).join(" ");
@@ -57,7 +58,8 @@ export default function OrderForm() {
     fetchClientDestinations(cliCode).then(setDestinations).catch(() => setDestinations([]));
   }, [cliCode]);
   const [errors, setErrors] = useState({ items: {} });
-  const [frequent, setFrequent] = useState([]);
+  // [재주문 일부 기능 임시 비활성화]
+  // const [frequent, setFrequent] = useState([]);
   const [reorderNotice, setReorderNotice] = useState(null); // { added, skipped[] }
   const [showSummary, setShowSummary] = useState(false);
   const [submitted, setSubmitted] = useState(null);
@@ -89,7 +91,7 @@ export default function OrderForm() {
       .finally(() => setFabricsLoading(false));
   }, [cliCode]);
 
-  // 자주 주문한 품목 (지금도 주문 가능한 것만)
+  /* [재주문 일부 기능 임시 비활성화] 자주 주문한 품목 (지금도 주문 가능한 것만)
   useEffect(() => {
     if (!cliCode) { setFrequent([]); return; }
     fetchFrequentItems(cliCode).then(setFrequent).catch(() => setFrequent([]));
@@ -98,6 +100,7 @@ export default function OrderForm() {
     () => frequent.filter((e) => matchFabric(fabricOptions, e)).slice(0, 6),
     [frequent, fabricOptions]
   );
+  */
 
   const totalRolls = useMemo(
     () => items.reduce((sum, it) =>
@@ -327,7 +330,7 @@ export default function OrderForm() {
           </div>
         )}
 
-        <FrequentItems entries={frequentOrderable} onPick={(e) => addEntries([e])} />
+        {/* [재주문 일부 기능 임시 비활성화] <FrequentItems entries={frequentOrderable} onPick={(e) => addEntries([e])} /> */}
 
         {/* Products */}
         <section className={cx(styles.section, styles.first)}>

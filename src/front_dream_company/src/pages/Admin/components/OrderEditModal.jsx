@@ -202,6 +202,7 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, onReord
                 {deleting ? "처리 중…" : "주문 취소"}
               </button>
             )}
+            {/* [재주문 일부 기능 임시 비활성화] 재주문 버튼
             {onReorder && (
               <button
                 type="button"
@@ -213,6 +214,7 @@ export default function OrderEditModal({ row, onClose, onSave, onDelete, onReord
                 재주문
               </button>
             )}
+            */}
           </div>
           <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
             <button type="button" onClick={onClose} disabled={saving || deleting} style={btnGhost}>닫기</button>
