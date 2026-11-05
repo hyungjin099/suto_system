@@ -424,9 +424,9 @@
   flex-wrap: wrap;
   gap: 10px;
   padding: 9px 10px;
-  border: 2px solid oklch(0.82 0.12 75);
+  border: 2px solid #f2b966;
   border-radius: 9px;
-  background: oklch(0.99 0.025 90);
+  background: #fffce9;
   animation: popIn 0.18s ease;
 }
 

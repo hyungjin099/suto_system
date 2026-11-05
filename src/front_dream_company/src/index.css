@@ -7,14 +7,14 @@
   --ink-2: #3d4a40;
   --muted: #79847b;
 
-  --brand: oklch(0.52 0.13 152);
-  --brand-ink: oklch(0.32 0.09 152);
-  --brand-soft: oklch(0.96 0.04 152);
-  --brand-soft-2: oklch(0.92 0.06 152);
-  --brand-line: oklch(0.85 0.07 152);
+  --brand: #137d41;
+  --brand-ink: #003f1a;
+  --brand-soft: #dffae5;
+  --brand-soft-2: #c8f1d1;
+  --brand-line: #acdcb8;
 
-  --danger: oklch(0.55 0.16 28);
-  --danger-soft: oklch(0.96 0.04 28);
+  --danger: #bd4238;
+  --danger-soft: #ffe8e3;
 
   --radius: 14px;
   --shadow-card: 0 1px 0 rgba(20, 30, 22, 0.04),
